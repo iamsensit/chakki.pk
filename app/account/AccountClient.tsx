@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { Save, MailCheck, ShieldCheck, KeyRound, CheckCircle } from 'lucide-react'
+import { Save, MailCheck, ShieldCheck, KeyRound, CheckCircle, Trash2, X, AlertTriangle } from 'lucide-react'
 import { changePasswordSchema } from '@/app/lib/validators'
+import { signOut } from 'next-auth/react'
 
 export default function AccountClient() {
 	const [loading, setLoading] = useState(true)
@@ -15,6 +16,10 @@ export default function AccountClient() {
 	const [submitting, setSubmitting] = useState<{ [k: string]: boolean }>({})
 	const [passwordErrors, setPasswordErrors] = useState<{ currentPassword?: string; newPassword?: string }>({})
 	const passwordFormRef = useRef<HTMLFormElement>(null)
+	const [deleting, setDeleting] = useState(false)
+	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+	const [deletePassword, setDeletePassword] = useState('')
+	const [deletePasswordError, setDeletePasswordError] = useState('')
 
 	useEffect(() => {
 		;(async () => {
@@ -117,6 +122,44 @@ export default function AccountClient() {
 		}
 	}
 
+	async function onDeleteAccount() {
+		setShowDeleteDialog(true)
+		setDeletePassword('')
+		setDeletePasswordError('')
+	}
+
+	async function confirmDeleteAccount() {
+		if (!deletePassword.trim()) {
+			setDeletePasswordError('Password is required')
+			return
+		}
+		
+		setDeleting(true)
+		setDeletePasswordError('')
+		try {
+			const res = await fetch('/api/account', { 
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ password: deletePassword })
+			})
+			const json = await res.json()
+			if (!res.ok || !json?.success) {
+				if (json?.errors?.password) {
+					setDeletePasswordError(json.errors.password)
+				} else {
+					throw new Error(json?.message || 'Delete failed')
+				}
+				return
+			}
+			toast.success('Account deleted')
+			await signOut({ callbackUrl: '/' })
+		} catch (e: any) {
+			toast.error(e.message || 'Could not delete account')
+		} finally {
+			setDeleting(false)
+		}
+	}
+
 	if (loading) return <div className="skeleton h-48" />
 
 	return (
@@ -194,6 +237,100 @@ export default function AccountClient() {
 					</div>
 				</form>
 			</motion.section>
+
+			<motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }} className="rounded-md border p-4 space-y-3 lg:col-span-2 bg-white">
+				<div className="text-sm font-medium flex items-center gap-2 text-red-700"><Trash2 className="h-4 w-4" /> Delete account</div>
+				<p className="text-sm text-slate-600">This will delete your account data and sign you out. This action cannot be undone.</p>
+				<button
+					disabled={deleting}
+					onClick={onDeleteAccount}
+					className="inline-flex items-center gap-2 rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+				>
+					<Trash2 className="h-4 w-4" /> Delete my account
+				</button>
+			</motion.section>
+
+			{/* Delete Account Confirmation Dialog */}
+			{showDeleteDialog && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => !deleting && setShowDeleteDialog(false)}>
+					<motion.div
+						initial={{ opacity: 0, scale: 0.95 }}
+						animate={{ opacity: 1, scale: 1 }}
+						exit={{ opacity: 0, scale: 0.95 }}
+						onClick={(e) => e.stopPropagation()}
+						className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4"
+					>
+						<div className="flex items-start gap-3">
+							<div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+								<AlertTriangle className="h-5 w-5 text-red-600" />
+							</div>
+							<div className="flex-1">
+								<h3 className="text-lg font-semibold text-gray-900 mb-1">Delete Account</h3>
+								<p className="text-sm text-gray-600 mb-4">
+									This action cannot be undone. This will permanently delete your account, orders, and all associated data.
+								</p>
+								<div className="space-y-3">
+									<div>
+										<label className="block text-sm font-medium text-gray-700 mb-1">
+											Enter your password to confirm
+										</label>
+										<input
+											type="password"
+											value={deletePassword}
+											onChange={(e) => {
+												setDeletePassword(e.target.value)
+												setDeletePasswordError('')
+											}}
+											placeholder="Current password"
+											disabled={deleting}
+											className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
+												deletePasswordError ? 'border-red-500' : 'border-gray-300'
+											}`}
+											autoFocus
+										/>
+										{deletePasswordError && (
+											<p className="mt-1 text-xs text-red-600">{deletePasswordError}</p>
+										)}
+									</div>
+								</div>
+							</div>
+							<button
+								onClick={() => !deleting && setShowDeleteDialog(false)}
+								disabled={deleting}
+								className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+							>
+								<X className="h-5 w-5" />
+							</button>
+						</div>
+						<div className="flex gap-3 justify-end pt-4 border-t">
+							<button
+								onClick={() => setShowDeleteDialog(false)}
+								disabled={deleting}
+								className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={confirmDeleteAccount}
+								disabled={deleting || !deletePassword.trim()}
+								className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+							>
+								{deleting ? (
+									<>
+										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+										Deleting...
+									</>
+								) : (
+									<>
+										<Trash2 className="h-4 w-4" />
+										Delete Account
+									</>
+								)}
+							</button>
+						</div>
+					</motion.div>
+				</div>
+			)}
 		</div>
 	)
 }

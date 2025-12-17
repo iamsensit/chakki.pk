@@ -7,9 +7,11 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { User, Mail, Lock, ArrowRight } from 'lucide-react'
 import { useErrorDialog } from '@/app/contexts/ErrorDialogContext'
+import { useRouter } from 'next/navigation'
 
 export default function SignupPage() {
 	const { showError } = useErrorDialog()
+	const router = useRouter()
 	const [name, setName] = useState('')
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
@@ -50,14 +52,8 @@ export default function SignupPage() {
 				return
 			}
 
-			// Then sign in with credentials
-			const result = await signIn('credentials', { email, password, callbackUrl: '/', redirect: false })
-			if (result?.error) {
-				showError(result.error === 'CredentialsSignin' ? 'Account created but failed to sign in' : result.error, 'Sign In Failed')
-			} else if (result?.ok) {
-				toast.success('Account created successfully!')
-				window.location.href = '/'
-			}
+			toast.success('Account created! Please verify your email to continue.')
+			router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
 		} catch (error: any) {
 			showError(error.message || 'Failed to create account', 'Signup Error')
 		} finally {

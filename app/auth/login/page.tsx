@@ -1,19 +1,34 @@
 "use client"
 
 import { signIn } from 'next-auth/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { loginSchema } from '@/app/lib/validators'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Mail, Lock, ArrowRight } from 'lucide-react'
 import { useErrorDialog } from '@/app/contexts/ErrorDialogContext'
+import { useSession } from 'next-auth/react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function LoginPage() {
 	const { showError } = useErrorDialog()
+	const { status } = useSession()
+	const router = useRouter()
+	const searchParams = useSearchParams()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
 	const [loading, setLoading] = useState(false)
+	const [unverified, setUnverified] = useState(false)
+
+	// Handle error passed by NextAuth (?error=EMAIL_NOT_VERIFIED)
+	useEffect(() => {
+		const err = searchParams.get('error')
+		if (err && err.toUpperCase().includes('EMAIL_NOT_VERIFIED')) {
+			setUnverified(true)
+			toast.error('Email not verified. Check your inbox for the code.')
+		}
+	}, [searchParams, router])
 
 	const validate = () => {
 		const result = loginSchema.safeParse({ email, password })
@@ -35,11 +50,31 @@ export default function LoginPage() {
 		if (!validate()) return
 		setLoading(true)
 		try {
-			const searchParams = new URLSearchParams(window.location.search)
+			// Pre-check verification status to avoid hitting NextAuth error path
+			const checkRes = await fetch('/api/auth/check-verification', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email })
+			})
+			const checkJson = await checkRes.json()
+			if (checkRes.ok && checkJson?.data?.exists && !checkJson.data.verified) {
+				setUnverified(true)
+				toast.error('Email not verified. Check your inbox for the code.')
+				router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+				return
+			}
+
 			const callbackUrl = searchParams.get('callbackUrl') || '/'
 			const result = await signIn('credentials', { email, password, callbackUrl, redirect: false })
 			if (result?.error) {
-				showError(result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error, 'Login Failed')
+				if (result.error === 'EMAIL_NOT_VERIFIED' || result.error?.includes('not verified')) {
+					setUnverified(true)
+					toast.error('Email not verified. Check your inbox for the code.')
+					router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+				} else {
+					const msg = result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error
+					showError(msg, 'Login Failed')
+				}
 			} else if (result?.ok) {
 				window.location.href = callbackUrl
 			}
@@ -129,6 +164,49 @@ export default function LoginPage() {
 						</button>
 					</form>
 
+					{unverified && (
+						<div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+							<div className="font-semibold mb-1">Email not verified</div>
+							<p className="mb-3">Verify your email to sign in. We sent you a code/link. You can resend and go to the verification page.</p>
+							<div className="flex flex-wrap gap-2">
+								<button
+									type="button"
+									onClick={() => router.push(`/auth/verify-email${email ? `?email=${encodeURIComponent(email)}` : ''}`)}
+									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-3 py-2 text-white text-sm hover:bg-orange-600"
+								>
+									Verify now
+								</button>
+								<button
+									type="button"
+									onClick={async () => {
+										if (!email) {
+											toast.error('Enter your email above to resend the code.')
+											return
+										}
+										try {
+											const res = await fetch('/api/auth/send-verification', {
+												method: 'POST',
+												headers: { 'Content-Type': 'application/json' },
+												body: JSON.stringify({ email })
+											})
+											const json = await res.json()
+											if (!res.ok || !json.success) {
+												toast.error(json.message || 'Failed to resend code')
+											} else {
+												toast.success('Verification email sent')
+											}
+										} catch (err: any) {
+											toast.error(err?.message || 'Failed to resend code')
+										}
+									}}
+									className="inline-flex items-center gap-2 rounded-md border border-amber-300 px-3 py-2 text-amber-800 text-sm hover:bg-amber-100"
+								>
+									Resend code
+								</button>
+							</div>
+						</div>
+					)}
+
 					{/* Divider */}
 					<div className="relative my-6">
 						<div className="absolute inset-0 flex items-center">
@@ -142,7 +220,6 @@ export default function LoginPage() {
 					{/* Google Sign In */}
 					<button 
 						onClick={() => {
-							const searchParams = new URLSearchParams(window.location.search)
 							const callbackUrl = searchParams.get('callbackUrl') || '/'
 							signIn('google', { callbackUrl })
 						}} 

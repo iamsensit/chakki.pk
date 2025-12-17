@@ -3,6 +3,9 @@ import { connectToDatabase } from '@/app/lib/mongodb'
 import User from '@/models/User'
 import { emailSchema } from '@/app/lib/validators'
 import { generateToken } from '@/app/lib/crypto'
+import { sendEmail } from '@/app/lib/email'
+import { renderPasswordResetEmailTemplate } from '@/app/lib/email-templates'
+import { renderEmailTemplate } from '@/app/lib/email'
 
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
@@ -31,19 +34,28 @@ export async function POST(req: NextRequest) {
 
 		// Generate reset token
 		const resetToken = generateToken()
-		const resetTokenExpiry = new Date(Date.now() + 3600000) // 1 hour from now
 
 		// Save reset token to user (you may need to add these fields to User model)
 		// For now, we'll use the verificationToken field temporarily
 		user.verificationToken = resetToken
 		await user.save()
 
-		// In a real app, send email with reset link
-		// For now, we'll just return success
-		// The reset link would be: /auth/reset-password?token=${resetToken}&email=${emailStr}
-		
-		console.log(`Password reset token for ${emailStr}: ${resetToken}`)
-		console.log(`Reset link: ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(emailStr)}`)
+		const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+		const resetLink = `${baseUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(emailStr)}`
+
+		const html = renderPasswordResetEmailTemplate(resetLink, user.name)
+		const text = `Reset your password\n\nWe received a request to reset your Chakki account password.\n\nReset link: ${resetLink}\n\nIf you did not request this, you can ignore this email.`
+
+		const emailResult = await sendEmail({
+			to: emailStr,
+			subject: 'Reset your Chakki password',
+			text,
+			html
+		})
+
+		if (!emailResult.success) {
+			console.error('Forgot password email failed', emailResult)
+		}
 
 		return json(true, 'If an account exists with this email, a password reset link has been sent.')
 	} catch (err: any) {

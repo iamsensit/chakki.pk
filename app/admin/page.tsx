@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ShoppingCart, BarChart3, PlusCircle, PencilLine, MapPin } from 'lucide-react'
+import { ShoppingCart, BarChart3, PlusCircle, PencilLine, MapPin, Package } from 'lucide-react'
 
 export default function AdminHome() {
 	return (
@@ -27,6 +27,13 @@ export default function AdminHome() {
 					</div>
 					<div className="mt-1 text-sm text-slate-600">Search & update stock, price, and details.</div>
 				</Link>
+				<Link href="/admin/orders" className="group rounded-md border p-4 hover:bg-brand-light/50 transition-colors">
+					<div className="flex items-center gap-2 font-medium">
+						<Package className="h-4 w-4 text-brand-accent group-hover:scale-110 transition-transform" />
+						Orders
+					</div>
+					<div className="mt-1 text-sm text-slate-600">View, manage, and track all customer orders.</div>
+				</Link>
 				<Link href="/pos" className="group rounded-md border p-4 hover:bg-brand-light/50 transition-colors">
 					<div className="flex items-center gap-2 font-medium">
 						<ShoppingCart className="h-4 w-4 text-brand-accent group-hover:scale-110 transition-transform" />
@@ -48,12 +55,12 @@ export default function AdminHome() {
           </div>
           <div className="mt-1 text-sm text-slate-600">Manage delivery cities, shop locations, and delivery radius.</div>
         </Link>
-				<Link href="/api/meta/analytics" className="group rounded-md border p-4 hover:bg-brand-light/50 transition-colors">
+				<Link href="/admin/transactions" className="group rounded-md border p-4 hover:bg-brand-light/50 transition-colors">
 					<div className="flex items-center gap-2 font-medium">
 						<BarChart3 className="h-4 w-4 text-brand-accent group-hover:scale-110 transition-transform" />
-						Analytics (API)
+						Sales & Transactions
 					</div>
-					<div className="mt-1 text-sm text-slate-600">Quick JSON metrics for now.</div>
+					<div className="mt-1 text-sm text-slate-600">Track orders, sales, stock movements, and revenue analytics.</div>
 				</Link>
 			</div>
 		</div>

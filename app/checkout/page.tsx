@@ -25,33 +25,56 @@ export default function CheckoutPage() {
 	const [paymentProofDataUrl, setPaymentProofDataUrl] = useState('')
 	const [proofError, setProofError] = useState('')
 	const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string; address?: string; city?: string; paymentReference?: string }>({})
-	const [userDeliveryLocation, setUserDeliveryLocation] = useState<{ address: string; city: string } | null>(null)
+	const [userDeliveryLocation, setUserDeliveryLocation] = useState<{ address: string; city: string; latitude?: number; longitude?: number } | null>(null)
+	const [userProfile, setUserProfile] = useState<{ name: string; email: string; phone?: string } | null>(null)
 	const [redirectCountdown, setRedirectCountdown] = useState(4)
+	const [locationLoading, setLocationLoading] = useState(true)
 
 	const subtotal = cartTotal(items)
 
-	// Load user's saved delivery location
+	// Load user profile and delivery location
 	useEffect(() => {
 		if (session?.user?.email) {
-			fetch('/api/user-delivery-location', { cache: 'no-store' })
-				.then(res => res.json())
-				.then(json => {
-					if (json.success && json.data) {
-						setUserDeliveryLocation({
-							address: json.data.address,
-							city: json.data.city
+			setLocationLoading(true)
+			Promise.all([
+				fetch('/api/account', { cache: 'no-store' }).then(res => res.json()),
+				fetch('/api/user-delivery-location', { cache: 'no-store' }).then(res => res.json())
+			])
+				.then(([profileJson, locationJson]) => {
+					// Load user profile
+					if (profileJson.success && profileJson.data) {
+						setUserProfile({
+							name: profileJson.data.name || '',
+							email: profileJson.data.email || '',
+							phone: profileJson.data.phone
 						})
-						// Pre-fill form with saved location
-						if (!form.address) {
-							setForm(prev => ({
-								...prev,
-								address: json.data.address || prev.address,
-								city: json.data.city || prev.city
-							}))
-						}
+						// Pre-fill name
+						setForm(prev => ({
+							...prev,
+							name: profileJson.data.name || prev.name
+						}))
+					}
+					
+					// Load delivery location
+					if (locationJson.success && locationJson.data) {
+						setUserDeliveryLocation({
+							address: locationJson.data.address || '',
+							city: locationJson.data.city || '',
+							latitude: locationJson.data.latitude,
+							longitude: locationJson.data.longitude
+						})
+						// Pre-fill address and city from saved location
+						setForm(prev => ({
+							...prev,
+							address: locationJson.data.address || prev.address,
+							city: locationJson.data.city || prev.city
+						}))
 					}
 				})
 				.catch(() => {})
+				.finally(() => setLocationLoading(false))
+		} else {
+			setLocationLoading(false)
 		}
 	}, [session])
 
@@ -95,6 +118,13 @@ export default function CheckoutPage() {
 	}
 
 	async function placeOrder() {
+		// Check if location is selected
+		if (!userDeliveryLocation) {
+			showError('Please select your delivery location first', 'Location Required')
+			router.push('/change-location?redirect=/checkout')
+			return
+		}
+		
 		// Validate form
 		const errors: { name?: string; phone?: string; address?: string; city?: string; paymentReference?: string } = {}
 		if (!form.name.trim() || form.name.trim().length < 2) {
@@ -103,11 +133,12 @@ export default function CheckoutPage() {
 		if (!form.phone.trim() || form.phone.trim().length < 7) {
 			errors.phone = 'Phone must be at least 7 characters'
 		}
-		if (!form.address.trim() || form.address.trim().length < 6) {
-			errors.address = 'Address must be at least 6 characters'
+		// Address and city come from saved location, but validate they exist
+		if (!userDeliveryLocation.address || userDeliveryLocation.address.trim().length < 6) {
+			errors.address = 'Please update your delivery location'
 		}
-		if (!form.city.trim() || form.city.trim().length < 2) {
-			errors.city = 'City must be at least 2 characters'
+		if (!userDeliveryLocation.city || userDeliveryLocation.city.trim().length < 2) {
+			errors.city = 'Please update your delivery location'
 		}
 		if (method === 'JAZZCASH') {
 			if (!paymentReference.trim()) {
@@ -138,8 +169,8 @@ export default function CheckoutPage() {
 					paymentMethod: method,
 					shippingName: form.name,
 					shippingPhone: form.phone,
-					shippingAddress: form.address,
-					city: form.city,
+					shippingAddress: userDeliveryLocation.address,
+					city: userDeliveryLocation.city,
 					...(method === 'JAZZCASH' ? { paymentReference, paymentProofDataUrl } : {}),
 				})
 			})
@@ -290,63 +321,78 @@ export default function CheckoutPage() {
 			{step === 0 && (
 				<div className="mt-6 grid gap-6 lg:grid-cols-3">
 					<div className="lg:col-span-2 rounded-md border p-4 space-y-4">
-						<div>
-							<label className="text-sm">Full name</label>
-							<input 
-								className={`mt-1 w-full rounded-md border px-3 py-2 ${formErrors.name ? 'border-red-500' : ''}`} 
-								value={form.name} 
-								onChange={(e) => { setForm({ ...form, name: e.target.value }); setFormErrors({ ...formErrors, name: undefined }) }} 
-							/>
-							{formErrors.name && <div className="mt-1 text-xs text-red-600">{formErrors.name}</div>}
-						</div>
-						<div className="grid gap-4 sm:grid-cols-2">
-							<div>
-								<label className="text-sm">Phone</label>
-								<input 
-									className={`mt-1 w-full rounded-md border px-3 py-2 ${formErrors.phone ? 'border-red-500' : ''}`} 
-									value={form.phone} 
-									onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFormErrors({ ...formErrors, phone: undefined }) }} 
-								/>
-								{formErrors.phone && <div className="mt-1 text-xs text-red-600">{formErrors.phone}</div>}
+						{locationLoading ? (
+							<div className="skeleton h-48" />
+						) : !userDeliveryLocation ? (
+							<div className="rounded-md border border-amber-200 bg-amber-50 p-6 text-center">
+								<p className="text-amber-900 font-medium mb-2">Please select your delivery location first</p>
+								<p className="text-sm text-amber-700 mb-4">You need to set your delivery address before proceeding with checkout.</p>
+								<Link
+									href="/change-location?redirect=/checkout"
+									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-4 py-2 text-white hover:bg-orange-600 transition-colors"
+								>
+									Select Location
+								</Link>
 							</div>
-							<div>
-								<label className="text-sm">City</label>
-								<input 
-									className={`mt-1 w-full rounded-md border px-3 py-2 ${formErrors.city ? 'border-red-500' : ''}`} 
-									value={form.city} 
-									onChange={(e) => { setForm({ ...form, city: e.target.value }); setFormErrors({ ...formErrors, city: undefined }) }} 
-								/>
-								{formErrors.city && <div className="mt-1 text-xs text-red-600">{formErrors.city}</div>}
-							</div>
-						</div>
-						<div>
-							<label className="text-sm">Address</label>
-							{userDeliveryLocation && (
-								<div className="mb-2 text-xs text-slate-600 bg-blue-50 p-2 rounded">
-									Saved location: {userDeliveryLocation.address}, {userDeliveryLocation.city}
-									<button
-										onClick={() => router.push('/change-location?redirect=/checkout')}
-										className="ml-2 text-brand-accent hover:underline"
-									>
-										Change
-									</button>
+						) : (
+							<>
+								<div>
+									<label className="text-sm">Full name</label>
+									<input 
+										className={`mt-1 w-full rounded-md border px-3 py-2 bg-gray-50 ${formErrors.name ? 'border-red-500' : ''}`} 
+										value={form.name} 
+										readOnly
+										disabled
+									/>
+									<p className="mt-1 text-xs text-slate-500">From your account</p>
+									{formErrors.name && <div className="mt-1 text-xs text-red-600">{formErrors.name}</div>}
 								</div>
-							)}
-							<textarea 
-								className={`mt-1 w-full rounded-md border px-3 py-2 ${formErrors.address ? 'border-red-500' : ''}`} 
-								rows={3} 
-								value={form.address} 
-								onChange={(e) => { setForm({ ...form, address: e.target.value }); setFormErrors({ ...formErrors, address: undefined }) }} 
-								placeholder={userDeliveryLocation ? userDeliveryLocation.address : 'Enter your delivery address'}
-							/>
-							{formErrors.address && <div className="mt-1 text-xs text-red-600">{formErrors.address}</div>}
-						</div>
-						<div>
-							<label className="text-sm">Payment method</label>
-							<div className="mt-2 flex gap-2">
-								<button onClick={() => setMethod('COD')} className={`rounded-md border px-3 py-2 ${method === 'COD' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>Cash on Delivery</button>
-								<button onClick={() => setMethod('JAZZCASH')} className={`rounded-md border px-3 py-2 ${method === 'JAZZCASH' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>JazzCash</button>
-							</div>
+								<div>
+									<label className="text-sm">Email</label>
+									<input 
+										className="mt-1 w-full rounded-md border px-3 py-2 bg-gray-50" 
+										value={userProfile?.email || ''} 
+										readOnly
+										disabled
+									/>
+									<p className="mt-1 text-xs text-slate-500">From your account</p>
+								</div>
+								<div>
+									<label className="text-sm">Phone</label>
+									<input 
+										className={`mt-1 w-full rounded-md border px-3 py-2 ${formErrors.phone ? 'border-red-500' : ''}`} 
+										value={form.phone} 
+										onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFormErrors({ ...formErrors, phone: undefined }) }} 
+										placeholder="Enter your phone number"
+									/>
+									{formErrors.phone && <div className="mt-1 text-xs text-red-600">{formErrors.phone}</div>}
+								</div>
+								<div>
+									<label className="text-sm">Delivery Address</label>
+									<div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-slate-700">
+										{userDeliveryLocation.address}
+										{userDeliveryLocation.city && `, ${userDeliveryLocation.city}`}
+									</div>
+									<div className="mt-2 flex items-center gap-2">
+										<Link
+											href="/change-location?redirect=/checkout"
+											className="text-sm text-brand-accent hover:underline"
+										>
+											Update location
+										</Link>
+										<span className="text-xs text-slate-500">• Location can be updated from the location page</span>
+									</div>
+									{formErrors.address && <div className="mt-1 text-xs text-red-600">{formErrors.address}</div>}
+								</div>
+							</>
+						)}
+						{userDeliveryLocation && (
+							<div>
+								<label className="text-sm">Payment method</label>
+								<div className="mt-2 flex gap-2">
+									<button onClick={() => setMethod('COD')} className={`rounded-md border px-3 py-2 ${method === 'COD' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>Cash on Delivery</button>
+									<button onClick={() => setMethod('JAZZCASH')} className={`rounded-md border px-3 py-2 ${method === 'JAZZCASH' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>JazzCash</button>
+								</div>
 							{method === 'JAZZCASH' && (
 								<div className="mt-3 rounded-md border p-3 bg-amber-50 text-sm">
 									<div className="font-medium">JazzCash instructions</div>
@@ -377,7 +423,8 @@ export default function CheckoutPage() {
 									)}
 								</div>
 							)}
-						</div>
+							</div>
+						)}
 					</div>
 					<div className="rounded-md border p-4 h-fit">
 						<div className="text-sm font-medium">Order summary</div>

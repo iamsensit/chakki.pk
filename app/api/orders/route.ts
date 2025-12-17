@@ -8,6 +8,8 @@ import UserDeliveryLocation from '@/models/UserDeliveryLocation'
 import DeliveryArea from '@/models/DeliveryArea'
 import { auth } from '@/app/lib/auth'
 import { isAdmin } from '@/app/lib/roles'
+import { sendEmail } from '@/app/lib/email'
+import { renderOrderEmailTemplate, enrichOrderItems } from '@/app/lib/email-templates'
 
 // Calculate distance between two coordinates using Haversine formula
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -28,6 +30,8 @@ export const dynamic = 'force-dynamic'
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
 }
+
+const formatPKR = (amount: number) => `Rs ${amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
 
 export async function POST(req: NextRequest) {
 	try {
@@ -222,7 +226,31 @@ export async function POST(req: NextRequest) {
 		// Clear cart after order is created
 		cart.items = []
 		await cart.save()
-		console.log('Simulated order confirmation email for order', order.id)
+
+		// Send order confirmation email (best-effort; don't block order creation if it fails)
+		;(async () => {
+			try {
+				const enrichedItems = await enrichOrderItems(order.items)
+				const orderForEmail = {
+					...order.toObject(),
+					items: enrichedItems
+				}
+				const html = renderOrderEmailTemplate(
+					orderForEmail,
+					'Order Placed Successfully!',
+					'Thank you for your order! We have received your order and will process it shortly. You will receive updates as your order is prepared and shipped.',
+					'placed'
+				)
+				await sendEmail({
+					to: userEmail,
+					subject: `Order Confirmation - ${order._id}`,
+					html
+				})
+			} catch (err) {
+				console.error('Order confirmation email failed', err)
+			}
+		})()
+
 		return json(true, 'Order created', { orderId: String(order._id) })
 	} catch (err) {
 		console.error('POST /api/orders error', err)

@@ -9,6 +9,7 @@ export const { handlers, auth } = NextAuth({
   trustHost: true,
   pages: {
     signIn: '/auth/login',
+    error: '/auth/login',
   },
   providers: [
     Google({
@@ -37,6 +38,9 @@ export const { handlers, auth } = NextAuth({
           // User doesn't exist - this should not happen in login flow
           // Signup should be handled separately via /api/auth/signup
           return null
+        }
+        if (!user.emailVerified) {
+          throw new Error('EMAIL_NOT_VERIFIED')
         }
         if (user.passwordHash) {
           const ok = await verifyPassword(String(password), user.passwordHash)

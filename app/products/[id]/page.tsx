@@ -115,6 +115,12 @@ export default function ProductDetailPage() {
 				<div>
 					<h1 className="text-2xl font-semibold">{data.title}</h1>
 					<div className="mt-1 text-slate-600">{data.brand} • {data.category}</div>
+					{selectedVariant && (
+						<div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-brand/10 px-4 py-2 border border-brand/20">
+							<span className="text-sm font-medium text-slate-600">Price per kg:</span>
+							<span className="text-lg font-bold text-brand-accent">{formatCurrencyPKR(effectivePricePerKg)}/kg</span>
+						</div>
+					)}
 					<div className="mt-3">{data.description}</div>
 					<div className="mt-4">
 						<label className="text-sm font-medium">Variant</label>

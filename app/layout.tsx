@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 						{children}
 						<Footer />
 						<RouteLoader />
-						<Toaster richColors position="top-right" />
+						<Toaster richColors position="top-right" duration={1000} />
 					</ErrorDialogProvider>
 				</Providers>
 			</body>

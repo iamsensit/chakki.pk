@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search, CreditCard, Wallet, Trash2, XCircle } from 'lucide-react'
+import { Search, CreditCard, Wallet, Trash2, XCircle, RotateCcw } from 'lucide-react'
 import { formatCurrencyPKR } from '@/app/lib/price'
 
 type Product = { id?: string; _id?: string; title: string; images: string[]; variants?: any[] }
@@ -157,10 +157,34 @@ export default function POSRegister() {
     if (confirm('Clear current cart?')) setCart([])
   }
 
+  function resetPOS() {
+    if (cart.length === 0) {
+      setQ('')
+      setSuggestions([])
+      return
+    }
+    if (confirm('Reset POS? This will clear the cart and search. Continue?')) {
+      setCart([])
+      setQ('')
+      setSuggestions([])
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-6xl grid gap-6 lg:grid-cols-12">
       <section className="lg:col-span-8">
-        <div className="rounded-md border p-3 bg-white">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Products</h2>
+          <button
+            onClick={resetPOS}
+            className="btn-secondary text-sm"
+            title="Reset POS"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </button>
+        </div>
+        <div className="card-enhanced p-4">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <input
@@ -172,7 +196,7 @@ export default function POSRegister() {
             />
           </div>
           {suggestions.length > 0 && (
-            <div className="mt-2 rounded-md border divide-y bg-white shadow-sm max-h-80 overflow-auto">
+            <div className="mt-2 rounded-lg border border-slate-200 divide-y bg-white shadow-lg max-h-80 overflow-auto animate-fade-in">
               {suggestions.map(p => (
                 <button key={p.id ?? (p as any)._id} className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center gap-3" onClick={() => addProduct(p)}>
                   <div className="h-10 w-10 rounded bg-gray-100 overflow-hidden">{p.images?.[0] && <img src={p.images[0]} alt="" className="h-full w-full object-cover" />}</div>
@@ -187,7 +211,7 @@ export default function POSRegister() {
           )}
         </div>
 
-        <div className="mt-4 rounded-md border divide-y bg-white">
+        <div className="mt-4 card-enhanced divide-y">
           {cart.length === 0 ? (
             <div className="p-4 text-sm text-slate-600">Add products to begin the sale.</div>
           ) : cart.map((line) => (
@@ -220,7 +244,7 @@ export default function POSRegister() {
       </section>
 
       <section className="lg:col-span-4">
-        <div className="rounded-md border p-4 space-y-3 bg-white">
+        <div className="card-enhanced p-6 space-y-4">
           <div className="text-sm font-medium">Totals</div>
           <div className="flex items-center justify-between text-sm">
             <div className="text-slate-600">Subtotal</div>

@@ -24,8 +24,11 @@ export function calculateBulkPrice(
 	return { pricePerKg, unitPrice }
 }
 
-export function formatCurrencyPKR(amount: number): string {
-	return `Rs. ${amount.toLocaleString('en-PK')}`
+export function formatCurrencyPKR(amount: number | undefined | null): string {
+	if (amount == null || isNaN(Number(amount))) {
+		return 'Rs. 0'
+	}
+	return `Rs. ${Number(amount).toLocaleString('en-PK')}`
 }
 
 export function estimateDeliveryDays(city: string): string {
