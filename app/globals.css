@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* hide horizontal scrollbar for product rows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+:root {
+	--background: #ffffff;
+	--foreground: #0b0f13;
+}
+
+html, body, #__next {
+	height: 100%;
+}
+
+body {
+	color: var(--foreground);
+	background: var(--background);
+	font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+.container-pg {
+	@apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.skeleton {
+	@apply animate-pulse bg-gray-200 rounded;
+}
+
+@keyframes scroll {
+	0% {
+		transform: translateX(0);
+	}
+	100% {
+		transform: translateX(-50%);
+	}
+}
+
+.animate-scroll {
+	animation: scroll 30s linear infinite;
+}
