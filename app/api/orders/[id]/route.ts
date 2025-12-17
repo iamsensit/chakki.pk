@@ -113,7 +113,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 						console.log('[ORDER UPDATE] Payment confirmation email result:', emailResult)
 						
 						if (!emailResult.success && !emailResult.skipped) {
-							console.error('[ORDER UPDATE] Payment email failed:', emailResult.error || emailResult.message)
+							console.error('[ORDER UPDATE] Payment email failed:', emailResult.error)
 						}
 					}
 
@@ -151,7 +151,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 						console.log('[ORDER UPDATE] Status update email result:', emailResult)
 						
 						if (!emailResult.success && !emailResult.skipped) {
-							console.error('[ORDER UPDATE] Status email failed:', emailResult.error || emailResult.message)
+							console.error('[ORDER UPDATE] Status email failed:', emailResult.error)
 						} else if (emailResult.skipped) {
 							console.warn('[ORDER UPDATE] Email skipped - SMTP not configured')
 						}

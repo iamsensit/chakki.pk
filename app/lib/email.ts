@@ -67,10 +67,10 @@ const smtpUser = process.env.SMTP_USER
 const smtpPass = process.env.SMTP_PASS
 const smtpFrom = process.env.SMTP_FROM || smtpUser
 
-let transporterPromise: Promise<nodemailer.Transporter> | null = null
+let transporter: nodemailer.Transporter | null = null
 
 async function getTransporter() {
-	if (transporterPromise) return transporterPromise
+	if (transporter) return transporter
 	if (!smtpHost || !smtpPort || !smtpFrom) {
 		throw new Error('SMTP configuration is missing (SMTP_HOST, SMTP_PORT, SMTP_FROM)')
 	}
@@ -83,7 +83,7 @@ async function getTransporter() {
 		console.warn('[EMAIL] Configure real SMTP credentials (Gmail, SendGrid, etc.) to send actual emails.')
 	}
 
-	transporterPromise = nodemailer.createTransport({
+	transporter = nodemailer.createTransport({
 		host: smtpHost,
 		port: smtpPort,
 		secure,
@@ -92,7 +92,7 @@ async function getTransporter() {
 		...(smtpPort === 587 && !secure ? { requireTLS: true } : {})
 	})
 
-	return transporterPromise
+	return transporter
 }
 
 export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {

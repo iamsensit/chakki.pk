@@ -1,7 +1,7 @@
 "use client"
 
 import { signIn } from 'next-auth/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { loginSchema } from '@/app/lib/validators'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -10,7 +10,7 @@ import { useErrorDialog } from '@/app/contexts/ErrorDialogContext'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LoginPage() {
+function LoginForm() {
 	const { showError } = useErrorDialog()
 	const { status } = useSession()
 	const router = useRouter()
@@ -60,7 +60,7 @@ export default function LoginPage() {
 			if (checkRes.ok && checkJson?.data?.exists && !checkJson.data.verified) {
 				setUnverified(true)
 				toast.error('Email not verified. Check your inbox for the code.')
-				router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+				router.push(`/auth/verify-email?email=${encodeURIComponent(email)}` as any)
 				return
 			}
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
 				if (result.error === 'EMAIL_NOT_VERIFIED' || result.error?.includes('not verified')) {
 					setUnverified(true)
 					toast.error('Email not verified. Check your inbox for the code.')
-					router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+					router.push(`/auth/verify-email?email=${encodeURIComponent(email)}` as any)
 				} else {
 					const msg = result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error
 					showError(msg, 'Login Failed')
@@ -171,7 +171,10 @@ export default function LoginPage() {
 							<div className="flex flex-wrap gap-2">
 								<button
 									type="button"
-									onClick={() => router.push(`/auth/verify-email${email ? `?email=${encodeURIComponent(email)}` : ''}`)}
+									onClick={() => {
+										const url = email ? `/auth/verify-email?email=${encodeURIComponent(email)}` : '/auth/verify-email'
+										router.push(url as any)
+									}}
 									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-3 py-2 text-white text-sm hover:bg-orange-600"
 								>
 									Verify now
@@ -246,5 +249,22 @@ export default function LoginPage() {
 				</div>
 			</div>
 		</div>
+	)
+}
+
+export default function LoginPage() {
+	return (
+		<Suspense fallback={
+			<div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
+				<div className="w-full max-w-md">
+					<div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8 text-center">
+						<div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
+						<p className="mt-4 text-sm text-gray-600">Loading...</p>
+					</div>
+				</div>
+			</div>
+		}>
+			<LoginForm />
+		</Suspense>
 	)
 }

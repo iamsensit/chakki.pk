@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Mail, CheckCircle2, Loader2 } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
 	const search = useSearchParams()
 	const router = useRouter()
 	const [email, setEmail] = useState('')
@@ -153,6 +153,23 @@ export default function VerifyEmailPage() {
 				</div>
 			</div>
 		</div>
+	)
+}
+
+export default function VerifyEmailPage() {
+	return (
+		<Suspense fallback={
+			<div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
+				<div className="w-full max-w-md">
+					<div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8 text-center">
+						<div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
+						<p className="mt-4 text-sm text-gray-600">Loading...</p>
+					</div>
+				</div>
+			</div>
+		}>
+			<VerifyEmailForm />
+		</Suspense>
 	)
 }
 
