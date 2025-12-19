@@ -101,7 +101,9 @@ export async function POST(req: NextRequest) {
 			console.error('[SIGNUP] ERROR: User should be ADMIN but role is:', savedRole)
 			// Try to fix it
 			await User.updateOne({ _id: user._id }, { $set: { role: 'ADMIN' } })
-			console.log('[SIGNUP] Attempted to fix role. New role:', (await User.findById(user._id).lean())?.role)
+			const fixedUser = await User.findById(user._id).lean()
+			const fixedRole = Array.isArray(fixedUser) ? null : (fixedUser as any)?.role
+			console.log('[SIGNUP] Attempted to fix role. New role:', fixedRole)
 		}
 
 		// Send verification email (best effort)
