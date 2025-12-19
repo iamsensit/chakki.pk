@@ -1303,12 +1303,12 @@ function ChangeLocationContent() {
 		<div className="min-h-screen bg-white">
 			{/* Header */}
 			<div className="border-b">
-				<div className="container-pg py-4">
-					<h1 className="text-xl font-semibold">Select Your Delivery Location</h1>
+				<div className="container-pg py-3 sm:py-4">
+					<h1 className="text-lg sm:text-xl font-semibold">Select Your Delivery Location</h1>
 				</div>
 			</div>
 
-			<div className="container-pg py-6">
+			<div className="container-pg py-4 sm:py-6">
 				{loadingLocation ? (
 					<div className="text-center py-12">
 						<Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-brand-accent" />
@@ -1319,13 +1319,13 @@ function ChangeLocationContent() {
 					<div className="space-y-6">
 						{/* Show saved location if exists and not in edit mode */}
 						{savedLocationData && !showEditMode && (
-							<div className="bg-green-50 border border-green-200 rounded-lg p-4">
-								<div className="flex items-start justify-between gap-3">
-									<div className="flex items-start gap-3 flex-1">
+							<div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+								<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+									<div className="flex items-start gap-3 flex-1 min-w-0">
 										<MapPin className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-										<div className="flex-1">
-											<div className="font-medium text-green-900">Your Saved Location</div>
-											<div className="text-sm text-green-700 mt-1">
+										<div className="flex-1 min-w-0">
+											<div className="font-medium text-green-900 text-sm sm:text-base">Your Saved Location</div>
+											<div className="text-xs sm:text-sm text-green-700 mt-1 break-words">
 												{savedLocationData.address || savedLocationData.society || savedLocationData.city || 'Saved location'}
 											</div>
 											{savedLocationData.society && (
@@ -1359,7 +1359,7 @@ function ChangeLocationContent() {
 												setUserCity(savedLocationData.city || '')
 											}
 										}}
-										className="px-4 py-2 bg-brand-accent text-white rounded-lg hover:bg-brand-accent/90 transition-colors text-sm font-medium whitespace-nowrap"
+										className="w-full sm:w-auto px-4 py-2 bg-brand-accent text-white rounded-lg hover:bg-brand-accent/90 transition-colors text-sm font-medium whitespace-nowrap"
 									>
 										Edit Location
 									</button>
@@ -1369,17 +1369,17 @@ function ChangeLocationContent() {
 						
 						{/* Step 1: Show detected location (only if location was detected and not showing saved location) */}
 						{userLocation && (!savedLocationData || showEditMode) && (
-							<div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+							<div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
 								<div className="flex items-start gap-3">
 									<MapPin className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-									<div className="flex-1">
-										<div className="font-medium text-blue-900">Your Location Detected</div>
+									<div className="flex-1 min-w-0">
+										<div className="font-medium text-blue-900 text-sm sm:text-base">Your Location Detected</div>
 										{loadingAddress ? (
-											<div className="text-sm text-blue-700 mt-1">Loading address...</div>
+											<div className="text-xs sm:text-sm text-blue-700 mt-1">Loading address...</div>
 										) : (
-											<div className="text-sm text-blue-700 mt-1">{userAddress || 'Address loading...'}</div>
+											<div className="text-xs sm:text-sm text-blue-700 mt-1 break-words">{userAddress || 'Address loading...'}</div>
 										)}
-										<div className="text-xs text-blue-600 mt-1">
+										<div className="text-xs text-blue-600 mt-1 break-all">
 											Lat: {userLocation.lat.toFixed(6)}, Lng: {userLocation.lng.toFixed(6)}
 										</div>
 									</div>
@@ -1388,12 +1388,12 @@ function ChangeLocationContent() {
 						)}
 						
 						{!userLocation && (!savedLocationData || showEditMode) && (
-							<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+							<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
 								<div className="flex items-start gap-3">
 									<Navigation className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-									<div className="flex-1">
-										<div className="font-medium text-yellow-900">Location Not Available</div>
-										<div className="text-sm text-yellow-700 mt-1">
+									<div className="flex-1 min-w-0">
+										<div className="font-medium text-yellow-900 text-sm sm:text-base">Location Not Available</div>
+										<div className="text-xs sm:text-sm text-yellow-700 mt-1 break-words">
 											Please search for a location or select it manually on the map below.
 										</div>
 									</div>
@@ -1409,7 +1409,7 @@ function ChangeLocationContent() {
 							<label className="block text-sm font-semibold text-gray-700">
 								Search for Location
 							</label>
-							<div className="relative max-w-2xl">
+							<div className="relative w-full">
 								<input
 									type="text"
 									value={searchQuery}
@@ -1425,7 +1425,7 @@ function ChangeLocationContent() {
 										}
 									}}
 									placeholder="Search for area, society, landmark, or address..."
-									className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-10 focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all"
+									className="w-full rounded-lg border border-gray-300 px-3 sm:px-4 py-2.5 sm:py-3 pr-10 text-sm sm:text-base focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all"
 									disabled={loadingAddress}
 								/>
 								{searchQuery && (
@@ -1486,7 +1486,7 @@ function ChangeLocationContent() {
 								Your Location on Map (drag marker to adjust)
 							</label>
 							<div className="relative rounded-lg overflow-hidden border border-gray-300 shadow-sm">
-								<div ref={mapRef} className="w-full h-96 bg-gray-100" />
+								<div ref={mapRef} className="w-full h-64 sm:h-80 md:h-96 bg-gray-100" />
 								{!mapLoaded && (
 									<div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
 										<div className="text-center">
@@ -1500,16 +1500,16 @@ function ChangeLocationContent() {
 						
 						{/* Location Validation Error */}
 						{locationValidationError && (
-							<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+							<div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
 								<div className="flex items-start gap-3">
 									<X className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-									<div className="flex-1">
-										<div className="font-medium text-red-900">Location Not in Delivery Area</div>
-										<div className="text-sm text-red-700 mt-1">{locationValidationError}</div>
+									<div className="flex-1 min-w-0">
+										<div className="font-medium text-red-900 text-sm sm:text-base">Location Not in Delivery Area</div>
+										<div className="text-xs sm:text-sm text-red-700 mt-1 break-words">{locationValidationError}</div>
 										{nearbySocieties.length > 0 && (
 											<div className="mt-3 space-y-1">
 												{nearbySocieties.map((society, idx) => (
-													<div key={idx} className="text-sm text-red-600">
+													<div key={idx} className="text-xs sm:text-sm text-red-600 break-words">
 														• {society.name}, {society.city} ({society.distance} km away)
 													</div>
 												))}
@@ -1522,12 +1522,12 @@ function ChangeLocationContent() {
 						
 						{/* Auto-detected City/Society Info */}
 						{selectedCity && selectedSociety && (
-							<div className="bg-green-50 border border-green-200 rounded-lg p-4">
+							<div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
 								<div className="flex items-start gap-3">
 									<Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-									<div className="flex-1">
-										<div className="font-medium text-green-900">Delivery Area Detected</div>
-										<div className="text-sm text-green-700 mt-1">
+									<div className="flex-1 min-w-0">
+										<div className="font-medium text-green-900 text-sm sm:text-base">Delivery Area Detected</div>
+										<div className="text-xs sm:text-sm text-green-700 mt-1 break-words">
 											City: {selectedCity} | Society: {selectedSociety}
 										</div>
 									</div>
@@ -1551,7 +1551,7 @@ function ChangeLocationContent() {
 											value={streetNumber}
 											onChange={e => setStreetNumber(e.target.value)}
 											placeholder="e.g., 5"
-											className="w-full rounded-md border px-3 py-2"
+											className="w-full rounded-md border px-3 py-2 text-sm sm:text-base"
 										/>
 									</div>
 									
@@ -1564,7 +1564,7 @@ function ChangeLocationContent() {
 											value={houseNumber}
 											onChange={e => setHouseNumber(e.target.value)}
 											placeholder="e.g., 123"
-											className="w-full rounded-md border px-3 py-2"
+											className="w-full rounded-md border px-3 py-2 text-sm sm:text-base"
 										/>
 									</div>
 								</div>
@@ -1578,18 +1578,18 @@ function ChangeLocationContent() {
 										value={landmark}
 										onChange={e => setLandmark(e.target.value)}
 										placeholder="e.g., Near Masjid, Behind School"
-										className="w-full rounded-md border px-3 py-2"
+										className="w-full rounded-md border px-3 py-2 text-sm sm:text-base"
 									/>
 								</div>
 							</div>
 						)}
 
 						{/* Action Buttons */}
-						<div className="flex gap-3 pt-4 border-t">
+						<div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
 							<button
 								onClick={handleSaveLocation}
 								disabled={!selectedCity || !selectedSociety || saving}
-								className="flex-1 bg-brand-accent hover:bg-orange-600 text-white font-medium py-3 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+								className="w-full sm:flex-1 bg-brand-accent hover:bg-orange-600 text-white font-medium py-3 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
 							>
 								{saving ? (
 									<>
@@ -1611,7 +1611,7 @@ function ChangeLocationContent() {
 										router.push(redirectUrl as any)
 									}
 								}}
-								className="px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+								className="w-full sm:w-auto px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm sm:text-base"
 							>
 								{savedLocationData && showEditMode ? 'CANCEL EDIT' : 'CANCEL'}
 							</button>

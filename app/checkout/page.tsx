@@ -312,24 +312,24 @@ export default function CheckoutPage() {
 	}
 
 	return (
-		<div className="container-pg py-8">
-			<div className="flex items-center justify-between">
-				<h1 className="text-2xl font-semibold">Checkout</h1>
+		<div className="container-pg py-4 sm:py-6 md:py-8">
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+				<h1 className="text-xl sm:text-2xl font-semibold">Checkout</h1>
 				<Stepper step={step} />
 			</div>
 
 			{step === 0 && (
-				<div className="mt-6 grid gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2 rounded-md border p-4 space-y-4">
+				<div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-3">
+					<div className="lg:col-span-2 rounded-md border p-3 sm:p-4 space-y-4">
 						{locationLoading ? (
 							<div className="skeleton h-48" />
 						) : !userDeliveryLocation ? (
-							<div className="rounded-md border border-amber-200 bg-amber-50 p-6 text-center">
-								<p className="text-amber-900 font-medium mb-2">Please select your delivery location first</p>
-								<p className="text-sm text-amber-700 mb-4">You need to set your delivery address before proceeding with checkout.</p>
+							<div className="rounded-md border border-amber-200 bg-amber-50 p-4 sm:p-6 text-center">
+								<p className="text-amber-900 font-medium mb-2 text-sm sm:text-base">Please select your delivery location first</p>
+								<p className="text-xs sm:text-sm text-amber-700 mb-4">You need to set your delivery address before proceeding with checkout.</p>
 								<Link
 									href="/change-location?redirect=/checkout"
-									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-4 py-2 text-white hover:bg-orange-600 transition-colors"
+									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-4 py-2 text-white hover:bg-orange-600 transition-colors text-sm sm:text-base"
 								>
 									Select Location
 								</Link>
@@ -389,9 +389,9 @@ export default function CheckoutPage() {
 						{userDeliveryLocation && (
 							<div>
 								<label className="text-sm">Payment method</label>
-								<div className="mt-2 flex gap-2">
-									<button onClick={() => setMethod('COD')} className={`rounded-md border px-3 py-2 ${method === 'COD' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>Cash on Delivery</button>
-									<button onClick={() => setMethod('JAZZCASH')} className={`rounded-md border px-3 py-2 ${method === 'JAZZCASH' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>JazzCash</button>
+								<div className="mt-2 flex flex-col sm:flex-row gap-2">
+									<button onClick={() => setMethod('COD')} className={`rounded-md border px-3 py-2 text-sm sm:text-base ${method === 'COD' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>Cash on Delivery</button>
+									<button onClick={() => setMethod('JAZZCASH')} className={`rounded-md border px-3 py-2 text-sm sm:text-base ${method === 'JAZZCASH' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>JazzCash</button>
 								</div>
 							{method === 'JAZZCASH' && (
 								<div className="mt-3 rounded-md border p-3 bg-amber-50 text-sm">
@@ -426,29 +426,29 @@ export default function CheckoutPage() {
 							</div>
 						)}
 					</div>
-					<div className="rounded-md border p-4 h-fit">
+					<div className="rounded-md border p-3 sm:p-4 h-fit">
 						<div className="text-sm font-medium">Order summary</div>
-						<div className="mt-3 space-y-1 text-sm">
+						<div className="mt-3 space-y-1 text-xs sm:text-sm">
 							{items.map(i => (
-								<div key={i.id} className="flex items-center justify-between">
-									<div className="text-slate-600">{i.title} × {i.quantity}</div>
-									<div className="font-medium">{formatCurrencyPKR(i.unitPrice * i.quantity)}</div>
+								<div key={i.id} className="flex items-center justify-between gap-2">
+									<div className="text-slate-600 truncate flex-1">{i.title} × {i.quantity}</div>
+									<div className="font-medium flex-shrink-0">{formatCurrencyPKR(i.unitPrice * i.quantity)}</div>
 								</div>
 							))}
 						</div>
-						<div className="mt-3 flex items-center justify-between">
-							<div className="text-sm text-slate-600">Subtotal</div>
+						<div className="mt-3 flex items-center justify-between text-xs sm:text-sm">
+							<div className="text-slate-600">Subtotal</div>
 							<div className="font-semibold">{formatCurrencyPKR(subtotal)}</div>
 						</div>
-						<div className="mt-1 flex items-center justify-between">
-							<div className="text-sm text-slate-600">Delivery</div>
+						<div className="mt-1 flex items-center justify-between text-xs sm:text-sm">
+							<div className="text-slate-600">Delivery</div>
 							<div className="font-semibold">{formatCurrencyPKR(200)}</div>
 						</div>
-						<div className="mt-1 flex items-center justify-between border-t pt-2">
-							<div className="text-sm font-medium">Total</div>
+						<div className="mt-1 flex items-center justify-between border-t pt-2 text-xs sm:text-sm">
+							<div className="font-medium">Total</div>
 							<div className="font-semibold">{formatCurrencyPKR(subtotal + 200)}</div>
 						</div>
-						<button disabled={loading} className="mt-4 w-full rounded-md bg-brand-accent px-3 py-2 text-white" onClick={() => setStep(1)}>
+						<button disabled={loading} className="mt-4 w-full rounded-md bg-brand-accent px-3 py-2 text-white text-sm sm:text-base" onClick={() => setStep(1)}>
 							Continue
 						</button>
 					</div>
@@ -456,10 +456,10 @@ export default function CheckoutPage() {
 			)}
 
 			{step === 1 && (
-				<div className="mt-6 grid gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2 rounded-md border p-4">
+				<div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-3">
+					<div className="lg:col-span-2 rounded-md border p-3 sm:p-4">
 						<div className="text-sm font-medium">Review</div>
-						<div className="mt-3 text-sm">
+						<div className="mt-3 text-xs sm:text-sm">
 							<div><span className="text-slate-600">Name:</span> {form.name}</div>
 							<div><span className="text-slate-600">Phone:</span> {form.phone}</div>
 							<div><span className="text-slate-600">City:</span> {form.city}</div>
@@ -473,30 +473,30 @@ export default function CheckoutPage() {
 							)}
 						</div>
 					</div>
-					<div className="rounded-md border p-4 h-fit">
-						<div className="flex items-center justify-between">
-							<div className="text-sm text-slate-600">Subtotal</div>
+					<div className="rounded-md border p-3 sm:p-4 h-fit">
+						<div className="flex items-center justify-between text-xs sm:text-sm">
+							<div className="text-slate-600">Subtotal</div>
 							<div className="font-semibold">{formatCurrencyPKR(subtotal)}</div>
 						</div>
-						<div className="flex items-center justify-between mt-1">
-							<div className="text-sm text-slate-600">Delivery</div>
+						<div className="flex items-center justify-between mt-1 text-xs sm:text-sm">
+							<div className="text-slate-600">Delivery</div>
 							<div className="font-semibold">{formatCurrencyPKR(200)}</div>
 						</div>
-						<div className="flex items-center justify-between mt-1 border-t pt-2">
-							<div className="text-sm font-medium">Total</div>
+						<div className="flex items-center justify-between mt-1 border-t pt-2 text-xs sm:text-sm">
+							<div className="font-medium">Total</div>
 							<div className="font-semibold">{formatCurrencyPKR(subtotal + 200)}</div>
 						</div>
-						<button disabled={loading} className="mt-4 w-full rounded-md bg-brand-accent px-3 py-2 text-white" onClick={placeOrder}>
+						<button disabled={loading} className="mt-4 w-full rounded-md bg-brand-accent px-3 py-2 text-white text-sm sm:text-base" onClick={placeOrder}>
 							{loading ? 'Placing order...' : 'Place order'}
 						</button>
-						<button className="mt-2 w-full rounded-md border px-3 py-2" onClick={() => setStep(0)}>Back</button>
+						<button className="mt-2 w-full rounded-md border px-3 py-2 text-sm sm:text-base" onClick={() => setStep(0)}>Back</button>
 					</div>
 				</div>
 			)}
 
 			{step === 2 && (
-				<div className="mt-10 text-center">
-					<div className="text-2xl font-semibold">Thank you! Your order is placed.</div>
+				<div className="mt-6 sm:mt-10 text-center px-4">
+					<div className="text-xl sm:text-2xl font-semibold">Thank you! Your order is placed.</div>
 					<div className="mt-2 text-slate-600">Order ID: {orderId}</div>
 					<div className="mt-4 text-sm text-slate-500">
 						Redirecting to products in {redirectCountdown} seconds... 

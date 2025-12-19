@@ -39,9 +39,9 @@ async function fetchMeta() {
 export default async function ProductsPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
 	const [{ items, total }, meta] = await Promise.all([fetchProducts(searchParams), fetchMeta()])
 	return (
-		<div className="container-pg py-6">
-			<div className="grid gap-6 lg:grid-cols-4">
-				<aside className="lg:col-span-1 rounded-md border p-4 h-fit">
+		<div className="container-pg py-4 sm:py-6">
+			<div className="grid gap-4 sm:gap-6 lg:grid-cols-4">
+				<aside className="lg:col-span-1 rounded-md border p-3 sm:p-4 h-fit">
 					<div className="text-sm font-medium">Filters</div>
 					<form className="mt-3 grid gap-3">
 						<input name="q" defaultValue={searchParams.q} placeholder="Search..." className="w-full rounded-md border px-3 py-2 text-sm" />
@@ -95,14 +95,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
 					</form>
 				</aside>
 				<section className="lg:col-span-3">
-					<div className="flex items-center justify-between">
-						<h1 className="text-2xl font-semibold">All Products</h1>
-						<div className="text-sm text-slate-600">{total} results</div>
+					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+						<h1 className="text-xl sm:text-2xl font-semibold">All Products</h1>
+						<div className="text-xs sm:text-sm text-slate-600">{total} results</div>
 					</div>
 					{items.length === 0 ? (
-						<div className="mt-10 rounded-md border p-8 text-center text-slate-600">No products found. Try adjusting filters or keywords.</div>
+						<div className="mt-6 sm:mt-10 rounded-md border p-6 sm:p-8 text-center text-sm sm:text-base text-slate-600">No products found. Try adjusting filters or keywords.</div>
 					) : (
-						<div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+						<div className="mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
 							{items.map((p: any, i: number) => (
 								<ProductCard 
 									key={p.id ?? p._id ?? i}

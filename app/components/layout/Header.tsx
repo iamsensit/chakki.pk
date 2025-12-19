@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X, ChevronDown, ShoppingCart, List, Search, User, ClipboardList, Monitor, Phone, HelpCircle, Carrot, Power, Settings } from 'lucide-react'
+import { Menu, X, ChevronDown, ShoppingCart, List, Search, User, ClipboardList, Monitor, Phone, HelpCircle, Carrot, Power, Settings, MapPin } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
@@ -395,39 +395,37 @@ export default function Header() {
 	return (
 		<header className="sticky top-0 z-40 bg-white border-b shadow-sm">
 			{/* Top Navigation Bar */}
-						<div className="container-pg flex h-14 items-center justify-between gap-4">
+			<div className="container-pg flex h-14 items-center justify-between gap-2 sm:gap-4">
 				{/* Left: Hamburger Menu + Logo */}
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink-0">
 					<button
-						className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+						className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0"
 						aria-label="Menu"
 						onClick={() => setMobileOpen(true)}
 					>
 						<Menu className="h-5 w-5 text-gray-900" strokeWidth={2} />
-						</button>
-						<div className="flex items-center gap-3">
-							<Link href="/" className="flex items-center gap-3">
-								<div className="relative h-10 w-10">
-									<Image src="/icon.png" alt="Chakki" width={40} height={40} className="object-contain" priority />
-								</div>
-								<div className="flex flex-col">
-									<span className="text-xl font-semibold leading-tight">Chakki</span>
-									<span className="text-xs text-slate-600">by <a href="https://dervish.pk" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-accent transition-colors" onClick={(e) => e.stopPropagation()}>Digital Dervish</a></span>
-								</div>
-							</Link>
+					</button>
+					<Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
+						<div className="relative h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+							<Image src="/icon.png" alt="Chakki" width={40} height={40} className="object-contain" priority />
 						</div>
-					</div>
+						<div className="flex flex-col min-w-0">
+							<span className="text-base sm:text-xl font-semibold leading-tight truncate">Chakki</span>
+							<span className="text-[10px] sm:text-xs text-slate-600 truncate">by <a href="https://dervish.pk" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-accent transition-colors" onClick={(e) => e.stopPropagation()}>Digital Dervish</a></span>
+						</div>
+					</Link>
+				</div>
 
-				{/* Center: Delivery Location */}
-				<div className="flex-1 flex justify-center">
-					<div className="relative" ref={locationRef}>
+				{/* Center: Delivery Location - Hidden on mobile, shown on tablet+ */}
+				<div className="hidden md:flex flex-1 justify-center min-w-0">
+					<div className="relative max-w-xs" ref={locationRef}>
 						<button
 							onClick={() => setLocationOpen(!locationOpen)}
-							className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors max-w-xs group"
+							className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors w-full group"
 							title={deliveryAddress ? `${deliveryAddress}${deliveryCity && !deliveryAddress.includes(deliveryCity) ? `, ${deliveryCity}` : ''}` : deliveryCity || 'Select your location'}
 						>
-							<span className="text-xs whitespace-nowrap">Delivering to</span>
-							<span className="font-semibold text-gray-900 truncate" title={deliveryAddress ? `${deliveryAddress}${deliveryCity && !deliveryAddress.includes(deliveryCity) ? `, ${deliveryCity}` : ''}` : deliveryCity || 'Select your location'}>
+							<span className="text-xs whitespace-nowrap hidden lg:inline">Delivering to</span>
+							<span className="font-semibold text-gray-900 truncate text-xs sm:text-sm" title={deliveryAddress ? `${deliveryAddress}${deliveryCity && !deliveryAddress.includes(deliveryCity) ? `, ${deliveryCity}` : ''}` : deliveryCity || 'Select your location'}>
 								{(() => {
 									// Don't show coordinates - show area/society/city instead
 									if (deliveryAddress && !deliveryAddress.startsWith('Location:') && !deliveryAddress.match(/^\d+\.\d+,\s*\d+\.\d+/)) {
@@ -437,11 +435,11 @@ export default function Header() {
 										// Show city if address is coordinates
 										return deliveryCity
 									} else {
-										return 'Select your location'
+										return 'Select location'
 									}
 								})()}
 							</span>
-							<ChevronDown className={`h-4 w-4 text-gray-700 transition-transform flex-shrink-0 ${locationOpen ? 'rotate-180' : ''}`} />
+							<ChevronDown className={`h-3 w-3 sm:h-4 sm:w-4 text-gray-700 transition-transform flex-shrink-0 ${locationOpen ? 'rotate-180' : ''}`} />
 						</button>
 						{locationOpen && (
 							<div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border rounded-md shadow-lg min-w-[200px] z-50">
@@ -482,38 +480,49 @@ export default function Header() {
 					</div>
 				</div>
 
-				{/* Right: Shopping Cart */}
-				<div className="relative">
-					<MiniCart variant="compact" iconColor="black" badgeColor="bg-brand-accent" />
+				{/* Right: Shopping Cart + Mobile Location Button */}
+				<div className="flex items-center gap-2 sm:gap-3">
+					{/* Mobile Location Button - Only on mobile */}
+					<button
+						onClick={() => router.push(`/change-location?redirect=${encodeURIComponent(pathname)}`)}
+						className="md:hidden flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+						title={deliveryAddress ? `${deliveryAddress}${deliveryCity && !deliveryAddress.includes(deliveryCity) ? `, ${deliveryCity}` : ''}` : deliveryCity || 'Select your location'}
+					>
+						<MapPin className="h-4 w-4" />
+						<span className="truncate max-w-[80px]">{deliveryCity || 'Location'}</span>
+					</button>
+					<div className="relative">
+						<MiniCart variant="compact" iconColor="black" badgeColor="bg-brand-accent" />
+					</div>
 				</div>
 			</div>
 
 			{/* Search and Categories Section */}
-			<div className="container-pg py-4 border-t">
+			<div className="container-pg py-3 sm:py-4 border-t">
 				<div className="flex items-center gap-2">
 					{/* Categories Button */}
 					<Link 
 						href="/categories" 
-						className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-white"
+						className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-white flex-shrink-0"
 					>
-						<List className="h-5 w-5 text-brand-accent" strokeWidth={2} />
-						<span className="text-sm font-medium text-gray-700">Categories</span>
-							</Link>
+						<List className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent" strokeWidth={2} />
+						<span className="text-xs sm:text-sm font-medium text-gray-700 hidden xs:inline">Categories</span>
+					</Link>
 					
 					{/* Search Input */}
-					<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md overflow-hidden bg-white">
-						<div className="flex-1 px-4">
+					<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md overflow-hidden bg-white min-w-0">
+						<div className="flex-1 px-2 sm:px-4 min-w-0">
 							<SearchBox />
-					</div>
+						</div>
 						<button 
 							type="submit"
 							form="search-form"
-							className="px-4 py-2.5 bg-brand-accent hover:bg-orange-600 transition-colors flex-shrink-0"
+							className="px-3 sm:px-4 py-2 sm:py-2.5 bg-brand-accent hover:bg-orange-600 transition-colors flex-shrink-0"
 						>
-							<Search className="h-5 w-5 text-white" strokeWidth={2} />
+							<Search className="h-4 w-4 sm:h-5 sm:w-5 text-white" strokeWidth={2} />
 						</button>
+					</div>
 				</div>
-			</div>
 			</div>
 
 			{/* Left Sidebar Drawer */}
