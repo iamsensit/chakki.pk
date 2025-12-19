@@ -16,28 +16,29 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 	const user = email ? await User.findOne({ email }).lean() : null
 
 	// Allow admin access if user has ADMIN role OR email is allow‑listed in env ADMIN_EMAILS
-	const allowList = (process.env.ADMIN_EMAILS || '')
-		.split(',')
-		.map(s => s.trim().toLowerCase())
-		.filter(Boolean)
+	const { getAdminEmailsList } = await import('@/app/lib/roles')
+	const allowList = getAdminEmailsList()
 	const isAllowListed = email ? allowList.includes(email.toLowerCase()) : false
 
 	// If there are no admins yet, promote the current user automatically (bootstrap)
-	const adminsCount = await User.countDocuments({ role: 'ADMIN' })
-	if (user && !Array.isArray(user) && adminsCount === 0 && (user as any).role !== 'ADMIN') {
+	const adminsCount = await User.countDocuments({ role: { $in: ['ADMIN', 'CADMIN'] } })
+	if (user && !Array.isArray(user) && adminsCount === 0 && (user as any).role !== 'ADMIN' && (user as any).role !== 'CADMIN') {
 		await User.updateOne({ _id: (user as any)._id }, { $set: { role: 'ADMIN' } })
 	}
 
 	// Refresh user after possible promotion
 	const effective = user && !Array.isArray(user) ? await User.findById((user as any)._id).lean() : null
 
-	if (!effective || Array.isArray(effective) || ((effective as any).role !== 'ADMIN' && !isAllowListed)) {
+	const userRole = (effective as any)?.role
+	const isAdminRole = userRole === 'ADMIN' || userRole === 'CADMIN'
+	
+	if (!effective || Array.isArray(effective) || (!isAdminRole && !isAllowListed)) {
 		// Logged in but not admin → 404
 		notFound()
 	}
 
 	// Optionally promote allow‑listed user to ADMIN for persistence
-	if (effective && !Array.isArray(effective) && isAllowListed && (effective as any).role !== 'ADMIN') {
+	if (effective && !Array.isArray(effective) && isAllowListed && userRole !== 'ADMIN') {
 		await User.updateOne({ _id: (effective as any)._id }, { $set: { role: 'ADMIN' } })
 	}
 	return <>{children}</>

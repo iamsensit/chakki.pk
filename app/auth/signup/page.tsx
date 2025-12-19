@@ -48,11 +48,23 @@ export default function SignupPage() {
 			const json = await res.json()
 			
 			if (!res.ok || !json.success) {
-				showError(json.message || 'Failed to create account', 'Signup Failed')
+				const msg = json.message || 'Failed to create account'
+				if (json.errors) {
+					setErrors(json.errors)
+				} else {
+					showError(msg, 'Signup Failed')
+				}
 				return
 			}
 
-			toast.success('Account created! Please verify your email to continue.')
+			// Check if email was sent successfully
+			if (json.data?.emailSent === false) {
+				toast.warning('Account created, but verification email could not be sent.')
+				toast.error('Please check that your email address is correct and try resending the verification code.')
+			} else {
+				toast.success('Account created! Check your email for the verification code.')
+			}
+			
 			router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
 		} catch (error: any) {
 			showError(error.message || 'Failed to create account', 'Signup Error')

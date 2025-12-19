@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ShoppingCart, BarChart3, PlusCircle, PencilLine, MapPin, Package } from 'lucide-react'
+import { ShoppingCart, BarChart3, PlusCircle, PencilLine, MapPin, Package, Users } from 'lucide-react'
 
 export default function AdminHome() {
 	return (
@@ -61,6 +61,13 @@ export default function AdminHome() {
 						Sales & Transactions
 					</div>
 					<div className="mt-1 text-sm text-slate-600">Track orders, sales, stock movements, and revenue analytics.</div>
+				</Link>
+				<Link href="/admin/users" className="group rounded-md border p-4 hover:bg-brand-light/50 transition-colors">
+					<div className="flex items-center gap-2 font-medium">
+						<Users className="h-4 w-4 text-brand-accent group-hover:scale-110 transition-transform" />
+						User Management
+					</div>
+					<div className="mt-1 text-sm text-slate-600">Manage users and grant admin access to other accounts.</div>
 				</Link>
 			</div>
 		</div>

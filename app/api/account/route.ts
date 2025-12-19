@@ -17,13 +17,12 @@ export async function GET() {
 	const user = await User.findOne({ email: session.user.email }).lean()
 	if (Array.isArray(user)) return json(false, 'Invalid user data', undefined, undefined, 500)
 	
-	// Check if user is admin
-	const allowList = (process.env.ADMIN_EMAILS || '')
-		.split(',')
-		.map(s => s.trim().toLowerCase())
-		.filter(Boolean)
+	// Check if user is admin (ADMIN or CADMIN role)
+	const { getAdminEmailsList } = await import('@/app/lib/roles')
+	const allowList = getAdminEmailsList()
 	const email = session.user.email.toLowerCase()
-	const isAdmin = (user as any)?.role === 'ADMIN' || allowList.includes(email)
+	const userRole = (user as any)?.role
+	const isAdmin = userRole === 'ADMIN' || userRole === 'CADMIN' || allowList.includes(email)
 	
 	return json(true, 'Profile', { 
 		name: (user as any)?.name ?? '', 
