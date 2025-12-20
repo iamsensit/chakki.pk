@@ -17,8 +17,14 @@ export async function enrichOrderItems(items: OrderItem[]) {
 					? (product as any).variants?.find((v: any) => String(v._id) === String(item.variantId))
 					: (product as any).variants?.[0]
 				
+				// Ensure quantity and unitPrice are preserved as numbers
+				const quantity = typeof item.quantity === 'number' ? item.quantity : (parseInt(String(item.quantity || 0)) || 0)
+				const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : (parseFloat(String(item.unitPrice || 0)) || 0)
+				
 				return {
 					...item,
+					quantity: quantity,
+					unitPrice: unitPrice,
 					title: (product as any).title || 'Product',
 					image: Array.isArray((product as any).images) && (product as any).images.length > 0 
 						? (product as any).images[0] 
@@ -29,8 +35,14 @@ export async function enrichOrderItems(items: OrderItem[]) {
 		} catch (err) {
 			console.error('Failed to fetch product for email', item.productId, err)
 		}
+		// Ensure quantity and unitPrice are preserved even if product fetch fails
+		const quantity = typeof item.quantity === 'number' ? item.quantity : (parseInt(String(item.quantity || 0)) || 0)
+		const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : (parseFloat(String(item.unitPrice || 0)) || 0)
+		
 		return {
 			...item,
+			quantity: quantity,
+			unitPrice: unitPrice,
 			title: 'Product',
 			image: undefined,
 			variantLabel: undefined
@@ -98,7 +110,13 @@ function getStatusBadge(status: string, paymentStatus?: string) {
 }
 
 function renderOrderItems(items: OrderItem[]) {
-	return items.map((item, idx) => `
+	return items.map((item, idx) => {
+		// Ensure quantity and unitPrice are numbers, not undefined
+		const quantity = typeof item.quantity === 'number' ? item.quantity : (parseInt(String(item.quantity || 0)) || 0)
+		const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : (parseFloat(String(item.unitPrice || 0)) || 0)
+		const totalPrice = quantity * unitPrice
+		
+		return `
 		<tr>
 			<td style="padding:12px;background:#f8fafc;border-radius:8px;">
 				<table width="100%" cellpadding="0" cellspacing="0">
@@ -109,17 +127,18 @@ function renderOrderItems(items: OrderItem[]) {
 						<td style="vertical-align:top;">
 							<div style="font-weight:600;color:#0f172a;margin-bottom:4px;">${item.title || 'Product'}</div>
 							${item.variantLabel ? `<div style="font-size:13px;color:#64748b;margin-bottom:4px;">${item.variantLabel}</div>` : ''}
-							<div style="font-size:13px;color:#64748b;">Quantity: ${item.quantity}</div>
+							<div style="font-size:13px;color:#64748b;">Quantity: ${quantity}</div>
 						</td>
 						<td align="right" style="vertical-align:top;">
-							<div style="font-weight:600;color:#0f172a;margin-bottom:4px;">${formatCurrencyPKR((item.unitPrice || 0) * (item.quantity || 0))}</div>
-							<div style="font-size:12px;color:#94a3b8;">${formatCurrencyPKR(item.unitPrice || 0)} each</div>
+							<div style="font-weight:600;color:#0f172a;margin-bottom:4px;">${formatCurrencyPKR(totalPrice)}</div>
+							<div style="font-size:12px;color:#94a3b8;">${formatCurrencyPKR(unitPrice)} each</div>
 						</td>
 					</tr>
 				</table>
 			</td>
 		</tr>
-	`).join('')
+		`
+	}).join('')
 }
 
 export function renderOrderEmailTemplate(order: OrderData, title: string, message: string, type: 'placed' | 'payment' | 'confirmed' | 'shipped' | 'delivered' = 'placed') {
