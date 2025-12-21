@@ -9,8 +9,11 @@ export default function NewProductPage() {
 	const [description, setDescription] = useState('')
 	const [brand, setBrand] = useState('')
 	const [category, setCategory] = useState('')
+	const [subCategory, setSubCategory] = useState('')
+	const [subSubCategory, setSubSubCategory] = useState('')
 	const [images, setImages] = useState<string[]>([])
-	const [availableCategories, setAvailableCategories] = useState<Array<{ name: string; _id?: string }>>([])
+	const [availableCategories, setAvailableCategories] = useState<Array<{ name: string; _id?: string; level?: number; subCategories?: any[] }>>([])
+	const [hierarchicalCategories, setHierarchicalCategories] = useState<any[]>([])
 	const [variants, setVariants] = useState<Array<{ label: string; unitWeight: number; unit: 'kg' | 'g' | 'l' | 'ml' | 'pcs' | 'pack'; sku: string; pricePerKg: number; costPerKg: number; stockQty: number }>>([{ label: '', unitWeight: 1, unit: 'kg', sku: '', pricePerKg: 0, costPerKg: 0, stockQty: 0 }])
 	const [saving, setSaving] = useState(false)
 const [uploading, setUploading] = useState(false)
@@ -145,6 +148,8 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 				description,
 				brand: brand || undefined,
 				category: category || undefined,
+				subCategory: subCategory || undefined,
+				subSubCategory: subSubCategory || undefined,
 				badges: ['Wholesale'],
 				images,
 				moq: 1,
@@ -157,7 +162,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 			const json = await res.json()
 			if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to create product')
 			toast.success('Product created')
-			setTitle(''); setSlug(''); setDescription(''); setBrand(''); setCategory(''); setImages([]); setVariants([{ label: '', unitWeight: 1, unit: 'kg', sku: '', pricePerKg: 0, costPerKg: 0, stockQty: 0 }]); setRelatedProducts([])
+			setTitle(''); setSlug(''); setDescription(''); setBrand(''); setCategory(''); setSubCategory(''); setSubSubCategory(''); setImages([]); setVariants([{ label: '', unitWeight: 1, unit: 'kg', sku: '', pricePerKg: 0, costPerKg: 0, stockQty: 0 }]); setRelatedProducts([])
 		} catch (e: any) {
 			toast.error(e.message || 'Could not create product')
 		} finally {
@@ -165,25 +170,63 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 		}
 	}
 
-	// Load available categories from API
+	// Load available categories from API (hierarchical)
 	useEffect(() => {
 		let active = true
 		async function load() {
 			try {
 				const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
-				const res = await fetch(`${baseUrl}/api/categories`, { cache: 'no-store' })
+				const res = await fetch(`${baseUrl}/api/categories?hierarchical=1`, { cache: 'no-store' })
 				const json = await res.json()
-				const cats = (json?.data?.categories || [])
-					.map((c: any) => ({ name: String(c?.name || ''), _id: c?._id ? String(c._id) : undefined }))
-					.filter((c: any) => c.name)
-				if (active) setAvailableCategories(cats)
+				if (json?.data?.hierarchical && json.data.categories) {
+					if (active) {
+						setHierarchicalCategories(json.data.categories)
+						// Also set flat list for backward compatibility
+						const flatCats: any[] = []
+						function flatten(cats: any[]) {
+							for (const cat of cats) {
+								flatCats.push({ name: cat.name, _id: cat._id, level: cat.level })
+								if (cat.subCategories && cat.subCategories.length > 0) {
+									flatten(cat.subCategories)
+								}
+							}
+						}
+						flatten(json.data.categories)
+						setAvailableCategories(flatCats)
+					}
+				} else {
+					// Fallback to flat structure
+					const flatRes = await fetch(`${baseUrl}/api/categories`, { cache: 'no-store' })
+					const flatJson = await flatRes.json()
+					const cats = (flatJson?.data?.categories || [])
+						.map((c: any) => ({ name: String(c?.name || ''), _id: c?._id ? String(c._id) : undefined, level: c?.level ?? 0 }))
+						.filter((c: any) => c.name)
+					if (active) {
+						setAvailableCategories(cats)
+						setHierarchicalCategories([])
+					}
+				}
 			} catch {
-				if (active) setAvailableCategories([])
+				if (active) {
+					setAvailableCategories([])
+					setHierarchicalCategories([])
+				}
 			}
 		}
 		load()
 		return () => { active = false }
 	}, [])
+	
+	// Reset sub-categories when main category changes
+	useEffect(() => {
+		setSubCategory('')
+		setSubSubCategory('')
+	}, [category])
+	
+	// Reset sub-sub-category when sub-category changes
+	useEffect(() => {
+		setSubSubCategory('')
+	}, [subCategory])
 
 	// Search for related products
 	useEffect(() => {
@@ -228,25 +271,33 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 						<label className="text-sm">Description</label>
 						<textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="rounded-md border px-3 py-2 text-sm" placeholder="Short product description" />
 					</div>
-					<div className="grid gap-2 sm:grid-cols-2">
+					<div className="grid gap-2">
 						<div>
 							<label className="text-sm">Brand</label>
 							<input value={brand} onChange={e => setBrand(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g. Local Mill" />
 						</div>
 						<div>
-							<label className="text-sm">Category *</label>
+							<label className="text-sm">Main Category *</label>
 							<select
 								value={category}
 								onChange={e => setCategory(e.target.value)}
 								className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
 								required
 							>
-								<option value="">Select a category</option>
-								{availableCategories.map(cat => (
-									<option key={cat.name} value={cat.name}>
-										{cat.name}
-									</option>
-								))}
+								<option value="">Select a main category</option>
+								{hierarchicalCategories.length > 0 ? (
+									hierarchicalCategories.map(cat => (
+										<option key={cat._id || cat.name} value={cat.name}>
+											{cat.name}
+										</option>
+									))
+								) : (
+									availableCategories.filter(c => (c.level ?? 0) === 0).map(cat => (
+										<option key={cat.name} value={cat.name}>
+											{cat.name}
+										</option>
+									))
+								)}
 							</select>
 							{availableCategories.length === 0 && (
 								<p className="mt-1 text-xs text-slate-500">
@@ -254,6 +305,67 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 								</p>
 							)}
 						</div>
+						{category && (
+							<div>
+								<label className="text-sm">Sub-Category (Optional)</label>
+								<select
+									value={subCategory}
+									onChange={e => setSubCategory(e.target.value)}
+									className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+								>
+									<option value="">Select a sub-category (optional)</option>
+									{hierarchicalCategories.length > 0 ? (
+										(() => {
+											const selectedMain = hierarchicalCategories.find(c => c.name === category)
+											return selectedMain?.subCategories?.map((subCat: any) => (
+												<option key={subCat._id || subCat.name} value={subCat.name}>
+													{subCat.name}
+												</option>
+											)) || []
+										})()
+									) : (
+										availableCategories.filter(c => {
+											// Try to find sub-categories by checking if they have the main category as parent
+											// This is a fallback for non-hierarchical data
+											return (c.level ?? 0) === 1
+										}).map(cat => (
+											<option key={cat.name} value={cat.name}>
+												{cat.name}
+											</option>
+										))
+									)}
+								</select>
+							</div>
+						)}
+						{category && subCategory && (
+							<div>
+								<label className="text-sm">Sub-Sub-Category (Optional)</label>
+								<select
+									value={subSubCategory}
+									onChange={e => setSubSubCategory(e.target.value)}
+									className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+								>
+									<option value="">Select a sub-sub-category (optional)</option>
+									{hierarchicalCategories.length > 0 ? (
+										(() => {
+											const selectedMain = hierarchicalCategories.find(c => c.name === category)
+											const selectedSub = selectedMain?.subCategories?.find((s: any) => s.name === subCategory)
+											return selectedSub?.subCategories?.map((subSubCat: any) => (
+												<option key={subSubCat._id || subSubCat.name} value={subSubCat.name}>
+													{subSubCat.name}
+												</option>
+											)) || []
+										})()
+									) : (
+										availableCategories.filter(c => (c.level ?? 0) === 2).map(cat => (
+											<option key={cat.name} value={cat.name}>
+												{cat.name}
+											</option>
+										))
+									)}
+								</select>
+							</div>
+						)}
 					</div>
 
           <div className="grid gap-2">

@@ -21,7 +21,9 @@ const ProductSchema = new Schema({
 	title: { type: String, required: true },
 	description: { type: String, required: true },
 	brand: String,
-	category: String,
+	category: String, // Main category (for backward compatibility)
+	subCategory: String, // Sub-category (e.g., "Pulses")
+	subSubCategory: String, // Sub-sub-category (e.g., "With Peals")
 	badges: { type: [String], default: [] },
 	images: { type: [String], default: [] },
 	moq: { type: Number, default: 1 },

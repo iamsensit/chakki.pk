@@ -10,6 +10,7 @@ function json(success: boolean, message: string, data?: any, errors?: any, statu
 }
 
 export async function GET(req: NextRequest) {
+	let where: any = {}
 	try {
 		await connectToDatabase()
 		const url = new URL(req.url)
@@ -38,16 +39,35 @@ export async function GET(req: NextRequest) {
 		const minPrice = hasMin ? Number(minPriceRaw) : undefined
 		const maxPrice = hasMax ? Number(maxPriceRaw) : undefined
 
-		const where: any = {}
+		where = {}
 		if (q) {
-			const regex = { $regex: q, $options: 'i' }
-			where.$or = [
-				{ title: regex },
-				{ description: regex },
-				{ brand: regex },
-				{ category: regex },
-				{ 'variants.label': regex },
-			]
+			// Split query into individual words and search for each word
+			const words = q.trim().split(/\s+/).filter(w => w.length > 0)
+			
+			if (words.length > 0) {
+				// Build OR conditions for each word across all searchable fields
+				// This means: show products that match ANY of the words in ANY of the fields
+				const allConditions: any[] = []
+				
+				words.forEach(word => {
+					const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special regex characters
+					const regex = { $regex: escapedWord, $options: 'i' }
+					
+					// Each word can match in any of these fields
+					allConditions.push(
+						{ title: regex },
+						{ description: regex },
+						{ brand: regex },
+						{ category: regex },
+						{ subCategory: regex },
+						{ subSubCategory: regex },
+						{ 'variants.label': regex }
+					)
+				})
+				
+				// Product matches if ANY word matches in ANY field
+				where.$or = allConditions
+			}
 		}
 		if (category) where.category = category
 		if (brand) where.brand = brand
@@ -83,7 +103,17 @@ export async function GET(req: NextRequest) {
 		}
 
 		if (suggest) {
-			const items = await Product.find(where, { title: 1, brand: 1, category: 1, images: 1 }).sort(sortObj).limit(8).lean()
+			const items = await Product.find(where, { 
+				_id: 1,
+				id: 1,
+				title: 1, 
+				brand: 1, 
+				category: 1,
+				subCategory: 1,
+				subSubCategory: 1,
+				images: 1,
+				slug: 1
+			}).sort(sortObj).limit(8).lean()
 			return json(true, 'Suggestions', { items })
 		}
 
@@ -113,6 +143,11 @@ export async function GET(req: NextRequest) {
 		return json(true, 'Products fetched', { items, page, limit, total })
 	} catch (err: any) {
 		console.error('GET /api/products error', err)
+		console.error('Error details:', {
+			message: err.message,
+			stack: err.stack,
+			where: JSON.stringify(where, null, 2)
+		})
 		return json(false, 'Failed to fetch products', undefined, { error: 'SERVER_ERROR' }, 500)
 	}
 }

@@ -137,14 +137,15 @@ export default function Header() {
 		}
 	}, [status])
 
-	// Load available cities from API
+	// Load available cities from API (for backward compatibility)
 	useEffect(() => {
 		async function loadCities() {
 			try {
 				const res = await fetch('/api/delivery-areas?activeOnly=true', { cache: 'no-store' })
 				const json = await res.json()
 				if (json.success && Array.isArray(json.data)) {
-					const cities = json.data.map((area: any) => area.city).filter(Boolean)
+					// Extract unique cities for backward compatibility
+					const cities = [...new Set(json.data.map((area: any) => area.city).filter(Boolean))] as string[]
 					setAvailableCities(cities)
 					
 					// Only load saved city from localStorage if user has a saved location
@@ -444,37 +445,16 @@ export default function Header() {
 						{locationOpen && (
 							<div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border rounded-md shadow-lg min-w-[200px] z-50">
 								<div className="py-2">
-								<button
+									<button
 										onClick={() => {
 											setLocationOpen(false)
 											router.push(`/change-location?redirect=${encodeURIComponent(pathname)}`)
 										}}
 										className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors font-medium text-brand-accent"
 									>
-										Select your location
-								</button>
-									{availableCities.length > 0 && (
-										<>
-											<div className="border-t my-1"></div>
-											<div className="px-2 text-xs text-gray-500 uppercase">Available Cities</div>
-											{availableCities.map((city) => (
-										<button
-													key={city}
-													onClick={() => {
-														setDeliveryCity(city)
-														setLocationOpen(false)
-														router.push(`/change-location?redirect=${encodeURIComponent(pathname)}`)
-													}}
-													className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-														deliveryCity === city ? 'bg-brand-light font-semibold' : ''
-													}`}
-												>
-													{city}
-										</button>
-											))}
-										</>
-									)}
-									</div>
+										Select another location
+									</button>
+								</div>
 							</div>
 						)}
 					</div>
@@ -510,14 +490,14 @@ export default function Header() {
 					</Link>
 					
 					{/* Search Input */}
-					<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md overflow-hidden bg-white min-w-0">
-						<div className="flex-1 px-2 sm:px-4 min-w-0">
+					<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md bg-white min-w-0 relative">
+						<div className="flex-1 px-2 sm:px-4 min-w-0 relative z-10">
 							<SearchBox />
 						</div>
 						<button 
 							type="submit"
 							form="search-form"
-							className="px-3 sm:px-4 py-2 sm:py-2.5 bg-brand-accent hover:bg-orange-600 transition-colors flex-shrink-0"
+							className="px-3 sm:px-4 py-2 sm:py-2.5 bg-brand-accent hover:bg-orange-600 transition-colors flex-shrink-0 relative z-10"
 						>
 							<Search className="h-4 w-4 sm:h-5 sm:w-5 text-white" strokeWidth={2} />
 						</button>

@@ -18,14 +18,14 @@ export default function SearchBar() {
 				</Link>
 				
 				{/* Search Input */}
-				<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md overflow-hidden bg-white">
-					<div className="flex-1 px-4">
+				<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md bg-white relative">
+					<div className="flex-1 px-4 relative z-10">
 						<SearchBox />
 					</div>
 					<button 
 						type="submit"
 						form="search-form"
-						className="px-4 py-2.5 bg-brand-accent hover:bg-orange-600 transition-colors flex-shrink-0"
+						className="px-4 py-2.5 bg-brand-accent hover:bg-orange-600 transition-colors flex-shrink-0 relative z-10"
 					>
 						<Search className="h-5 w-5 text-white" strokeWidth={2} />
 					</button>

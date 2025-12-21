@@ -58,6 +58,7 @@ function ChangeLocationContent() {
 	const [showSuggestions, setShowSuggestions] = useState(false)
 	const [nearbySocieties, setNearbySocieties] = useState<Array<{ name: string; city: string; distance: number }>>([])
 	const [locationValidationError, setLocationValidationError] = useState<string>('')
+	const [showDeliveryAreas, setShowDeliveryAreas] = useState(false)
 	const autocompleteServiceRef = useRef<any>(null)
 	const placesServiceRef = useRef<any>(null)
 	
@@ -72,6 +73,7 @@ function ChangeLocationContent() {
 	const geolocationAttemptedRef = useRef(false)
 	const [savedLocationData, setSavedLocationData] = useState<any>(null)
 	const [showEditMode, setShowEditMode] = useState(false)
+	const [gettingLocation, setGettingLocation] = useState(false)
 
 	// Load saved location on mount
 	useEffect(() => {
@@ -248,20 +250,41 @@ function ChangeLocationContent() {
 		document.head.appendChild(script)
 	}
 
-	// Get user's precise location
+	// Get user's precise location - ONLY on first visit (no saved location)
 	useEffect(() => {
-		// Prevent multiple geolocation attempts
-		if (geolocationAttemptedRef.current) return
-		geolocationAttemptedRef.current = true
+		// Only request location if:
+		// 1. No saved location data exists
+		// 2. Not in edit mode
+		// 3. Haven't attempted geolocation yet
+		if (geolocationAttemptedRef.current || savedLocationData || showEditMode) {
+			setLoadingLocation(false)
+			return
+		}
 		
+		// Check if user has a saved location in localStorage
+		const savedLocation = localStorage.getItem('deliveryLocation')
+		if (savedLocation) {
+			try {
+				const location = JSON.parse(savedLocation)
+				if (location.latitude && location.longitude) {
+					// User has a saved location, don't request geolocation
+					setLoadingLocation(false)
+					return
+				}
+			} catch (e) {
+				// Invalid saved location, continue to request
+			}
+		}
+		
+		// Only request if no saved location exists (first visit)
 		if (!navigator.geolocation) {
-			showError('Geolocation is not supported by your browser. Please select your location manually.', 'Location Not Supported')
 			setLoadingLocation(false)
 			return
 		}
 
+		geolocationAttemptedRef.current = true
 		setLoadingLocation(true)
-		console.log('Requesting geolocation...')
+		console.log('Requesting geolocation on first visit...')
 		navigator.geolocation.getCurrentPosition(
 			async (position) => {
 				const lat = position.coords.latitude
@@ -272,7 +295,6 @@ function ChangeLocationContent() {
 				// Validate coordinates are reasonable (Pakistan bounds)
 				if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
 					console.error('Invalid coordinates received:', lat, lng)
-					showError('Invalid location received. Please try again or select manually.', 'Invalid Location')
 					setLoadingLocation(false)
 					return
 				}
@@ -280,7 +302,6 @@ function ChangeLocationContent() {
 				// Validate coordinates are within reasonable bounds (Pakistan)
 				if (lat < 23.6 || lat > 37.0 || lng < 60.8 || lng > 77.8) {
 					console.warn('Location outside Pakistan bounds:', lat, lng)
-					showError('Location detected is outside Pakistan. Please ensure you are in Pakistan or select your location manually.', 'Location Out of Range')
 					setLoadingLocation(false)
 					return
 				}
@@ -291,11 +312,136 @@ function ChangeLocationContent() {
 			},
 			(error) => {
 				console.error('❌ Geolocation error:', error.code, error.message)
-				// Don't show random location - just show error and let user select manually
+				// Don't show error on first visit - just let user select manually
 				setUserLocation(null)
 				setLoadingLocation(false)
+			},
+			{
+				enableHighAccuracy: true,
+				timeout: 15000,
+				maximumAge: 0
+			}
+		)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [savedLocationData, showEditMode])
+
+	// Function to get live location (manual trigger)
+	async function getLiveLocation() {
+		if (!navigator.geolocation) {
+			showError('Geolocation is not supported by your browser. Please select your location manually.', 'Location Not Supported')
+			return
+		}
+
+		setGettingLocation(true)
+		console.log('Requesting live location...')
+		
+		navigator.geolocation.getCurrentPosition(
+			async (position) => {
+				const lat = position.coords.latitude
+				const lng = position.coords.longitude
 				
-				// Show appropriate error message (only once)
+				console.log('✅ Live location success:', lat, lng, 'Accuracy:', position.coords.accuracy, 'm')
+				
+				// Validate coordinates are reasonable (Pakistan bounds)
+				if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+					console.error('Invalid coordinates received:', lat, lng)
+					showError('Invalid location received. Please try again or select manually.', 'Invalid Location')
+					setGettingLocation(false)
+					return
+				}
+				
+				// Validate coordinates are within reasonable bounds (Pakistan)
+				if (lat < 23.6 || lat > 37.0 || lng < 60.8 || lng > 77.8) {
+					console.warn('Location outside Pakistan bounds:', lat, lng)
+					showError('Location detected is outside Pakistan. Please ensure you are in Pakistan or select your location manually.', 'Location Out of Range')
+					setGettingLocation(false)
+					return
+				}
+				
+				// Update location
+				setUserLocation({ lat, lng })
+				
+				// Update search field with coordinates (will trigger reverse geocode)
+				setSearchQuery(`${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+				
+				// Ensure map is initialized
+				if (!mapInstanceRef.current && mapRef.current && mapLoaded) {
+					initMap()
+					await new Promise(resolve => setTimeout(resolve, 500))
+				}
+				
+				// Navigate map to location
+				if (mapInstanceRef.current) {
+					mapInstanceRef.current.setCenter({ lat, lng })
+					mapInstanceRef.current.setZoom(16)
+					
+					// Update marker
+					if (markerInstanceRef.current) {
+						markerInstanceRef.current.setPosition({ lat, lng })
+						if (markerInstanceRef.current.setAnimation && window.google.maps.Animation) {
+							markerInstanceRef.current.setAnimation(window.google.maps.Animation.DROP)
+						}
+					}
+				}
+				
+				// Get address
+				setLoadingAddress(true)
+				try {
+					let addressData = null
+					try {
+						const apiRes = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
+						const apiJson = await apiRes.json()
+						if (apiJson.success && apiJson.data) {
+							addressData = apiJson.data
+						} else {
+							addressData = await reverseGeocode(lat, lng)
+						}
+					} catch (apiErr) {
+						addressData = await reverseGeocode(lat, lng)
+					}
+					
+					if (addressData) {
+						setUserAddress(addressData.address || addressData.formatted_address || 'Current location')
+						// Update search field with address
+						setSearchQuery(addressData.address || addressData.formatted_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+						
+						// Validate location
+						const currentAreas = deliveryAreas.length > 0 ? deliveryAreas : await fetch('/api/delivery-areas?activeOnly=true').then(r => r.json()).then(d => d.success ? d.data : [])
+						const validationResult = checkLocationInSocietiesWithData(lat, lng, currentAreas)
+						
+						if (validationResult.city && validationResult.society) {
+							setSelectedCity(validationResult.city)
+							setSelectedSociety(validationResult.society)
+							setLocationValidationError('')
+							setNearbySocieties([])
+						} else {
+							setSelectedCity('')
+							setSelectedSociety('')
+							if (validationResult.nearby && validationResult.nearby.length > 0) {
+								setNearbySocieties(validationResult.nearby)
+								setLocationValidationError(`Your location is not within any delivery area. Nearby delivery areas:`)
+							} else {
+								setLocationValidationError('Your location is not within any delivery area. Please select a location within our delivery zones.')
+							}
+						}
+					} else {
+						setUserAddress(`Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+						setSearchQuery(`Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+					}
+				} catch (err) {
+					console.error('Reverse geocoding error:', err)
+					setUserAddress(`Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+					setSearchQuery(`Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+				} finally {
+					setLoadingAddress(false)
+					setGettingLocation(false)
+				}
+			},
+			(error) => {
+				console.error('❌ Geolocation error:', error.code, error.message)
+				setGettingLocation(false)
+				
+				// Show appropriate error message
 				if (error.code === error.PERMISSION_DENIED) {
 					showError('Location access was denied. Please allow location access in your browser settings or select your location manually.', 'Location Access Denied')
 				} else if (error.code === error.POSITION_UNAVAILABLE) {
@@ -312,8 +458,7 @@ function ChangeLocationContent() {
 				maximumAge: 0
 			}
 		)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
+	}
 
 	// Initialize Places services when map is loaded
 	useEffect(() => {
@@ -927,6 +1072,150 @@ function ChangeLocationContent() {
 		mapInstanceRef.current.fitBounds(bounds)
 	}
 
+	// Function to navigate map to a delivery area
+	async function navigateToDeliveryArea(area: DeliveryArea, society: { name: string; latitude: number; longitude: number; bounds?: any }) {
+		if (!mapInstanceRef.current || !window.google) {
+			showError('Map is not ready. Please wait for the map to load.', 'Map Not Ready')
+			return
+		}
+
+		const lat = society.latitude
+		const lng = society.longitude
+
+		console.log('🗺️ Navigating to delivery area:', society.name, 'at', lat, lng)
+
+		// If society has bounds, fit map to those bounds
+		if (society.bounds) {
+			const bounds = new window.google.maps.LatLngBounds(
+				{ lat: society.bounds.southwest.lat, lng: society.bounds.southwest.lng },
+				{ lat: society.bounds.northeast.lat, lng: society.bounds.northeast.lng }
+			)
+			mapInstanceRef.current.fitBounds(bounds)
+			window.google.maps.event.addListenerOnce(mapInstanceRef.current, 'bounds_changed', () => {
+				if (mapInstanceRef.current && mapInstanceRef.current.getZoom() && mapInstanceRef.current.getZoom()! > 18) {
+					mapInstanceRef.current.setZoom(18)
+				}
+			})
+		} else {
+			// No bounds, just center and zoom
+			mapInstanceRef.current.setCenter({ lat, lng })
+			mapInstanceRef.current.setZoom(16)
+		}
+
+		// Update marker position
+		if (markerInstanceRef.current) {
+			markerInstanceRef.current.setPosition({ lat, lng })
+			if (markerInstanceRef.current.setAnimation && window.google.maps.Animation) {
+				markerInstanceRef.current.setAnimation(window.google.maps.Animation.DROP)
+			}
+		} else {
+			// Create marker if it doesn't exist
+			markerInstanceRef.current = new window.google.maps.Marker({
+				position: { lat, lng },
+				map: mapInstanceRef.current,
+				title: 'Your Location',
+				icon: {
+					url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+				},
+				draggable: true
+			})
+
+			// Add dragend listener
+			markerInstanceRef.current.addListener('dragend', async (e: any) => {
+				const newLat = e.latLng.lat()
+				const newLng = e.latLng.lng()
+				setUserLocation({ lat: newLat, lng: newLng })
+				setLocationValidationError('')
+				setNearbySocieties([])
+
+				setLoadingAddress(true)
+				try {
+					const currentAreas = deliveryAreas.length > 0 ? deliveryAreas : await fetch('/api/delivery-areas?activeOnly=true').then(r => r.json()).then(d => d.success ? d.data : [])
+					const validationResult = checkLocationInSocietiesWithData(newLat, newLng, currentAreas)
+
+					if (validationResult.city && validationResult.society) {
+						setSelectedCity(validationResult.city)
+						setSelectedSociety(validationResult.society)
+					} else {
+						setSelectedCity('')
+						setSelectedSociety('')
+						if (validationResult.nearby && validationResult.nearby.length > 0) {
+							setNearbySocieties(validationResult.nearby)
+							setLocationValidationError(`Your location is not within any delivery area. Nearby delivery areas:`)
+						} else {
+							setLocationValidationError('Your location is not within any delivery area. Please select a location within our delivery zones.')
+						}
+					}
+
+					let addressData = null
+					try {
+						const apiRes = await fetch(`/api/geocode/reverse?lat=${newLat}&lng=${newLng}`)
+						const apiJson = await apiRes.json()
+						if (apiJson.success && apiJson.data) {
+							addressData = apiJson.data
+						} else {
+							addressData = await reverseGeocode(newLat, newLng)
+						}
+					} catch (apiErr) {
+						addressData = await reverseGeocode(newLat, newLng)
+					}
+
+					if (addressData) {
+						setUserAddress(addressData.address || addressData.formatted_address || 'Selected location')
+						if (!validationResult.city && typeof setUserCity === 'function') {
+							setUserCity(addressData.city || '')
+						}
+					} else {
+						setUserAddress(`Location: ${newLat.toFixed(6)}, ${newLng.toFixed(6)}`)
+					}
+				} catch (err) {
+					console.error('Reverse geocoding error:', err)
+					setUserAddress(`Location: ${newLat.toFixed(6)}, ${newLng.toFixed(6)}`)
+				} finally {
+					setLoadingAddress(false)
+				}
+			})
+		}
+
+		// Set location and validate
+		setUserLocation({ lat, lng })
+		setSelectedCity(area.city)
+		setSelectedSociety(society.name)
+		setLocationValidationError('')
+		setNearbySocieties([])
+
+		// Get address
+		setLoadingAddress(true)
+		try {
+			let addressData = null
+			try {
+				const apiRes = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
+				const apiJson = await apiRes.json()
+				if (apiJson.success && apiJson.data) {
+					addressData = apiJson.data
+				} else {
+					addressData = await reverseGeocode(lat, lng)
+				}
+			} catch (apiErr) {
+				addressData = await reverseGeocode(lat, lng)
+			}
+
+			if (addressData) {
+				setUserAddress(addressData.address || addressData.formatted_address || `${society.name}, ${area.city}`)
+			} else {
+				setUserAddress(`${society.name}, ${area.city}`)
+			}
+		} catch (err) {
+			console.error('Reverse geocoding error:', err)
+			setUserAddress(`${society.name}, ${area.city}`)
+		} finally {
+			setLoadingAddress(false)
+		}
+
+		// Close delivery areas list
+		setShowDeliveryAreas(false)
+	}
+
 	// Function to navigate map to a searched location (without setting as user location)
 	async function navigateToLocation(placeId: string) {
 		if (!window.google || !window.google.maps || !window.google.maps.places) {
@@ -1406,9 +1695,31 @@ function ChangeLocationContent() {
 							<>
 						{/* Search Location - Always visible above map */}
 						<div className="space-y-2">
-							<label className="block text-sm font-semibold text-gray-700">
-								Search for Location
-							</label>
+							<div className="flex items-center justify-between gap-3">
+								<label className="block text-sm font-semibold text-gray-700">
+									Search for Location
+								</label>
+								<button
+									type="button"
+									onClick={getLiveLocation}
+									disabled={gettingLocation || !mapLoaded}
+									className="flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-brand-accent hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+								>
+									{gettingLocation ? (
+										<>
+											<Loader2 className="h-4 w-4 animate-spin" />
+											<span className="hidden sm:inline">Getting location...</span>
+											<span className="sm:hidden">Getting...</span>
+										</>
+									) : (
+										<>
+											<Navigation className="h-4 w-4" />
+											<span className="hidden sm:inline">Get live location</span>
+											<span className="sm:hidden">Live location</span>
+										</>
+									)}
+								</button>
+							</div>
 							<div className="relative w-full">
 								<input
 									type="text"
@@ -1418,11 +1729,26 @@ function ChangeLocationContent() {
 										if (e.target.value.trim()) {
 											setShowSuggestions(true)
 										}
+										// Always show delivery areas when typing or when input has focus
+										if (deliveryAreas.length > 0) {
+											setShowDeliveryAreas(true)
+										}
 									}}
 									onFocus={() => {
 										if (searchSuggestions.length > 0) {
 											setShowSuggestions(true)
 										}
+										// Always show delivery areas when input is focused
+										if (deliveryAreas.length > 0) {
+											setShowDeliveryAreas(true)
+										}
+									}}
+									onBlur={() => {
+										// Delay hiding to allow clicks on suggestions/areas
+										setTimeout(() => {
+											setShowSuggestions(false)
+											setShowDeliveryAreas(false)
+										}, 200)
 									}}
 									placeholder="Search for area, society, landmark, or address..."
 									className="w-full rounded-lg border border-gray-300 px-3 sm:px-4 py-2.5 sm:py-3 pr-10 text-sm sm:text-base focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all"
@@ -1435,26 +1761,83 @@ function ChangeLocationContent() {
 											setSearchQuery('')
 											setSearchSuggestions([])
 											setShowSuggestions(false)
+											setShowDeliveryAreas(false)
 										}}
 										className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
 									>
 										<X className="h-4 w-4" />
 									</button>
 								)}
-								{showSuggestions && searchSuggestions.length > 0 && (
-									<div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-										{searchSuggestions.map((suggestion, idx) => (
+								{(showSuggestions && searchSuggestions.length > 0) || (showDeliveryAreas && deliveryAreas.length > 0) ? (
+									<div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto">
+										{/* Available Delivery Areas */}
+										{showDeliveryAreas && deliveryAreas.length > 0 && (
+											<>
+												<div className="px-4 py-2 bg-gray-50 border-b sticky top-0">
+													<div className="text-xs font-semibold text-gray-700 uppercase">Available Delivery Areas</div>
+												</div>
+												{deliveryAreas
+													.filter(area => {
+														if (!searchQuery.trim()) return true
+														const query = searchQuery.toLowerCase()
+														return area.city.toLowerCase().includes(query) ||
+															area.deliveryAreas.some(s => s.name.toLowerCase().includes(query))
+													})
+													.map((area) => (
+														<div key={area._id} className="border-b last:border-b-0">
+															{area.deliveryAreas
+																.filter(society => {
+																	if (!searchQuery.trim()) return true
+																	const query = searchQuery.toLowerCase()
+																	return society.name.toLowerCase().includes(query) ||
+																		area.city.toLowerCase().includes(query)
+																})
+																.map((society, idx) => (
+																	<button
+																		key={`${area._id}-${society.name}-${idx}`}
+																		type="button"
+																		onMouseDown={(e) => e.preventDefault()}
+																		onClick={async () => {
+																			setSearchQuery('')
+																			setShowSuggestions(false)
+																			setShowDeliveryAreas(false)
+																			await navigateToDeliveryArea(area, society)
+																		}}
+																		className="w-full text-left px-4 py-3 hover:bg-brand-light/10 border-b last:border-b-0 flex items-start gap-3 transition-colors"
+																	>
+																		<Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+																		<div className="flex-1">
+																			<div className="font-medium text-sm text-gray-900">
+																				{society.name}
+																			</div>
+																			<div className="text-xs text-gray-500 mt-0.5">{area.city}</div>
+																		</div>
+																	</button>
+																))}
+														</div>
+													))}
+												{searchSuggestions.length > 0 && (
+													<div className="px-4 py-2 bg-gray-50 border-t border-b sticky top-0">
+														<div className="text-xs font-semibold text-gray-700 uppercase">Search Results</div>
+													</div>
+												)}
+											</>
+										)}
+										{/* Google Places Search Suggestions */}
+										{showSuggestions && searchSuggestions.length > 0 && searchSuggestions.map((suggestion, idx) => (
 											<button
 												key={suggestion.place_id || idx}
 												type="button"
+												onMouseDown={(e) => e.preventDefault()}
 												onClick={async () => {
 													console.log('🔘 Clicked suggestion:', suggestion.description)
 													setSearchQuery(suggestion.description)
 													setShowSuggestions(false)
 													setSearchSuggestions([])
+													setShowDeliveryAreas(false)
 													await navigateToLocation(suggestion.place_id)
 												}}
-												className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 flex items-start gap-3 transition-colors first:rounded-t-lg last:rounded-b-lg"
+												className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 flex items-start gap-3 transition-colors"
 											>
 												<MapPin className="h-5 w-5 text-brand-accent flex-shrink-0 mt-0.5" />
 												<div className="flex-1">
@@ -1473,7 +1856,7 @@ function ChangeLocationContent() {
 											</button>
 										))}
 									</div>
-								)}
+								) : null}
 							</div>
 							<p className="text-xs text-gray-500 max-w-2xl">
 								💡 Search for a location or drag the marker on the map to select your precise location
