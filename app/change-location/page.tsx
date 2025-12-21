@@ -384,26 +384,50 @@ function ChangeLocationContent() {
 					}
 				}
 				
-				// Get address
+				// Get address - use client-side Google Maps Geocoder first
 				setLoadingAddress(true)
 				try {
 					let addressData = null
-					try {
-						const apiRes = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
-						const apiJson = await apiRes.json()
-						if (apiJson.success && apiJson.data) {
-							addressData = apiJson.data
-						} else {
-							addressData = await reverseGeocode(lat, lng)
+					
+					// Try client-side Google Maps Geocoder first (works with restricted API keys)
+					if (window.google && window.google.maps && window.google.maps.Geocoder) {
+						try {
+							const geocoder = new window.google.maps.Geocoder()
+							addressData = await new Promise<{ address: string; city?: string } | null>((resolve) => {
+								geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+									if (status === 'OK' && results && results.length > 0) {
+										const result = results[0]
+										const city = result.address_components.find(
+											(comp: any) => comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+										)?.long_name || ''
+										resolve({
+											address: result.formatted_address,
+											city: city
+										})
+									} else {
+										console.warn('Google Geocoder status:', status)
+										resolve(null)
+									}
+								})
+							})
+						} catch (geocodeErr) {
+							console.warn('Client-side geocoding failed:', geocodeErr)
 						}
-					} catch (apiErr) {
-						addressData = await reverseGeocode(lat, lng)
+					}
+					
+					// Fallback to OpenStreetMap if Google Maps fails
+					if (!addressData) {
+						try {
+							addressData = await reverseGeocode(lat, lng)
+						} catch (osmErr) {
+							console.warn('OpenStreetMap geocoding failed:', osmErr)
+						}
 					}
 					
 					if (addressData) {
-						setUserAddress(addressData.address || addressData.formatted_address || 'Current location')
+						setUserAddress(addressData.address || 'Current location')
 						// Update search field with address
-						setSearchQuery(addressData.address || addressData.formatted_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+						setSearchQuery(addressData.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)
 						
 						// Validate location
 						const currentAreas = deliveryAreas.length > 0 ? deliveryAreas : await fetch('/api/delivery-areas?activeOnly=true').then(r => r.json()).then(d => d.success ? d.data : [])
@@ -554,22 +578,43 @@ function ChangeLocationContent() {
 							showError('Please ensure you are in Pakistan', 'Location Out of Range')
 						}
 					} else {
-						// Fallback: Try server-side API
-						try {
-							const apiRes = await fetch(`/api/geocode/reverse?lat=${userLocation.lat}&lng=${userLocation.lng}`)
-							const apiJson = await apiRes.json()
-							if (apiJson.success && apiJson.data) {
-								setUserAddress(apiJson.data.address)
-								const validationResult = checkLocationInSocieties(userLocation.lat, userLocation.lng)
-								if (!validationResult.city) {
-									setUserCity(apiJson.data.city || '')
+						// Fallback: Use client-side Google Maps Geocoder
+						if (window.google && window.google.maps && window.google.maps.Geocoder) {
+							try {
+								const geocoder = new window.google.maps.Geocoder()
+								const addressData = await new Promise<{ address: string; city?: string } | null>((resolve) => {
+									geocoder.geocode({ location: { lat: userLocation.lat, lng: userLocation.lng } }, (results: any, status: any) => {
+										if (status === 'OK' && results && results.length > 0) {
+											const result = results[0]
+											const city = result.address_components.find(
+												(comp: any) => comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+											)?.long_name || ''
+											resolve({
+												address: result.formatted_address,
+												city: city
+											})
+										} else {
+											resolve(null)
+										}
+									})
+								})
+								
+								if (addressData) {
+									setUserAddress(addressData.address)
+									const validationResult = checkLocationInSocieties(userLocation.lat, userLocation.lng)
+									if (!validationResult.city) {
+										setUserCity(addressData.city || '')
+									}
+								} else {
+									// Last resort: show coordinates
+									setUserAddress(`Location: ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`)
 								}
-							} else {
-								// Last resort: show coordinates
+							} catch (geocodeErr) {
+								console.warn('Client-side geocoding failed:', geocodeErr)
 								setUserAddress(`Location: ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`)
 							}
-						} catch (apiErr) {
-							console.warn('Server-side geocoding failed:', apiErr)
+						} else {
+							// Last resort: show coordinates
 							setUserAddress(`Location: ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`)
 						}
 					}
@@ -912,18 +957,41 @@ function ChangeLocationContent() {
 						}
 					}
 					
-					// Get address
+					// Get address - use client-side Google Maps Geocoder first
 					let addressData = null
-					try {
-						const apiRes = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
-						const apiJson = await apiRes.json()
-						if (apiJson.success && apiJson.data) {
-							addressData = apiJson.data
-						} else {
-							addressData = await reverseGeocode(lat, lng)
+					
+					// Try client-side Google Maps Geocoder first (works with restricted API keys)
+					if (window.google && window.google.maps && window.google.maps.Geocoder) {
+						try {
+							const geocoder = new window.google.maps.Geocoder()
+							addressData = await new Promise<{ address: string; city?: string } | null>((resolve) => {
+								geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+									if (status === 'OK' && results && results.length > 0) {
+										const result = results[0]
+										const city = result.address_components.find(
+											(comp: any) => comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+										)?.long_name || ''
+										resolve({
+											address: result.formatted_address,
+											city: city
+										})
+									} else {
+										resolve(null)
+									}
+								})
+							})
+						} catch (geocodeErr) {
+							console.warn('Client-side geocoding failed:', geocodeErr)
 						}
-					} catch (apiErr) {
-						addressData = await reverseGeocode(lat, lng)
+					}
+					
+					// Fallback to OpenStreetMap if Google Maps fails
+					if (!addressData) {
+						try {
+							addressData = await reverseGeocode(lat, lng)
+						} catch (osmErr) {
+							console.warn('OpenStreetMap geocoding failed:', osmErr)
+						}
 					}
 					
 					if (addressData) {
@@ -998,20 +1066,41 @@ function ChangeLocationContent() {
 					}
 				}
 				
-				// Get address from coordinates
+				// Get address from coordinates - use client-side Google Maps Geocoder first
 				let addressData = null
-				try {
-					const apiRes = await fetch(`/api/geocode/reverse?lat=${newLat}&lng=${newLng}`)
-					const apiJson = await apiRes.json()
-					if (apiJson.success && apiJson.data) {
-						addressData = apiJson.data
-					} else {
-						// Fallback to client-side
-						addressData = await reverseGeocode(newLat, newLng)
+				
+				// Try client-side Google Maps Geocoder first (works with restricted API keys)
+				if (window.google && window.google.maps && window.google.maps.Geocoder) {
+					try {
+						const geocoder = new window.google.maps.Geocoder()
+						addressData = await new Promise<{ address: string; city?: string } | null>((resolve) => {
+							geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results: any, status: any) => {
+								if (status === 'OK' && results && results.length > 0) {
+									const result = results[0]
+									const city = result.address_components.find(
+										(comp: any) => comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+									)?.long_name || ''
+									resolve({
+										address: result.formatted_address,
+										city: city
+									})
+								} else {
+									resolve(null)
+								}
+							})
+						})
+					} catch (geocodeErr) {
+						console.warn('Client-side geocoding failed:', geocodeErr)
 					}
-				} catch (apiErr) {
-					// Fallback to client-side
-					addressData = await reverseGeocode(newLat, newLng)
+				}
+				
+				// Fallback to OpenStreetMap if Google Maps fails
+				if (!addressData) {
+					try {
+						addressData = await reverseGeocode(newLat, newLng)
+					} catch (osmErr) {
+						console.warn('OpenStreetMap geocoding failed:', osmErr)
+					}
 				}
 				
 				if (addressData) {
@@ -1074,9 +1163,18 @@ function ChangeLocationContent() {
 
 	// Function to navigate map to a delivery area
 	async function navigateToDeliveryArea(area: DeliveryArea, society: { name: string; latitude: number; longitude: number; bounds?: any }) {
+		// Wait for map to be ready with retry
 		if (!mapInstanceRef.current || !window.google) {
-			showError('Map is not ready. Please wait for the map to load.', 'Map Not Ready')
-			return
+			// Try to initialize map if not ready
+			if (mapRef.current && mapLoaded && !mapInstanceRef.current) {
+				initMap()
+				await new Promise(resolve => setTimeout(resolve, 500))
+			}
+			
+			if (!mapInstanceRef.current || !window.google) {
+				showError('Map is not ready. Please wait for the map to load.', 'Map Not Ready')
+				return
+			}
 		}
 
 		const lat = society.latitude
@@ -1148,20 +1246,42 @@ function ChangeLocationContent() {
 					}
 
 					let addressData = null
-					try {
-						const apiRes = await fetch(`/api/geocode/reverse?lat=${newLat}&lng=${newLng}`)
-						const apiJson = await apiRes.json()
-						if (apiJson.success && apiJson.data) {
-							addressData = apiJson.data
-						} else {
-							addressData = await reverseGeocode(newLat, newLng)
+					// Use client-side Google Maps Geocoder first
+					if (window.google && window.google.maps && window.google.maps.Geocoder) {
+						try {
+							const geocoder = new window.google.maps.Geocoder()
+							addressData = await new Promise<{ address: string; city?: string } | null>((resolve) => {
+								geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results: any, status: any) => {
+									if (status === 'OK' && results && results.length > 0) {
+										const result = results[0]
+										const city = result.address_components.find(
+											(comp: any) => comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+										)?.long_name || ''
+										resolve({
+											address: result.formatted_address,
+											city: city
+										})
+									} else {
+										resolve(null)
+									}
+								})
+							})
+						} catch (geocodeErr) {
+							console.warn('Client-side geocoding failed:', geocodeErr)
 						}
-					} catch (apiErr) {
-						addressData = await reverseGeocode(newLat, newLng)
+					}
+					
+					// Fallback to OpenStreetMap
+					if (!addressData) {
+						try {
+							addressData = await reverseGeocode(newLat, newLng)
+						} catch (osmErr) {
+							console.warn('OpenStreetMap geocoding failed:', osmErr)
+						}
 					}
 
 					if (addressData) {
-						setUserAddress(addressData.address || addressData.formatted_address || 'Selected location')
+						setUserAddress(addressData.address || 'Selected location')
 						if (!validationResult.city && typeof setUserCity === 'function') {
 							setUserCity(addressData.city || '')
 						}
@@ -1184,24 +1304,48 @@ function ChangeLocationContent() {
 		setLocationValidationError('')
 		setNearbySocieties([])
 
-		// Get address
+		// Get address - use client-side Google Maps Geocoder first (works with restricted API keys)
 		setLoadingAddress(true)
 		try {
 			let addressData = null
-			try {
-				const apiRes = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`)
-				const apiJson = await apiRes.json()
-				if (apiJson.success && apiJson.data) {
-					addressData = apiJson.data
-				} else {
-					addressData = await reverseGeocode(lat, lng)
+			
+			// Try client-side Google Maps Geocoder first (works with restricted API keys)
+			if (window.google && window.google.maps && window.google.maps.Geocoder) {
+				try {
+					const geocoder = new window.google.maps.Geocoder()
+					addressData = await new Promise<{ address: string; city?: string } | null>((resolve) => {
+						geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+							if (status === 'OK' && results && results.length > 0) {
+								const result = results[0]
+								const city = result.address_components.find(
+									(comp: any) => comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+								)?.long_name || ''
+								resolve({
+									address: result.formatted_address,
+									city: city
+								})
+							} else {
+								console.warn('Google Geocoder status:', status)
+								resolve(null)
+							}
+						})
+					})
+				} catch (geocodeErr) {
+					console.warn('Client-side geocoding failed:', geocodeErr)
 				}
-			} catch (apiErr) {
-				addressData = await reverseGeocode(lat, lng)
+			}
+			
+			// Fallback to OpenStreetMap if Google Maps fails
+			if (!addressData) {
+				try {
+					addressData = await reverseGeocode(lat, lng)
+				} catch (osmErr) {
+					console.warn('OpenStreetMap geocoding failed:', osmErr)
+				}
 			}
 
 			if (addressData) {
-				setUserAddress(addressData.address || addressData.formatted_address || `${society.name}, ${area.city}`)
+				setUserAddress(addressData.address || `${society.name}, ${area.city}`)
 			} else {
 				setUserAddress(`${society.name}, ${area.city}`)
 			}
@@ -1405,24 +1549,45 @@ function ChangeLocationContent() {
 											}
 										}
 										
-										// Get address from coordinates
+										// Get address from coordinates - use client-side Google Maps Geocoder first
 										let addressData = null
-										try {
-											const apiRes = await fetch(`/api/geocode/reverse?lat=${newLat}&lng=${newLng}`)
-											const apiJson = await apiRes.json()
-											if (apiJson.success && apiJson.data) {
-												addressData = apiJson.data
-											} else {
-												// Fallback to client-side
-												addressData = await reverseGeocode(newLat, newLng)
+										
+										// Try client-side Google Maps Geocoder first (works with restricted API keys)
+										if (window.google && window.google.maps && window.google.maps.Geocoder) {
+											try {
+												const geocoder = new window.google.maps.Geocoder()
+												addressData = await new Promise<{ address: string; city?: string } | null>((resolve) => {
+													geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results: any, status: any) => {
+														if (status === 'OK' && results && results.length > 0) {
+															const result = results[0]
+															const city = result.address_components.find(
+																(comp: any) => comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+															)?.long_name || ''
+															resolve({
+																address: result.formatted_address,
+																city: city
+															})
+														} else {
+															resolve(null)
+														}
+													})
+												})
+											} catch (geocodeErr) {
+												console.warn('Client-side geocoding failed:', geocodeErr)
 											}
-										} catch (apiErr) {
-											// Fallback to client-side
-											addressData = await reverseGeocode(newLat, newLng)
+										}
+										
+										// Fallback to OpenStreetMap if Google Maps fails
+										if (!addressData) {
+											try {
+												addressData = await reverseGeocode(newLat, newLng)
+											} catch (osmErr) {
+												console.warn('OpenStreetMap geocoding failed:', osmErr)
+											}
 										}
 										
 										if (addressData) {
-											setUserAddress(addressData.address || addressData.formatted_address || 'Selected location')
+											setUserAddress(addressData.address || 'Selected location')
 											// Only set city if not already matched from society
 											if (!validationResult.city) {
 												// Check if setUserCity exists (it might not be defined)

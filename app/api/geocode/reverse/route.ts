@@ -38,6 +38,19 @@ export async function GET(req: NextRequest) {
 		const data = await response.json()
 		
 		if (data.status !== 'OK') {
+			// Handle API key restriction errors gracefully
+			if (data.status === 'REQUEST_DENIED' && data.error_message?.includes('referer')) {
+				return NextResponse.json(
+					{ 
+						success: false, 
+						message: 'API key has referer restrictions. Please use client-side geocoding.',
+						status: data.status,
+						useClientSide: true
+					},
+					{ status: 400 }
+				)
+			}
+			
 			return NextResponse.json(
 				{ 
 					success: false, 
