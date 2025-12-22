@@ -4,7 +4,7 @@ import Dashboard from './Dashboard'
 
 export default async function AccountPage() {
 	const session = await auth()
-	if (!session) redirect('/auth/login')
+	if (!session) redirect('/auth/login?callbackUrl=/account')
 	return (
 		<div className="container-pg py-8">
 			<div className="mx-auto w-full max-w-6xl">

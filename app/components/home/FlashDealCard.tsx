@@ -87,7 +87,9 @@ export default function FlashDealCard({ product }: { product: any }) {
 		e.stopPropagation()
 		
 		if (status !== 'authenticated') {
-			window.location.href = '/auth/login?callbackUrl=' + encodeURIComponent(window.location.pathname) as any
+			// Preserve full URL including query params and hash
+			const currentUrl = window.location.pathname + window.location.search + window.location.hash
+			window.location.href = '/auth/login?callbackUrl=' + encodeURIComponent(currentUrl) as any
 			return
 		}
 		

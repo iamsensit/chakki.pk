@@ -21,6 +21,14 @@ function LoginForm() {
 	const [loading, setLoading] = useState(false)
 	const [unverified, setUnverified] = useState(false)
 
+	// Redirect if already authenticated
+	useEffect(() => {
+		if (status === 'authenticated') {
+			const callbackUrl = searchParams.get('callbackUrl') || '/account'
+			router.push(callbackUrl as any)
+		}
+	}, [status, searchParams, router])
+
 	// Handle error passed by NextAuth (?error=EMAIL_NOT_VERIFIED)
 	useEffect(() => {
 		const err = searchParams.get('error')
@@ -83,6 +91,25 @@ function LoginForm() {
 		} finally {
 			setLoading(false)
 		}
+	}
+
+	// Show loading while checking authentication status
+	if (status === 'loading') {
+		return (
+			<div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
+				<div className="w-full max-w-md">
+					<div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8 text-center">
+						<div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
+						<p className="mt-4 text-sm text-gray-600">Loading...</p>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Don't render form if authenticated (will redirect)
+	if (status === 'authenticated') {
+		return null
 	}
 
 	return (

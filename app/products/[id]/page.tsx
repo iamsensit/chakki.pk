@@ -169,7 +169,9 @@ export default function ProductDetailPage() {
 
         async function toggleWishlist() {
                 if (status !== 'authenticated') {
-                        router.push('/auth/login?callbackUrl=' + encodeURIComponent(window.location.pathname) as any)
+                        // Preserve full URL including query params and hash
+                        const currentUrl = window.location.pathname + window.location.search + window.location.hash
+                        router.push('/auth/login?callbackUrl=' + encodeURIComponent(currentUrl) as any)
                         return
                 }
 
