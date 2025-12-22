@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/app/lib/auth'
 import { connectToDatabase } from '@/app/lib/mongodb'
 import User from '@/models/User'
-import Cart from '@/models/Cart'
-import UserDeliveryLocation from '@/models/UserDeliveryLocation'
 import { verifyPassword } from '@/app/lib/crypto'
+import { deleteUserAccount } from '@/app/lib/account-deletion'
 
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
@@ -89,6 +88,7 @@ export async function DELETE(req: NextRequest) {
 	
 	const body = await req.json()
 	const password = typeof body.password === 'string' ? body.password : undefined
+	const sendConfirmationEmail = body.sendConfirmationEmail !== false // Default to true
 	
 	if (!password) {
 		return json(false, 'Password is required to delete account', undefined, { password: 'Password is required' }, 400)
@@ -97,6 +97,16 @@ export async function DELETE(req: NextRequest) {
 	const email = session.user.email
 	const user = await User.findOne({ email })
 	if (!user) return json(false, 'User not found', undefined, undefined, 404)
+	
+	// Prevent deletion of admin accounts
+	const { getAdminEmailsList } = await import('@/app/lib/roles')
+	const allowList = getAdminEmailsList()
+	const userRole = (user as any)?.role
+	const isAdmin = userRole === 'ADMIN' || userRole === 'CADMIN' || allowList.includes(email.toLowerCase())
+	
+	if (isAdmin) {
+		return json(false, 'Admin accounts cannot be deleted through this interface', undefined, undefined, 403)
+	}
 	
 	// Verify password
 	if (user.passwordHash) {
@@ -109,13 +119,26 @@ export async function DELETE(req: NextRequest) {
 		return json(false, 'Cannot delete account without password verification', undefined, undefined, 400)
 	}
 
-	await Promise.all([
-		User.deleteOne({ email }),
-		Cart.deleteOne({ userId: email }),
-		UserDeliveryLocation.deleteMany({ userId: email })
-	])
+	// Get IP address and user agent for audit logging
+	const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+	const userAgent = req.headers.get('user-agent') || 'unknown'
+	
+	// Use secure deletion function
+	const userId = String(user._id)
+	const deletionResult = await deleteUserAccount(userId, email, {
+		sendConfirmationEmail,
+		ipAddress,
+		userAgent
+	})
+	
+	if (!deletionResult.success) {
+		return json(false, deletionResult.error || 'Failed to delete account', undefined, undefined, 500)
+	}
 
-	return json(true, 'Account deleted')
+	return json(true, 'Account and personal data deleted successfully. Order history has been anonymized for compliance purposes.', {
+		anonymizedUserId: deletionResult.anonymizedUserId,
+		deletedCounts: deletionResult.deletedCounts
+	})
 }
 
 export const dynamic = 'force-dynamic'

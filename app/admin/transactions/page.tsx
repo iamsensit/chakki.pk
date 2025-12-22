@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from 'swr'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { TrendingUp, Package, DollarSign, ShoppingCart, Calendar, Filter, Download, BarChart3, PieChart, Eye, X, User, Phone, MapPin, Truck } from 'lucide-react'
 import { formatCurrencyPKR } from '@/app/lib/price'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,6 +19,11 @@ export default function TransactionsPage() {
 	const [productDetails, setProductDetails] = useState<Record<string, any>>({})
 	const [stockProductDetails, setStockProductDetails] = useState<Record<string, any>>({})
 	const [stockLoading, setStockLoading] = useState(true)
+	
+	// Refs to prevent infinite loops
+	const fetchedProductIdsRef = useRef<Set<string>>(new Set())
+	const fetchingRef = useRef(false)
+	const lastStockSoldRef = useRef<string>('')
 	
 	const orders = ordersData?.data || []
 	const posSales = posData?.data || []
@@ -93,20 +98,43 @@ export default function TransactionsPage() {
 	const filteredOrders = useMemo(() => orders.filter((o: any) => filterDate(o.createdAt)), [orders, dateFilter])
 	const filteredPOS = useMemo(() => posSales.filter((s: any) => filterDate(s.createdAt)), [posSales, dateFilter])
 	
-	// Calculate totals
-	const totalRevenue = filteredOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0) +
+	// Helper function to check if order should count in revenue
+	const shouldCountInRevenue = (order: any): boolean => {
+		// Never count cancelled orders
+		if (order.status === 'CANCELLED') return false
+		
+		const paymentMethod = order.paymentMethod
+		const status = order.status
+		
+		// For online payments (JazzCash, EasyPaisa): count only if CONFIRMED, SHIPPED, or DELIVERED
+		if (paymentMethod === 'JAZZCASH' || paymentMethod === 'EASYPAISA') {
+			return status === 'CONFIRMED' || status === 'SHIPPED' || status === 'DELIVERED' || status === 'SHIPPING_IN_PROCESS'
+		}
+		
+		// For COD: count only if SHIPPED or DELIVERED (payment received on delivery)
+		if (paymentMethod === 'COD') {
+			return status === 'SHIPPED' || status === 'DELIVERED'
+		}
+		
+		// Default: don't count
+		return false
+	}
+	
+	// Calculate totals - only count orders that should be in revenue
+	const revenueOrders = useMemo(() => filteredOrders.filter(shouldCountInRevenue), [filteredOrders])
+	const totalRevenue = revenueOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0) +
 		filteredPOS.reduce((sum: number, s: any) => sum + (s.total || 0), 0)
 	
-	const totalOrders = filteredOrders.length
+	const totalOrders = revenueOrders.length
 	const totalPOS = filteredPOS.length
 	const totalTransactions = totalOrders + totalPOS
 	
-	// Stock tracking - aggregate items sold
+	// Stock tracking - aggregate items sold (only from revenue-counted orders)
 	const stockSold = useMemo(() => {
 		const sold: Record<string, { productId: string; variantId?: string; title: string; quantity: number; revenue: number }> = {}
 		
-		// From orders
-		filteredOrders.forEach((order: any) => {
+		// From orders - only count orders that should be in revenue
+		revenueOrders.forEach((order: any) => {
 			order.items?.forEach((item: any) => {
 				const key = `${item.productId}-${item.variantId || 'none'}`
 				if (!sold[key]) {
@@ -123,7 +151,7 @@ export default function TransactionsPage() {
 			})
 		})
 		
-		// From POS
+		// From POS (always count POS sales as they're immediate)
 		filteredPOS.forEach((sale: any) => {
 			sale.items?.forEach((item: any) => {
 				const key = `${item.productId}-${item.variantId || 'none'}`
@@ -142,43 +170,85 @@ export default function TransactionsPage() {
 		})
 		
 		return Object.values(sold).sort((a, b) => b.revenue - a.revenue)
-	}, [filteredOrders, filteredPOS])
-
-	// Fetch product details for stock movement table
+	}, [revenueOrders, filteredPOS])
+	
+	// Fetch product details for stock movement table - with loop prevention
 	useEffect(() => {
 		if (stockSold.length === 0) {
 			setStockLoading(false)
 			return
 		}
 		
-		setStockLoading(true)
-		const uniqueProductIds = [...new Set(stockSold.map((item: any) => item.productId).filter(Boolean))]
+		// Create a stable key from stockSold to detect actual changes
+		const stockSoldKey = JSON.stringify(stockSold.map(item => item.productId).sort())
 		
+		// If stockSold hasn't actually changed, don't refetch
+		if (stockSoldKey === lastStockSoldRef.current) {
+			return
+		}
+		
+		lastStockSoldRef.current = stockSoldKey
+		
+		const uniqueProductIds = [...new Set(stockSold.map((item: any) => item.productId).filter(Boolean))]
+		const productIdStrings = uniqueProductIds.map(id => String(id))
+		
+		// Check which products we need to fetch (not already fetched)
+		const missingProductIds = productIdStrings.filter(id => !fetchedProductIdsRef.current.has(id))
+		
+		// If all products are already fetched, don't fetch again
+		if (missingProductIds.length === 0) {
+			setStockLoading(false)
+			return
+		}
+		
+		// Prevent concurrent fetches
+		if (fetchingRef.current) {
+			return
+		}
+		
+		fetchingRef.current = true
+		setStockLoading(true)
+		
+		// Mark these as being fetched
+		missingProductIds.forEach(id => fetchedProductIdsRef.current.add(id))
+		
+		// Only fetch missing products
 		Promise.all(
-			uniqueProductIds.map(async (productId: any) => {
+			missingProductIds.map(async (productId: string) => {
 				try {
-					const res = await fetch(`/api/products/${String(productId)}`)
+					const res = await fetch(`/api/products/${productId}`)
 					const json = await res.json()
 					if (json?.success && json?.data) {
-						return { productId: String(productId), product: json.data }
+						return { productId, product: json.data }
 					}
 					return null
 				} catch (error) {
 					console.error('Failed to load product:', productId, error)
+					// Remove from fetched set on error so it can be retried
+					fetchedProductIdsRef.current.delete(productId)
 					return null
 				}
 			})
 		).then((results) => {
-			const details: Record<string, any> = {}
-			results.forEach((result) => {
-				if (result) {
-					details[result.productId] = result.product
-				}
+			setStockProductDetails((prev: Record<string, any>) => {
+				const details: Record<string, any> = { ...prev } // Preserve existing
+				results.forEach((result) => {
+					if (result) {
+						details[result.productId] = result.product
+					}
+				})
+				return details
 			})
-			setStockProductDetails(details)
 			setStockLoading(false)
+			fetchingRef.current = false
+		}).catch((error) => {
+			console.error('Error loading product details:', error)
+			setStockLoading(false)
+			fetchingRef.current = false
+			// Remove from fetched set on error so it can be retried
+			missingProductIds.forEach(id => fetchedProductIdsRef.current.delete(id))
 		})
-	}, [stockSold])
+	}, [stockSold]) // Only depend on stockSold
 	
 	const isLoading = ordersLoading || posLoading
 	
@@ -232,7 +302,7 @@ export default function TransactionsPage() {
 					</div>
 					<div className="text-2xl font-bold text-slate-900">{totalOrders}</div>
 					<div className="text-xs text-slate-500 mt-1">
-						{formatCurrencyPKR(filteredOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0))}
+						{formatCurrencyPKR(revenueOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0))}
 					</div>
 				</motion.div>
 				
@@ -371,13 +441,13 @@ export default function TransactionsPage() {
 								<div key={i} className="skeleton h-20" />
 							))}
 						</div>
-					) : filteredOrders.length === 0 ? (
+					) : revenueOrders.length === 0 ? (
 						<div className="text-center py-8 text-slate-600">
 							<p>No orders for this period.</p>
 						</div>
 					) : (
 						<div className="space-y-3">
-							{filteredOrders.slice(0, 5).map((order: any, idx: number) => (
+							{revenueOrders.slice(0, 5).map((order: any, idx: number) => (
 								<motion.div
 									key={order._id}
 									initial={{ opacity: 0, x: -20 }}
@@ -722,4 +792,3 @@ export default function TransactionsPage() {
 		</div>
 	)
 }
-

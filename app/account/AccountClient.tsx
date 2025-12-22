@@ -463,7 +463,19 @@ export default function AccountClient() {
 					<Trash2 className="h-4 w-4" /> 
 					Delete account
 				</div>
-				<p className="text-sm text-slate-600 mb-4">This will delete your account data and sign you out. This action cannot be undone.</p>
+				<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+					<p className="text-sm font-medium text-red-900 mb-2">⚠️ This action cannot be undone</p>
+					<p className="text-sm text-red-800 mb-2">Deleting your account will permanently remove:</p>
+					<ul className="text-xs text-red-700 list-disc list-inside space-y-1 mb-2">
+						<li>Login credentials (email, password)</li>
+						<li>Profile information (name, phone number, profile picture)</li>
+						<li>Saved payment methods</li>
+						<li>Shipping and delivery addresses</li>
+						<li>Wishlist and saved cart items</li>
+						<li>Product reviews</li>
+					</ul>
+					<p className="text-xs text-red-600">Order history will be anonymized for legal compliance.</p>
+				</div>
 				<button
 					disabled={deleting}
 					onClick={onDeleteAccount}
@@ -490,9 +502,15 @@ export default function AccountClient() {
 							</div>
 							<div className="flex-1">
 								<h3 className="text-lg font-semibold text-gray-900 mb-1">Delete Account</h3>
-								<p className="text-sm text-gray-600 mb-4">
-									This action cannot be undone. This will permanently delete your account, orders, and all associated data.
-								</p>
+								<div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+									<p className="text-sm font-medium text-red-900 mb-2">⚠️ This action cannot be undone</p>
+									<p className="text-xs text-red-800 mb-1">The following will be permanently deleted:</p>
+									<ul className="text-xs text-red-700 list-disc list-inside space-y-0.5 mb-2">
+										<li>Login credentials, profile info, payment methods</li>
+										<li>Shipping addresses, wishlist, cart, reviews</li>
+									</ul>
+									<p className="text-xs text-red-600">Order history will be anonymized for compliance.</p>
+								</div>
 								<div className="space-y-3">
 									<div>
 										<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -515,6 +533,9 @@ export default function AccountClient() {
 										{deletePasswordError && (
 											<p className="mt-1 text-xs text-red-600">{deletePasswordError}</p>
 										)}
+										<p className="mt-2 text-xs text-gray-500">
+											You will receive a confirmation email after deletion is complete.
+										</p>
 									</div>
 								</div>
 							</div>

@@ -2,14 +2,14 @@
 
 import useSWR from 'swr'
 import { useState, useMemo, useRef } from 'react'
-import { CheckCircle2, Truck, BadgeCheck, Search, X, Eye, ChevronDown, ChevronUp, Package, User, Phone, MapPin, Calendar, DollarSign, Mail, Send, Clock } from 'lucide-react'
+import { CheckCircle2, Truck, BadgeCheck, Search, X, Eye, ChevronDown, ChevronUp, Package, User, Phone, MapPin, Calendar, DollarSign, Mail, Send, Clock, RotateCcw, ArrowLeftRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrencyPKR } from '@/app/lib/price'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
-type OrderTab = 'all' | 'pending' | 'confirmed' | 'shipped' | 'delivered'
+type OrderTab = 'all' | 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
 
 const CANCELLATION_REASONS = [
 	{ value: 'not_paid', label: 'Payment Not Received', emailSubject: 'Order Cancelled - Payment Not Received' },
@@ -34,12 +34,16 @@ export default function AdminOrdersPage() {
 	const [orderDetails, setOrderDetails] = useState<any>(null)
 	const [orderDetailsLoading, setOrderDetailsLoading] = useState(false)
 	const [productDetails, setProductDetails] = useState<Record<string, any>>({})
+	const [refundOrderId, setRefundOrderId] = useState<string | null>(null)
+	const [refundMethod, setRefundMethod] = useState('')
+	const [refundAccountNumber, setRefundAccountNumber] = useState('')
 	const orders = data?.data || []
 	
 	const pendingSectionRef = useRef<HTMLDivElement>(null)
 	const confirmedSectionRef = useRef<HTMLDivElement>(null)
 	const shippedSectionRef = useRef<HTMLDivElement>(null)
 	const deliveredSectionRef = useRef<HTMLDivElement>(null)
+	const cancelledSectionRef = useRef<HTMLDivElement>(null)
 	
 	const scrollToSection = (section: OrderTab) => {
 		setActiveTab(section)
@@ -49,6 +53,7 @@ export default function AdminOrdersPage() {
 			else if (section === 'confirmed') ref = confirmedSectionRef.current
 			else if (section === 'shipped') ref = shippedSectionRef.current
 			else if (section === 'delivered') ref = deliveredSectionRef.current
+			else if (section === 'cancelled') ref = cancelledSectionRef.current
 			
 			if (ref) {
 				ref.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -57,13 +62,28 @@ export default function AdminOrdersPage() {
 	}
 	
 	// Separate orders by status
-	const { pendingOrders, confirmedOrders, shippedOrders, deliveredOrders } = useMemo(() => {
+	const { pendingOrders, confirmedOrders, shippedOrders, deliveredOrders, cancelledOrders, activeOrders } = useMemo(() => {
 		const pending = orders.filter((o: any) => String(o.status || '').toUpperCase() === 'PENDING')
 		const confirmed = orders.filter((o: any) => String(o.status || '').toUpperCase() === 'CONFIRMED')
 		const shipped = orders.filter((o: any) => String(o.status || '').toUpperCase() === 'SHIPPED')
 		const delivered = orders.filter((o: any) => String(o.status || '').toUpperCase() === 'DELIVERED')
-		return { pendingOrders: pending, confirmedOrders: confirmed, shippedOrders: shipped, deliveredOrders: delivered }
+		const cancelled = orders.filter((o: any) => String(o.status || '').toUpperCase() === 'CANCELLED')
+		// Active orders (excluding cancelled) for total count
+		const active = orders.filter((o: any) => String(o.status || '').toUpperCase() !== 'CANCELLED')
+		return { 
+			pendingOrders: pending, 
+			confirmedOrders: confirmed, 
+			shippedOrders: shipped, 
+			deliveredOrders: delivered,
+			cancelledOrders: cancelled,
+			activeOrders: active
+		}
 	}, [orders])
+	
+	// Calculate revenue from shipped orders only
+	const totalRevenue = useMemo(() => {
+		return shippedOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0)
+	}, [shippedOrders])
 	
 	async function loadOrderDetails(order: any) {
 		setOrderDetailsLoading(true)
@@ -231,6 +251,42 @@ export default function AdminOrdersPage() {
 			setBusy('')
 		}
 	}
+	
+	async function handleRefundOrder() {
+		if (!refundOrderId || !refundMethod) {
+			toast.error('Please select a refund method')
+			return
+		}
+		
+		setBusy(refundOrderId)
+		try {
+			const res = await fetch(`/api/orders/${refundOrderId}/refund`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					refundMethod,
+					refundAccountNumber: refundAccountNumber.trim() || undefined
+				})
+			})
+			
+			const json = await res.json()
+			
+			if (!res.ok || !json.success) {
+				throw new Error(json.message || 'Failed to process refund')
+			}
+			
+			toast.success('Refund processed and email sent to customer')
+			setRefundOrderId(null)
+			setRefundMethod('')
+			setRefundAccountNumber('')
+			await mutate()
+		} catch (e: any) {
+			console.error('Refund error:', e)
+			toast.error(e.message || 'Failed to process refund')
+		} finally {
+			setBusy('')
+		}
+	}
 
 	function getStatusLabel(status: string) {
 		switch (status) {
@@ -296,11 +352,18 @@ export default function AdminOrdersPage() {
 			</div>
 
 			{/* Stats - Clickable to navigate */}
-			<div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-				<div className="card-enhanced p-4">
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+				<button
+					onClick={() => {
+						setActiveTab('all')
+						// Scroll to top or show all orders
+					}}
+					className={`card-enhanced p-4 text-left hover:shadow-md transition-shadow cursor-pointer ${activeTab === 'all' ? 'ring-2 ring-slate-500' : ''}`}
+				>
 					<div className="text-sm text-slate-600 mb-1">Total Orders</div>
-					<div className="text-2xl font-bold text-slate-900">{orders.length}</div>
-				</div>
+					<div className="text-2xl font-bold text-slate-900">{activeOrders.length}</div>
+					<div className="text-xs text-slate-500 mt-1">Excluding cancelled</div>
+				</button>
 				<button
 					onClick={() => scrollToSection('pending')}
 					className={`card-enhanced p-4 text-left hover:shadow-md transition-shadow cursor-pointer ${activeTab === 'pending' ? 'ring-2 ring-amber-500' : ''}`}
@@ -331,12 +394,16 @@ export default function AdminOrdersPage() {
 					</div>
 					<div className="text-xs text-slate-500 mt-1">In transit</div>
 				</button>
-				<div className="card-enhanced p-4">
-					<div className="text-sm text-slate-600 mb-1">Total Revenue</div>
-					<div className="text-2xl font-bold text-brand-accent">
-						{formatCurrencyPKR(orders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0))}
+				<button
+					onClick={() => scrollToSection('cancelled')}
+					className={`card-enhanced p-4 text-left hover:shadow-md transition-shadow cursor-pointer ${activeTab === 'cancelled' ? 'ring-2 ring-red-500' : ''}`}
+				>
+					<div className="text-sm text-slate-600 mb-1">Cancelled Orders</div>
+					<div className="text-2xl font-bold text-red-600">
+						{cancelledOrders.length}
 					</div>
-				</div>
+					<div className="text-xs text-slate-500 mt-1">Refund processing</div>
+				</button>
 			</div>
 
 			{isLoading ? (
@@ -725,12 +792,131 @@ export default function AdminOrdersPage() {
 						</div>
 					)}
 					
+					{/* Cancelled Orders Section */}
+					{(activeTab === 'all' || activeTab === 'cancelled') && filterOrders(cancelledOrders).length > 0 && (
+						<div ref={cancelledSectionRef} className="space-y-4">
+							<h2 className="text-xl font-semibold text-slate-900 mb-2">Cancelled Orders ({cancelledOrders.length})</h2>
+							<p className="text-sm text-slate-600 mb-4">Cancelled orders - Process refunds and view payment records</p>
+							{filterOrders(cancelledOrders).map((o: any, idx: number) => (
+								<motion.div
+									key={o._id}
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ duration: 0.3, delay: idx * 0.05 }}
+									className="card-enhanced p-6"
+								>
+									<div className="flex items-start justify-between mb-4">
+										<div className="flex-1">
+											<div className="flex items-center gap-3 mb-2">
+												<h3 className="text-lg font-semibold text-slate-900">
+													Order #{String(o._id).slice(-8).toUpperCase()}
+												</h3>
+												<span className={`badge-status ${getStatusColor(o.status)}`} title={o.status}>
+													{getStatusLabel(o.status)}
+												</span>
+												{o.refunded && (
+													<span className="badge-status text-green-600 bg-green-50 border-green-200">
+														Refunded
+													</span>
+												)}
+											</div>
+											<div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+												<div className="flex items-center gap-1.5">
+													<Calendar className="h-4 w-4" />
+													{new Date(o.createdAt).toLocaleDateString('en-PK', {
+														year: 'numeric',
+														month: 'short',
+														day: 'numeric',
+														hour: '2-digit',
+														minute: '2-digit'
+													})}
+												</div>
+												<div className="flex items-center gap-1.5">
+													<Package className="h-4 w-4" />
+													{o.items?.length || 0} items
+												</div>
+												<div className="flex items-center gap-1.5">
+													<DollarSign className="h-4 w-4" />
+													{formatCurrencyPKR(o.totalAmount)}
+												</div>
+												<div className="flex items-center gap-1.5">
+													<span className="font-medium">{o.paymentMethod}</span>
+												</div>
+												{o.cancellationReason && (
+													<div className="flex items-center gap-1.5 text-red-600">
+														<span className="text-xs">Reason: {o.cancellationReason}</span>
+													</div>
+												)}
+											</div>
+											{o.refunded && (
+												<div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+													<p className="text-sm text-green-800">
+														<strong>Refunded:</strong> {formatCurrencyPKR(o.refundAmount || 0)} via {o.refundMethod || 'N/A'} on {o.refundedAt ? new Date(o.refundedAt).toLocaleDateString('en-PK') : 'N/A'}
+													</p>
+													{o.refundAccountNumber && (
+														<p className="text-xs text-green-700 mt-1">Account: {o.refundAccountNumber}</p>
+													)}
+												</div>
+											)}
+										</div>
+										<button
+											onClick={() => {
+												if (expandedOrder === o._id) {
+													setExpandedOrder(null)
+													setOrderDetails(null)
+												} else {
+													setExpandedOrder(o._id)
+													loadOrderDetails(o)
+												}
+											}}
+											className="btn-secondary p-2"
+										>
+											{expandedOrder === o._id ? (
+												<ChevronUp className="h-5 w-5" />
+											) : (
+												<Eye className="h-5 w-5" />
+											)}
+										</button>
+									</div>
+									
+									{/* Action Buttons */}
+									<div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
+										{!o.refunded && (o.paymentMethod === 'JAZZCASH' || o.paymentMethod === 'EASYPAISA') && (
+											<button
+												disabled={busy === o._id}
+												onClick={() => {
+													setRefundOrderId(o._id)
+													setRefundMethod(o.paymentMethod)
+													setRefundAccountNumber(
+														o.paymentMethod === 'JAZZCASH' ? (o.jazzcashAccountNumber || '') :
+														o.paymentMethod === 'EASYPAISA' ? (o.easypaisaAccountNumber || '') : ''
+													)
+												}}
+												className="btn-primary px-4 py-2 flex items-center gap-2 bg-green-600 hover:bg-green-700"
+												title="Process refund"
+											>
+												<RotateCcw className="h-4 w-4" />
+												Process Refund
+											</button>
+										)}
+										{!o.refunded && o.paymentMethod === 'COD' && (
+											<div className="text-sm text-slate-600 px-4 py-2">
+												COD orders do not require refund processing
+											</div>
+										)}
+									</div>
+								</motion.div>
+							))}
+						</div>
+					)}
+					
 					{/* No Orders Message */}
 					{activeTab !== 'all' && 
 					 filterOrders(pendingOrders).length === 0 && 
 					 filterOrders(confirmedOrders).length === 0 && 
 					 filterOrders(shippedOrders).length === 0 && 
-					 filterOrders(deliveredOrders).length === 0 && (
+					 filterOrders(deliveredOrders).length === 0 &&
+					 filterOrders(cancelledOrders).length === 0 && (
 						<div className="card-enhanced p-12 text-center">
 							<Package className="h-12 w-12 text-slate-400 mx-auto mb-4" />
 							<p className="text-slate-600">
@@ -911,6 +1097,26 @@ export default function AdminOrdersPage() {
 										</div>
 									</div>
 								)}
+								
+								{/* Refund Information */}
+								{orderDetails.refunded && (
+									<div className="p-4 bg-green-50 rounded-lg border border-green-200">
+										<h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+											<RotateCcw className="h-4 w-4" />
+											Refund Information
+										</h4>
+										<div className="text-sm space-y-2 text-green-700">
+											<p><span className="font-medium">Refund Amount:</span> {formatCurrencyPKR(orderDetails.refundAmount || 0)}</p>
+											<p><span className="font-medium">Refund Method:</span> {orderDetails.refundMethod || 'N/A'}</p>
+											{orderDetails.refundAccountNumber && (
+												<p><span className="font-medium">Refund Account Number:</span> {orderDetails.refundAccountNumber}</p>
+											)}
+											{orderDetails.refundedAt && (
+												<p><span className="font-medium">Refund Date:</span> {new Date(orderDetails.refundedAt).toLocaleString('en-PK')}</p>
+											)}
+										</div>
+									</div>
+								)}
 
 								{/* Action Buttons */}
 								<div className="flex gap-3 pt-4 border-t">
@@ -951,6 +1157,105 @@ export default function AdminOrdersPage() {
 				</div>
 			)}
 
+			{/* Refund Order Dialog */}
+			{refundOrderId && (
+				<div
+					className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+					onClick={() => {
+						if (busy !== refundOrderId) {
+							setRefundOrderId(null)
+							setRefundMethod('')
+							setRefundAccountNumber('')
+						}
+					}}
+				>
+					<motion.div
+						initial={{ scale: 0.9, opacity: 0 }}
+						animate={{ scale: 1, opacity: 1 }}
+						className="max-w-md w-full bg-white rounded-xl p-6 max-h-[90vh] overflow-y-auto"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+							<RotateCcw className="h-5 w-5 text-green-600" />
+							Process Refund
+						</h3>
+						<div className="space-y-4">
+							<div>
+								<label className="block text-sm font-medium text-slate-700 mb-2">
+									Refund Method <span className="text-red-500">*</span>
+								</label>
+								<select
+									value={refundMethod}
+									onChange={(e) => setRefundMethod(e.target.value)}
+									disabled={busy === refundOrderId}
+									className="input-enhanced w-full"
+								>
+									<option value="">Select refund method</option>
+									<option value="JAZZCASH">JazzCash</option>
+									<option value="EASYPAISA">EasyPaisa</option>
+									<option value="BANK_TRANSFER">Bank Transfer</option>
+								</select>
+							</div>
+							{refundMethod && (
+								<div>
+									<label className="block text-sm font-medium text-slate-700 mb-2">
+										Account Number {refundMethod === 'BANK_TRANSFER' && <span className="text-red-500">*</span>}
+									</label>
+									<input
+										type="text"
+										value={refundAccountNumber}
+										onChange={(e) => setRefundAccountNumber(e.target.value)}
+										placeholder={refundMethod === 'JAZZCASH' ? 'JazzCash account number' : refundMethod === 'EASYPAISA' ? 'EasyPaisa account number' : 'Bank account number'}
+										disabled={busy === refundOrderId}
+										className="input-enhanced w-full"
+									/>
+									<p className="mt-1 text-xs text-slate-500">
+										{refundMethod === 'BANK_TRANSFER' ? 'Required for bank transfers' : 'Optional - will use account from order if not provided'}
+									</p>
+								</div>
+							)}
+							<div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+								<p className="text-sm text-blue-800">
+									<strong>Note:</strong> A confirmation email will be sent to the customer after processing the refund.
+								</p>
+							</div>
+						</div>
+						<div className="flex gap-3 mt-6">
+							<button
+								onClick={() => {
+									if (busy !== refundOrderId) {
+										setRefundOrderId(null)
+										setRefundMethod('')
+										setRefundAccountNumber('')
+									}
+								}}
+								disabled={busy === refundOrderId}
+								className="btn-secondary flex-1"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={handleRefundOrder}
+								disabled={!refundMethod || (refundMethod === 'BANK_TRANSFER' && !refundAccountNumber.trim()) || busy === refundOrderId}
+								className="btn-primary flex-1 bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"
+							>
+								{busy === refundOrderId ? (
+									<>
+										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+										Processing...
+									</>
+								) : (
+									<>
+										<RotateCcw className="h-4 w-4" />
+										Process Refund
+									</>
+								)}
+							</button>
+						</div>
+					</motion.div>
+				</div>
+			)}
+			
 			{/* Cancel Order Dialog */}
 			{cancelOrderId && (
 				<div

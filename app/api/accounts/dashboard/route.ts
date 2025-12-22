@@ -54,17 +54,66 @@ export async function GET() {
       { $group: { _id: null, total: { $sum: '$total' } } }
     ])
 
-    // From Orders (paid orders only)
+    // From Orders - Revenue logic:
+    // - Online payments (JazzCash/EasyPaisa): count if CONFIRMED, SHIPPED, DELIVERED, or SHIPPING_IN_PROCESS (not PENDING or CANCELLED)
+    // - COD: count only if SHIPPED or DELIVERED (payment received on delivery)
+    // - Never count CANCELLED orders
     const ordersTotal = await Order.aggregate([
-      { $match: { paymentStatus: 'PAID' } },
+      {
+        $match: {
+          status: { $ne: 'CANCELLED' },
+          $or: [
+            // Online payments: confirmed or shipped
+            {
+              paymentMethod: { $in: ['JAZZCASH', 'EASYPAISA'] },
+              status: { $in: ['CONFIRMED', 'SHIPPED', 'DELIVERED', 'SHIPPING_IN_PROCESS'] }
+            },
+            // COD: only shipped or delivered
+            {
+              paymentMethod: 'COD',
+              status: { $in: ['SHIPPED', 'DELIVERED'] }
+            }
+          ]
+        }
+      },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ])
     const ordersThisMonth = await Order.aggregate([
-      { $match: { paymentStatus: 'PAID', createdAt: { $gte: monthStart } } },
+      {
+        $match: {
+          createdAt: { $gte: monthStart },
+          status: { $ne: 'CANCELLED' },
+          $or: [
+            {
+              paymentMethod: { $in: ['JAZZCASH', 'EASYPAISA'] },
+              status: { $in: ['CONFIRMED', 'SHIPPED', 'DELIVERED', 'SHIPPING_IN_PROCESS'] }
+            },
+            {
+              paymentMethod: 'COD',
+              status: { $in: ['SHIPPED', 'DELIVERED'] }
+            }
+          ]
+        }
+      },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ])
     const ordersToday = await Order.aggregate([
-      { $match: { paymentStatus: 'PAID', createdAt: { $gte: todayStart } } },
+      {
+        $match: {
+          createdAt: { $gte: todayStart },
+          status: { $ne: 'CANCELLED' },
+          $or: [
+            {
+              paymentMethod: { $in: ['JAZZCASH', 'EASYPAISA'] },
+              status: { $in: ['CONFIRMED', 'SHIPPED', 'DELIVERED', 'SHIPPING_IN_PROCESS'] }
+            },
+            {
+              paymentMethod: 'COD',
+              status: { $in: ['SHIPPED', 'DELIVERED'] }
+            }
+          ]
+        }
+      },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ])
 

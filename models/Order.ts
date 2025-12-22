@@ -28,6 +28,11 @@ const OrderSchema = new Schema({
 	easypaisaAccountName: { type: String, default: '' },
 	easypaisaAccountNumber: { type: String, default: '' },
 	cancellationReason: { type: String, default: '' },
+	refunded: { type: Boolean, default: false },
+	refundedAt: { type: Date, default: null },
+	refundAmount: { type: Number, default: 0 },
+	refundMethod: { type: String, default: '' }, // e.g., 'JAZZCASH', 'EASYPAISA', 'BANK_TRANSFER'
+	refundAccountNumber: { type: String, default: '' },
 	shippedAt: { type: Date, default: null },
 	deliveredAt: { type: Date, default: null },
 	cancelledAt: { type: Date, default: null },
