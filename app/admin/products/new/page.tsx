@@ -260,28 +260,28 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 			<div className="mt-6 grid gap-4">
 				<div className="rounded-md border p-4 grid gap-3">
 					<div className="grid gap-2">
-						<label className="text-sm">Title</label>
-						<input value={title} onChange={e => handleTitle(e.target.value)} className="rounded-md border px-3 py-2 text-sm" placeholder="e.g. Daal Mash Premium" />
+						<label className="text-sm font-medium text-gray-700 mb-1.5 block">Title</label>
+						<input value={title} onChange={e => handleTitle(e.target.value)} className="input-enhanced" placeholder="e.g. Daal Mash Premium" />
 					</div>
 					<div className="grid gap-2">
-						<label className="text-sm">Slug</label>
-						<input value={slug} onChange={e => setSlug(e.target.value)} className="rounded-md border px-3 py-2 text-sm" placeholder="auto-generated-from-title or enter manually" />
+						<label className="text-sm font-medium text-gray-700 mb-1.5 block">Slug</label>
+						<input value={slug} onChange={e => setSlug(e.target.value)} className="input-enhanced" placeholder="auto-generated-from-title or enter manually" />
 					</div>
 					<div className="grid gap-2">
-						<label className="text-sm">Description</label>
-						<textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="rounded-md border px-3 py-2 text-sm" placeholder="Short product description" />
+						<label className="text-sm font-medium text-gray-700 mb-1.5 block">Description</label>
+						<textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="input-enhanced resize-none" placeholder="Short product description" />
 					</div>
 					<div className="grid gap-2">
 						<div>
-							<label className="text-sm">Brand</label>
-							<input value={brand} onChange={e => setBrand(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g. Local Mill" />
+							<label className="text-sm font-medium text-gray-700 mb-1.5 block">Brand</label>
+							<input value={brand} onChange={e => setBrand(e.target.value)} className="input-enhanced" placeholder="e.g. Local Mill" />
 						</div>
 						<div>
-							<label className="text-sm">Main Category *</label>
+							<label className="text-sm font-medium text-gray-700 mb-1.5 block">Main Category *</label>
 							<select
 								value={category}
 								onChange={e => setCategory(e.target.value)}
-								className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+								className="input-enhanced"
 								required
 							>
 								<option value="">Select a main category</option>
@@ -307,11 +307,11 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 						</div>
 						{category && (
 							<div>
-								<label className="text-sm">Sub-Category (Optional)</label>
+								<label className="text-sm font-medium text-gray-700 mb-1.5 block">Sub-Category (Optional)</label>
 								<select
 									value={subCategory}
 									onChange={e => setSubCategory(e.target.value)}
-									className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+									className="input-enhanced"
 								>
 									<option value="">Select a sub-category (optional)</option>
 									{hierarchicalCategories.length > 0 ? (
@@ -339,11 +339,11 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 						)}
 						{category && subCategory && (
 							<div>
-								<label className="text-sm">Sub-Sub-Category (Optional)</label>
+								<label className="text-sm font-medium text-gray-700 mb-1.5 block">Sub-Sub-Category (Optional)</label>
 								<select
 									value={subSubCategory}
 									onChange={e => setSubSubCategory(e.target.value)}
-									className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+									className="input-enhanced"
 								>
 									<option value="">Select a sub-sub-category (optional)</option>
 									{hierarchicalCategories.length > 0 ? (
@@ -369,7 +369,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 					</div>
 
           <div className="grid gap-2">
-            <label className="text-sm">Images (add by URL or /public path)</label>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Images (add by URL or /public path)</label>
 						<div className="flex items-center gap-2">
 							<select
 								className="rounded-md border px-2 py-2 text-sm"
@@ -383,11 +383,11 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 								value={imageUrl}
 								onChange={e => setImageUrl(e.target.value)}
 								placeholder={imageSource === 'public' ? '/images/photo.jpg' : 'https://site.com/image.jpg'}
-								className="flex-1 rounded-md border px-3 py-2 text-sm"
+								className="input-enhanced flex-1"
 							/>
 							<button
 								type="button"
-								className="rounded-md bg-brand px-3 py-2 text-white text-sm"
+								className="btn-primary"
 								onClick={() => {
 									const raw = imageUrl.trim()
 									if (!raw) return
@@ -437,31 +437,31 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 							</div>
 							<div className="grid gap-2 sm:grid-cols-2">
 								<div>
-									<label className="text-sm">SKU</label>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">SKU</label>
 									<input 
 										value={variant.sku} 
 										onChange={e => updateVariant(idx, 'sku', e.target.value)} 
-										className="w-full rounded-md border px-3 py-2 text-sm" 
+										className="input-enhanced" 
 										placeholder="e.g. DAALMASH-10KG" 
 									/>
 								</div>
 								<div className="grid grid-cols-2 gap-2">
 									<div>
-										<label className="text-sm">Unit Weight</label>
+										<label className="text-sm font-medium text-gray-700 mb-1.5 block">Unit Weight</label>
 										<input 
 											type="number" 
 											value={variant.unitWeight} 
 											onChange={e => updateVariant(idx, 'unitWeight', Number(e.target.value))} 
-											className="w-full rounded-md border px-3 py-2 text-sm" 
+											className="input-enhanced" 
 											placeholder="e.g. 10" 
 										/>
 									</div>
 									<div>
-										<label className="text-sm">Unit</label>
+										<label className="text-sm font-medium text-gray-700 mb-1.5 block">Unit</label>
 										<select 
 											value={variant.unit} 
 											onChange={e => updateVariant(idx, 'unit', e.target.value as any)} 
-											className="w-full rounded-md border px-3 py-2 text-sm"
+											className="input-enhanced"
 										>
 											<option value="kg">kg (Kilogram)</option>
 											<option value="g">g (Gram)</option>
@@ -473,32 +473,32 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 									</div>
 								</div>
 								<div>
-									<label className="text-sm">Price per kg (Rs)</label>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Price per kg (Rs)</label>
 									<input 
 										type="number" 
 										value={variant.pricePerKg} 
 										onChange={e => updateVariant(idx, 'pricePerKg', Number(e.target.value))} 
-										className="w-full rounded-md border px-3 py-2 text-sm" 
+										className="input-enhanced" 
 										placeholder="e.g. 150" 
 									/>
 								</div>
 								<div>
-									<label className="text-sm">Cost per kg (Rs)</label>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Cost per kg (Rs)</label>
 									<input 
 										type="number" 
 										value={variant.costPerKg || 0} 
 										onChange={e => updateVariant(idx, 'costPerKg', Number(e.target.value))} 
-										className="w-full rounded-md border px-3 py-2 text-sm" 
+										className="input-enhanced" 
 										placeholder="e.g. 100 (for inventory investment)" 
 									/>
 								</div>
 								<div>
-									<label className="text-sm">Stock qty</label>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Stock qty</label>
 									<input 
 										type="number" 
 										value={variant.stockQty} 
 										onChange={e => updateVariant(idx, 'stockQty', Number(e.target.value))} 
-										className="w-full rounded-md border px-3 py-2 text-sm" 
+										className="input-enhanced" 
 										placeholder="e.g. 100" 
 									/>
 								</div>
@@ -516,7 +516,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 							value={relatedProductsSearch}
 							onChange={e => setRelatedProductsSearch(e.target.value)}
 							placeholder="Search products to add as related..."
-							className="w-full rounded-md border px-3 py-2 text-sm"
+							className="input-enhanced"
 						/>
 						{relatedProductsSuggestions.length > 0 && (
 							<div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-lg max-h-60 overflow-auto">
@@ -558,7 +558,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 				</div>
 
 				<div>
-					<button onClick={onSave} disabled={saving} className="inline-flex items-center rounded-md bg-brand-accent px-3 py-1.5 text-white text-sm">
+					<button onClick={onSave} disabled={saving} className="btn-primary animate-fade-in">
 						{saving ? 'Saving...' : 'Create product'}
 					</button>
 				</div>

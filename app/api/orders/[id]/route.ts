@@ -61,11 +61,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 		}
 		
 		const body = await req.json()
-		const { paymentStatus, status } = body || {}
+		let { status, cancellationReason, cancellationReasonType, cancellationEmailSubject, shippedAt } = body || {}
 		
-		const hasUpdate = Boolean(paymentStatus || status)
-		if (!hasUpdate) {
-			return json(false, 'No fields to update', undefined, undefined, 400)
+		// Only update status, no payment status handling
+		if (!status) {
+			return json(false, 'Status is required', undefined, undefined, 400)
 		}
 		
 		const order = await Order.findById(id)
@@ -73,11 +73,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 			return json(false, 'Order not found', undefined, undefined, 404)
 		}
 		
-		const prevPaymentStatus = order.paymentStatus
 		const prevStatus = order.status
 		
-		if (paymentStatus) order.paymentStatus = paymentStatus
-		if (status) order.status = status
+		if (status) {
+			order.status = status
+			// Set timestamps based on status
+			if (status === 'SHIPPED' && !order.shippedAt) {
+				order.shippedAt = shippedAt ? new Date(shippedAt) : new Date()
+			}
+			if (status === 'DELIVERED' && !order.deliveredAt) {
+				order.deliveredAt = new Date()
+			}
+			if (status === 'CANCELLED' && !order.cancelledAt) {
+				order.cancelledAt = new Date()
+				if (cancellationReason) {
+					order.cancellationReason = cancellationReason
+				}
+			}
+		}
 		
 		await order.save()
 
@@ -87,34 +100,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 			// Send emails asynchronously (best-effort, don't block response)
 			setImmediate(async () => {
 				try {
-					console.log('[ORDER UPDATE] Preparing to send email to:', userEmail, 'for order:', order._id, 'status:', status, 'paymentStatus:', paymentStatus)
+					console.log('[ORDER UPDATE] Preparing to send email to:', userEmail, 'for order:', order._id, 'status:', status)
 					
 					const enrichedItems = await enrichOrderItems(order.items)
 					const orderForEmail = {
 						...order.toObject(),
 						items: enrichedItems
-					}
-
-					if (paymentStatus && paymentStatus !== prevPaymentStatus && paymentStatus === 'PAID') {
-						const html = renderOrderEmailTemplate(
-							orderForEmail,
-							'Payment Confirmed!',
-							'Great news! Your payment has been confirmed and your order is being processed.',
-							'payment'
-						)
-						const text = `Payment Confirmed!\n\nYour payment for order ${order._id} has been confirmed.\n\nTotal: ${formatPKR(order.totalAmount)}\n\nThank you for your order!`
-						
-						const emailResult = await sendEmail({ 
-							to: userEmail, 
-							subject: `Payment Confirmed - Order ${order._id}`,
-							text,
-							html
-						})
-						console.log('[ORDER UPDATE] Payment confirmation email result:', emailResult)
-						
-						if (!emailResult.success && !emailResult.skipped) {
-							console.error('[ORDER UPDATE] Payment email failed:', emailResult.error)
-						}
 					}
 
 					if (status && status !== prevStatus) {
@@ -123,9 +114,48 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 						let type: 'confirmed' | 'shipped' | 'delivered' = 'confirmed'
 						
 						if (status === 'CONFIRMED') {
+							// Order confirmed email with delivery info
+							const deliveryType = order.deliveryType || 'STANDARD'
+							const deliveryTime = deliveryType === 'EXPRESS' 
+								? '1-2 days' 
+								: '3-5 days'
+							const deliveryMethod = deliveryType === 'EXPRESS' ? 'Express Delivery' : 'Standard Delivery'
+							
 							title = 'Order Confirmed!'
-							message = 'Your order has been confirmed and is being prepared for shipment.'
+							message = `Great news! Your order has been confirmed and we're preparing it for shipment.\n\nDelivery Method: ${deliveryMethod}\nExpected Delivery: ${deliveryTime}\n\nYour order will be delivered to:\n${order.shippingAddress}, ${order.city}`
 							type = 'confirmed'
+							
+							// Send comprehensive email with all details
+							const orderForEmailWithStatus = {
+								...orderForEmail,
+								status: 'CONFIRMED'
+							}
+							const html = renderOrderEmailTemplate(
+								orderForEmailWithStatus,
+								title,
+								message,
+								'confirmed',
+								deliveryType,
+								deliveryTime
+							)
+							const text = `${title}\n\n${message}\n\nOrder ID: ${order._id}\nTotal: ${formatPKR(order.totalAmount)}\nOrder Status: CONFIRMED\n\nThank you for shopping with Chakki!`
+							
+							const emailResult = await sendEmail({ 
+								to: userEmail, 
+								subject: `Order Confirmed - Order ${order._id}`,
+								text,
+								html
+							})
+							console.log('[ORDER UPDATE] Confirmation email result:', emailResult)
+							
+							if (!emailResult.success && !emailResult.skipped) {
+								console.error('[ORDER UPDATE] Confirmation email failed:', emailResult.error)
+							} else if (emailResult.skipped) {
+								console.warn('[ORDER UPDATE] Email skipped - SMTP not configured')
+							}
+							
+							// Skip the default email sending below for CONFIRMED status
+							return // Exit early from setImmediate callback to prevent duplicate email
 						} else if (status === 'SHIPPED') {
 							title = 'Order Shipped!'
 							message = 'Your order has been shipped and is on its way to you. You can track it using the order details below.'
@@ -134,6 +164,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 							title = 'Order Delivered!'
 							message = 'Your order has been delivered! We hope you enjoy your purchase. Thank you for shopping with Chakki!'
 							type = 'delivered'
+						} else if (status === 'CANCELLED') {
+							// Use custom email subject if provided
+							const emailSubject = cancellationEmailSubject || 'Order Cancelled'
+							
+							// Customize message based on cancellation reason type
+							let message = `Your order has been cancelled.`
+							if (cancellationReasonType === 'not_paid' || cancellationReasonType === 'not_received') {
+								message = `Your order has been cancelled because payment was not received or verified. If you have already made the payment, please contact us with your payment reference number.`
+							} else if (cancellationReasonType === 'customer_request') {
+								message = `Your order has been cancelled as per your request. If you need any assistance, please contact us.`
+							} else if (cancellationReasonType === 'out_of_stock') {
+								message = `Your order has been cancelled because one or more items are currently out of stock. We apologize for the inconvenience.`
+							} else if (cancellationReasonType === 'invalid_address') {
+								message = `Your order has been cancelled due to an invalid or undeliverable address. Please update your delivery address and place a new order.`
+							} else if (order.cancellationReason) {
+								message = `Your order has been cancelled. Reason: ${order.cancellationReason}`
+							}
+							message += ` If you have any questions, please contact us.`
+							
+							title = emailSubject
+							type = 'confirmed' // Use confirmed template for cancelled orders
 						} else {
 							title = `Order ${status}`
 							message = `Your order status has been updated to ${status}.`
@@ -142,9 +193,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 						const html = renderOrderEmailTemplate(orderForEmail, title, message, type)
 						const text = `${title}\n\n${message}\n\nOrder ID: ${order._id}\nTotal: ${formatPKR(order.totalAmount)}\n\nThank you for shopping with Chakki!`
 						
+						// Use custom email subject for cancellations, otherwise use default
+						const finalSubject = status === 'CANCELLED' && cancellationEmailSubject 
+							? `${cancellationEmailSubject} - Order ${order._id}`
+							: `${title} - Order ${order._id}`
+						
 						const emailResult = await sendEmail({ 
 							to: userEmail, 
-							subject: `${title} - Order ${order._id}`,
+							subject: finalSubject,
 							text,
 							html
 						})

@@ -4,7 +4,6 @@ import useSWR from 'swr'
 import { useState } from 'react'
 import { UserPlus, UserMinus, Mail, Shield, ShieldCheck, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { motion, AnimatePresence } from 'framer-motion'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
@@ -15,7 +14,12 @@ export default function AdminUsersPage() {
 	const [busy, setBusy] = useState<string>('')
 	const users = data?.data || []
 
-	const filteredUsers = users.filter((u: any) => {
+	// Filter to only show admins (ADMIN and CADMIN) and verified users
+	const adminUsers = users.filter((u: any) => 
+		(u.role === 'ADMIN' || u.role === 'CADMIN') && u.emailVerified
+	)
+
+	const filteredUsers = adminUsers.filter((u: any) => {
 		if (!searchQuery.trim()) return true
 		const query = searchQuery.toLowerCase()
 		const email = (u.email || '').toLowerCase()
@@ -38,10 +42,9 @@ export default function AdminUsersPage() {
 			}
 
 			toast.success(`Admin access ${action === 'grant' ? 'granted' : 'revoked'}`)
+			// Clear grant email and refresh data
+			setGrantEmail('')
 			await mutate()
-			if (action === 'grant') {
-				setGrantEmail('')
-			}
 		} catch (e: any) {
 			console.error('Update user role error:', e)
 			toast.error(e.message || 'Update failed')
@@ -117,19 +120,16 @@ export default function AdminUsersPage() {
 				</div>
 			) : filteredUsers.length === 0 ? (
 				<div className="card-enhanced p-12 text-center">
-					<Mail className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+					<Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
 					<p className="text-slate-600">
-						{searchQuery ? 'No users found matching your search.' : 'No users found.'}
+						{searchQuery ? 'No admins found matching your search.' : 'No admins found. Grant admin access to verified users to see them here.'}
 					</p>
 				</div>
 			) : (
 				<div className="space-y-4">
-					{filteredUsers.map((user: any, idx: number) => (
-						<motion.div
+					{filteredUsers.map((user: any) => (
+						<div
 							key={user._id || user.email}
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: idx * 0.05 }}
 							className="card-enhanced p-6"
 						>
 							<div className="flex items-center justify-between">
@@ -196,7 +196,7 @@ export default function AdminUsersPage() {
 									)}
 								</div>
 							</div>
-						</motion.div>
+						</div>
 					))}
 				</div>
 			)}

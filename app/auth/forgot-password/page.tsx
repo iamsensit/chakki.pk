@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
 					<form onSubmit={handleSubmit} className="space-y-6">
 						{/* Email Input */}
 						<div>
-							<label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+							<label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
 								Email Address
 							</label>
 							<div className="relative">
@@ -100,8 +100,8 @@ export default function ForgotPasswordPage() {
 									onChange={e => { setEmail(e.target.value); setError('') }} 
 									placeholder="you@example.com" 
 									type="email"
-									className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent ${
-										error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+									className={`input-enhanced pl-10 max-w-md ${
+										error ? 'border-red-500 focus:ring-red-500' : ''
 									}`}
 								/>
 							</div>
@@ -112,7 +112,7 @@ export default function ForgotPasswordPage() {
 						<button 
 							type="submit"
 							disabled={loading}
-							className="w-full bg-brand-accent hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+							className="btn-large w-full max-w-md animate-fade-in"
 						>
 							{loading ? (
 								<>

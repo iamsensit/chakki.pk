@@ -1,10 +1,16 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import AccountClient from './AccountClient'
-import OrderHistoryClient from './OrderHistoryClient'
-import { User, ClipboardList, ShoppingCart } from 'lucide-react'
+import { useState, useEffect, lazy, Suspense } from 'react'
+import { User, ClipboardList, ShoppingCart, Star, Heart, CreditCard } from 'lucide-react'
 import { useCartStore } from '@/store/cart'
+import { formatCurrencyPKR } from '@/app/lib/price'
+
+// Lazy load tab components for faster initial load
+const AccountClient = lazy(() => import('./AccountClient'))
+const OrderHistoryClient = lazy(() => import('./OrderHistoryClient'))
+const ReviewsClient = lazy(() => import('./ReviewsClient'))
+const WishlistClient = lazy(() => import('./WishlistClient'))
+const PaymentMethodsClient = lazy(() => import('./PaymentMethodsClient'))
 
 function CartPanel() {
 	const [loading, setLoading] = useState(true)
@@ -80,63 +86,156 @@ function CartPanel() {
 	if (loading) return <div className="skeleton h-24" />
 
 	if (items.length === 0) {
-		return <div className="rounded-md border p-4 text-sm text-slate-600">Your server cart is empty.</div>
+		return (
+			<div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
+				<div className="text-center text-slate-600">Your cart is empty.</div>
+			</div>
+		)
 	}
 
 	return (
-		<div className="rounded-md border">
-			<div className="divide-y">
+		<div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+			<div className="divide-y divide-slate-200">
 				{items.map((i, idx) => (
-					<div key={idx} className="p-2 sm:p-3 flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-						<div className="h-8 w-8 sm:h-10 sm:w-10 rounded bg-gray-100 overflow-hidden flex-shrink-0">
-							{i.image ? <img src={i.image} className="h-full w-full object-cover" alt={i.title} /> : <div className="h-full w-full bg-gray-200" />}
+					<div key={idx} className="p-4 sm:p-6 flex items-center gap-4">
+						<div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
+							{i.image ? (
+								<img src={i.image} className="h-full w-full object-cover" alt={i.title} />
+							) : (
+								<div className="h-full w-full bg-slate-200" />
+							)}
 						</div>
 						<div className="flex-1 min-w-0">
-							<div className="truncate font-medium">{i.title}</div>
-							<div className="text-xs text-slate-600 truncate">{i.variantLabel}</div>
+							<div className="font-semibold text-slate-900 mb-1">{i.title}</div>
+							<div className="text-sm text-slate-600">{i.variantLabel}</div>
 						</div>
-						<div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-							<button aria-label="Decrease" className="h-6 w-6 rounded border text-xs" onClick={() => updateQuantity(i.productId, i.variantId ?? null, Math.max(0, i.quantity - 1))}>-</button>
-							<div className="w-6 text-center text-xs sm:text-sm">{i.quantity}</div>
-							<button aria-label="Increase" className="h-6 w-6 rounded border text-xs" onClick={() => updateQuantity(i.productId, i.variantId ?? null, i.quantity + 1)}>+</button>
+						<div className="flex items-center gap-2 flex-shrink-0">
+							<button 
+								aria-label="Decrease" 
+								className="h-8 w-8 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center font-medium" 
+								onClick={() => updateQuantity(i.productId, i.variantId ?? null, Math.max(0, i.quantity - 1))}
+							>
+								-
+							</button>
+							<div className="w-10 text-center text-sm font-medium text-slate-900">{i.quantity}</div>
+							<button 
+								aria-label="Increase" 
+								className="h-8 w-8 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center font-medium" 
+								onClick={() => updateQuantity(i.productId, i.variantId ?? null, i.quantity + 1)}
+							>
+								+
+							</button>
 						</div>
-						<div className="text-xs sm:text-sm font-semibold min-w-[60px] sm:min-w-[72px] text-right">Rs. {i.unitPrice * i.quantity}</div>
+						<div className="text-base font-bold text-slate-900 min-w-[80px] text-right">
+							{formatCurrencyPKR(i.unitPrice * i.quantity)}
+						</div>
 					</div>
 				))}
 			</div>
-			<div className="flex items-center justify-between p-2 sm:p-3 text-xs sm:text-sm">
-				<div className="text-slate-600">Subtotal</div>
-				<div className="font-semibold">Rs. {subtotal}</div>
+			<div className="flex items-center justify-between p-4 sm:p-6 border-t border-slate-200 bg-slate-50">
+				<div className="text-base font-semibold text-slate-900">Subtotal</div>
+				<div className="text-lg font-bold text-slate-900">{formatCurrencyPKR(subtotal)}</div>
 			</div>
-			<div className="p-2 sm:p-3">
-				<a href="/checkout" className="block w-full text-center rounded-md bg-brand-accent px-3 py-1.5 text-white text-xs sm:text-sm">Go to checkout</a>
+			<div className="p-4 sm:p-6">
+				<a 
+					href="/checkout" 
+					className="block w-full text-center rounded-lg bg-brand-accent px-6 py-3.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+				>
+					Go to checkout
+				</a>
 			</div>
 		</div>
 	)
 }
 
 export default function Dashboard() {
-	const [tab, setTab] = useState<'profile' | 'orders' | 'cart'>('profile')
+	const [tab, setTab] = useState<'profile' | 'orders' | 'cart' | 'reviews' | 'wishlist' | 'payment-methods'>('profile')
 
 	return (
-		<div className="grid gap-4 sm:gap-6 lg:grid-cols-12">
+		<div className="grid gap-6 lg:grid-cols-12">
 			<aside className="lg:col-span-3">
-				<div className="rounded-md border overflow-hidden bg-white flex lg:flex-col">
-					<button onClick={() => setTab('profile')} className={`flex-1 lg:w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm border-r lg:border-r-0 lg:border-b transition-colors ${tab === 'profile' ? 'bg-brand text-white' : 'hover:bg-gray-50'}`}>
-						<User className="h-4 w-4" /> <span className="hidden sm:inline">Profile & Security</span><span className="sm:hidden">Profile</span>
+				<nav className="space-y-1">
+					<button 
+						onClick={() => setTab('profile')} 
+						className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors rounded-lg ${
+							tab === 'profile' 
+								? 'bg-brand-accent text-white hover:bg-orange-600' 
+								: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
+						}`}
+					>
+						<User className="h-5 w-5" /> 
+						<span className="hidden sm:inline">Profile & Security</span>
+						<span className="sm:hidden">Profile</span>
 					</button>
-					<button onClick={() => setTab('orders')} className={`flex-1 lg:w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm border-r lg:border-r-0 lg:border-b transition-colors ${tab === 'orders' ? 'bg-brand text-white' : 'hover:bg-gray-50'}`}>
-						<ClipboardList className="h-4 w-4" /> Orders
+					<button 
+						onClick={() => setTab('orders')} 
+						className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors rounded-lg ${
+							tab === 'orders' 
+								? 'bg-brand-accent text-white hover:bg-orange-600' 
+								: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
+						}`}
+					>
+						<ClipboardList className="h-5 w-5" /> 
+						Orders
 					</button>
-					<button onClick={() => setTab('cart')} className={`flex-1 lg:w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm transition-colors ${tab === 'cart' ? 'bg-brand text-white' : 'hover:bg-gray-50'}`}>
-						<ShoppingCart className="h-4 w-4" /> <span className="hidden sm:inline">Server Cart</span><span className="sm:hidden">Cart</span>
+					<button 
+						onClick={() => setTab('reviews')} 
+						className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors rounded-lg ${
+							tab === 'reviews' 
+								? 'bg-brand-accent text-white hover:bg-orange-600' 
+								: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
+						}`}
+					>
+						<Star className="h-5 w-5" /> 
+						<span className="hidden sm:inline">Reviews</span>
+						<span className="sm:hidden">Reviews</span>
 					</button>
-				</div>
+					<button 
+						onClick={() => setTab('wishlist')} 
+						className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors rounded-lg ${
+							tab === 'wishlist' 
+								? 'bg-brand-accent text-white hover:bg-orange-600' 
+								: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
+						}`}
+					>
+						<Heart className="h-5 w-5" /> 
+						<span className="hidden sm:inline">Wishlist</span>
+						<span className="sm:hidden">Wishlist</span>
+					</button>
+					<button 
+						onClick={() => setTab('cart')} 
+						className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors rounded-lg ${
+							tab === 'cart' 
+								? 'bg-brand-accent text-white hover:bg-orange-600' 
+								: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
+						}`}
+					>
+						<ShoppingCart className="h-5 w-5" /> 
+						Cart
+					</button>
+					<button 
+						onClick={() => setTab('payment-methods')} 
+						className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors rounded-lg ${
+							tab === 'payment-methods' 
+								? 'bg-brand-accent text-white hover:bg-orange-600' 
+								: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
+						}`}
+					>
+						<CreditCard className="h-5 w-5" /> 
+						<span className="hidden sm:inline">Payment Methods</span>
+						<span className="sm:hidden">Payments</span>
+					</button>
+				</nav>
 			</aside>
 			<section className="lg:col-span-9 mt-4 lg:mt-0">
-				{tab === 'profile' && <AccountClient />}
-				{tab === 'orders' && <OrderHistoryClient />}
-				{tab === 'cart' && <CartPanel />}
+				<Suspense fallback={<div className="skeleton h-64 rounded-md" />}>
+					{tab === 'profile' && <AccountClient />}
+					{tab === 'orders' && <OrderHistoryClient />}
+					{tab === 'reviews' && <ReviewsClient />}
+					{tab === 'wishlist' && <WishlistClient />}
+					{tab === 'cart' && <CartPanel />}
+					{tab === 'payment-methods' && <PaymentMethodsClient />}
+				</Suspense>
 			</section>
 		</div>
 	)

@@ -9,28 +9,115 @@ import { formatCurrencyPKR } from '@/app/lib/price'
 import { useSession, signIn } from 'next-auth/react'
 import { toast } from 'sonner'
 import { useErrorDialog } from '@/app/contexts/ErrorDialogContext'
+import { Phone, MapPin, CreditCard, Banknote, Truck, CheckCircle2, Edit2 } from 'lucide-react'
 
 export default function CheckoutPage() {
 	const { showError } = useErrorDialog()
-	const { data: session } = useSession()
+	const { data: session, status } = useSession()
 	const router = useRouter()
 	const { items, clear } = useCartStore()
 	const [step, setStep] = useState(0)
-	const [method, setMethod] = useState<'COD' | 'JAZZCASH'>('COD')
+	const [method, setMethod] = useState<'COD' | 'JAZZCASH' | 'EASYPAISA' | 'OTHER'>('COD')
+	const [selectedOtherBank, setSelectedOtherBank] = useState<{ bankName: string; accountName: string; accountNumber: string } | null>(null)
+	const [otherBankName, setOtherBankName] = useState('')
+	const [otherAccountName, setOtherAccountName] = useState('')
+	const [otherAccountNumber, setOtherAccountNumber] = useState('')
+	const [deliveryType, setDeliveryType] = useState<'STANDARD' | 'EXPRESS'>('STANDARD')
 	const [form, setForm] = useState({ name: '', phone: '', address: '', city: '' })
 	const [loading, setLoading] = useState(false)
 	const [orderId, setOrderId] = useState<string | null>(null)
 	const [jcInstruction, setJcInstruction] = useState<{ id: string; account: string; amount: number; message: string } | null>(null)
-	const [paymentReference, setPaymentReference] = useState('')
-	const [paymentProofDataUrl, setPaymentProofDataUrl] = useState('')
-	const [proofError, setProofError] = useState('')
-	const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string; address?: string; city?: string; paymentReference?: string }>({})
+	const [jazzcashAccountName, setJazzcashAccountName] = useState('')
+	const [jazzcashAccountNumber, setJazzcashAccountNumber] = useState('')
+	const [jazzcashBankName, setJazzcashBankName] = useState('')
+	const [easypaisaAccountName, setEasypaisaAccountName] = useState('')
+	const [easypaisaAccountNumber, setEasypaisaAccountNumber] = useState('')
+	const [easypaisaBankName, setEasypaisaBankName] = useState('')
+	const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string; address?: string; city?: string; jazzcashAccountName?: string; jazzcashAccountNumber?: string; easypaisaAccountName?: string; easypaisaAccountNumber?: string; otherBankName?: string; otherAccountName?: string; otherAccountNumber?: string }>({})
+	const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false)
+	const [showPaymentDetailsDialog, setShowPaymentDetailsDialog] = useState(false)
+	const [selectedPaymentType, setSelectedPaymentType] = useState<'JAZZCASH' | 'EASYPAISA' | 'OTHER' | null>(null)
+	const [showSavePrompt, setShowSavePrompt] = useState(false)
+	const [editingPaymentIndex, setEditingPaymentIndex] = useState<number | null>(null) // For editing other banks
+	const [editingJazzCash, setEditingJazzCash] = useState(false)
+	const [editingEasyPaisa, setEditingEasyPaisa] = useState(false)
 	const [userDeliveryLocation, setUserDeliveryLocation] = useState<{ address: string; city: string; latitude?: number; longitude?: number } | null>(null)
-	const [userProfile, setUserProfile] = useState<{ name: string; email: string; phone?: string } | null>(null)
+	const [userProfile, setUserProfile] = useState<{ name: string; email: string; phone?: string; paymentMethods?: any } | null>(null)
+	const [savingPhone, setSavingPhone] = useState(false)
+	const [phoneSaved, setPhoneSaved] = useState(false)
 	const [redirectCountdown, setRedirectCountdown] = useState(4)
 	const [locationLoading, setLocationLoading] = useState(true)
 
 	const subtotal = cartTotal(items)
+	const deliveryFee = deliveryType === 'EXPRESS' ? 500 : 200
+	const total = subtotal + deliveryFee
+
+	// Validation function
+	function validateForm() {
+		const errors: { name?: string; phone?: string; address?: string; city?: string; jazzcashAccountName?: string; jazzcashAccountNumber?: string; easypaisaAccountName?: string; easypaisaAccountNumber?: string; otherBankName?: string; otherAccountName?: string; otherAccountNumber?: string; paymentMethod?: string } = {}
+		
+		if (!form.name.trim() || form.name.trim().length < 2) {
+			errors.name = 'Name must be at least 2 characters'
+		}
+		if (!form.phone.trim() || form.phone.trim().length < 7) {
+			errors.phone = 'Phone must be at least 7 characters'
+		}
+		if (!userDeliveryLocation?.address || userDeliveryLocation.address.trim().length < 6) {
+			errors.address = 'Please update your delivery location'
+		}
+		if (!userDeliveryLocation?.city || userDeliveryLocation.city.trim().length < 2) {
+			errors.city = 'Please update your delivery location'
+		}
+		
+		// Validate payment method details
+		if (method === 'JAZZCASH') {
+			if (!jazzcashAccountName.trim()) {
+				errors.jazzcashAccountName = 'Please provide your account name'
+			}
+			if (!jazzcashAccountNumber.trim()) {
+				errors.jazzcashAccountNumber = 'Please provide your account number'
+			}
+		} else if (method === 'EASYPAISA') {
+			if (!easypaisaAccountName.trim()) {
+				errors.easypaisaAccountName = 'Please provide your account name'
+			}
+			if (!easypaisaAccountNumber.trim()) {
+				errors.easypaisaAccountNumber = 'Please provide your account number'
+			}
+		} else if (method === 'OTHER') {
+			if (!otherBankName.trim()) {
+				errors.otherBankName = 'Please provide bank name'
+			}
+			if (!otherAccountName.trim()) {
+				errors.otherAccountName = 'Please provide your account name'
+			}
+			if (!otherAccountNumber.trim()) {
+				errors.otherAccountNumber = 'Please provide your account number'
+			}
+		}
+		
+		setFormErrors(errors)
+		return Object.keys(errors).length === 0
+	}
+
+	function handleContinue() {
+		if (!userDeliveryLocation) {
+			setFormErrors({ address: 'Please select your delivery location first' })
+			toast.error('Please select your delivery location first')
+			return
+		}
+		
+		if (validateForm()) {
+			setStep(1)
+		} else {
+			// Scroll to first error
+			const firstErrorField = document.querySelector('.border-red-500')
+			if (firstErrorField) {
+				firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' })
+			}
+			toast.error('Please fix the errors in the form')
+		}
+	}
 
 	// Load user profile and delivery location
 	useEffect(() => {
@@ -46,13 +133,21 @@ export default function CheckoutPage() {
 						setUserProfile({
 							name: profileJson.data.name || '',
 							email: profileJson.data.email || '',
-							phone: profileJson.data.phone
+							phone: profileJson.data.phone,
+							paymentMethods: profileJson.data.paymentMethods
 						})
-						// Pre-fill name
+						// Pre-fill name and phone
 						setForm(prev => ({
 							...prev,
-							name: profileJson.data.name || prev.name
+							name: profileJson.data.name || prev.name,
+							phone: profileJson.data.phone || prev.phone
 						}))
+						// Pre-fill payment method details if available
+						// Payment methods will be auto-filled when user selects them
+						// Check if phone is already saved
+						if (profileJson.data.phone) {
+							setPhoneSaved(true)
+						}
 					}
 					
 					// Load delivery location
@@ -96,83 +191,108 @@ export default function CheckoutPage() {
 		}
 	}, [step, orderId, router])
 
+	// Load JazzCash instructions only when method is selected and order hasn't been placed yet
 	useEffect(() => {
-		if (method === 'JAZZCASH') {
+		// Don't fetch instructions if order is already placed
+		if (orderId) {
+			setJcInstruction(null)
+			return
+		}
+		
+		if (method === 'JAZZCASH' && subtotal > 0) {
 			;(async () => {
 				try {
-					const res = await fetch('/api/payments/jazzcash', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: subtotal, orderId: 'pending' }) })
+					const res = await fetch('/api/payments/jazzcash', { 
+						method: 'POST', 
+						headers: { 'Content-Type': 'application/json' }, 
+						body: JSON.stringify({ 
+							amount: Math.round(subtotal),
+							orderId: 'pending'
+						}) 
+					})
 					const json = await res.json()
-					if (json?.success) setJcInstruction(json.data)
-					else showError(json?.message || 'Failed to load JazzCash instructions', 'Loading Error')
-			} catch {
-				showError('Failed to load JazzCash instructions', 'Loading Error')
+					if (json?.success) {
+						setJcInstruction(json.data)
+					}
+					// Silently fail - JazzCash instructions are not critical for order placement
+				} catch (error) {
+					// Silently fail - JazzCash instructions are not critical
 				}
 			})()
+		} else if (method !== 'JAZZCASH') {
+			setJcInstruction(null)
 		}
-	}, [method, subtotal])
+	}, [method, subtotal, orderId])
 
-	function approxBytesFromDataUrl(dataUrl: string) {
-		const comma = dataUrl.indexOf(',')
-		const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl
-		return Math.floor(b64.length * 0.75)
-	}
 
 	async function placeOrder() {
 		// Check if location is selected
 		if (!userDeliveryLocation) {
-			showError('Please select your delivery location first', 'Location Required')
+			setFormErrors({ address: 'Please select your delivery location first' })
+			toast.error('Please select your delivery location first')
 			router.push('/change-location?redirect=/checkout')
 			return
 		}
 		
 		// Validate form
-		const errors: { name?: string; phone?: string; address?: string; city?: string; paymentReference?: string } = {}
-		if (!form.name.trim() || form.name.trim().length < 2) {
-			errors.name = 'Name must be at least 2 characters'
-		}
-		if (!form.phone.trim() || form.phone.trim().length < 7) {
-			errors.phone = 'Phone must be at least 7 characters'
-		}
-		// Address and city come from saved location, but validate they exist
-		if (!userDeliveryLocation.address || userDeliveryLocation.address.trim().length < 6) {
-			errors.address = 'Please update your delivery location'
-		}
-		if (!userDeliveryLocation.city || userDeliveryLocation.city.trim().length < 2) {
-			errors.city = 'Please update your delivery location'
-		}
-		if (method === 'JAZZCASH') {
-			if (!paymentReference.trim()) {
-				errors.paymentReference = 'Please provide your JazzCash reference number'
+		if (!validateForm()) {
+			// Scroll to first error
+			const firstErrorField = document.querySelector('.border-red-500')
+			if (firstErrorField) {
+				firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' })
 			}
-			if (!paymentProofDataUrl) {
-				setProofError('Please upload your JazzCash payment screenshot')
-			}
-		}
-		
-		if (Object.keys(errors).length > 0 || (method === 'JAZZCASH' && !paymentProofDataUrl)) {
-			setFormErrors(errors)
-			if (method === 'JAZZCASH' && !paymentProofDataUrl) {
-				showError('Please upload your JazzCash payment screenshot', 'Payment Required')
-			} else {
-				showError('Please fix the errors in the form', 'Form Validation')
-			}
+			toast.error('Please fix the errors in the form')
+			// Go back to step 0 to show errors
+			setStep(0)
 			return
 		}
 		
-		setFormErrors({})
+		// Check if cart has items
+		if (!items || items.length === 0) {
+			toast.error('Your cart is empty. Please add items to your cart before placing an order.')
+			return
+		}
+		
+		// Sync cart to database before placing order
 		setLoading(true)
+		try {
+			// Sync all cart items to database
+			for (const item of items) {
+				await fetch('/api/cart', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						productId: item.productId,
+						variantId: item.variantId,
+						quantity: item.quantity
+					})
+				})
+			}
+		} catch (error) {
+			console.error('Error syncing cart:', error)
+			// Continue anyway - the API will check the cart
+		}
+		
+		setFormErrors({})
 		try {
 			const res = await fetch('/api/orders', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					paymentMethod: method,
-					shippingName: form.name,
-					shippingPhone: form.phone,
-					shippingAddress: userDeliveryLocation.address,
-					city: userDeliveryLocation.city,
-					...(method === 'JAZZCASH' ? { paymentReference, paymentProofDataUrl } : {}),
-				})
+					body: JSON.stringify({
+						paymentMethod: method,
+						deliveryType: deliveryType,
+						shippingName: form.name,
+						shippingPhone: form.phone,
+						shippingAddress: userDeliveryLocation.address,
+						city: userDeliveryLocation.city,
+						...(method === 'JAZZCASH' ? { 
+							jazzcashAccountName,
+							jazzcashAccountNumber
+						} : method === 'EASYPAISA' ? {
+							easypaisaAccountName,
+							easypaisaAccountNumber
+						} : {}),
+					})
 			})
 			const json = await res.json()
 			if (!res.ok || !json.success) {
@@ -199,6 +319,68 @@ export default function CheckoutPage() {
 				return
 			}
 			setOrderId(json.data.orderId)
+			
+			// Auto-save payment method details if not already saved
+			if (session?.user?.email && (method === 'JAZZCASH' || method === 'EASYPAISA' || method === 'OTHER')) {
+				try {
+					// Get existing payment methods to merge with
+					const existingPaymentMethods = userProfile?.paymentMethods || {
+						jazzcash: { accountName: '', accountNumber: '', bankName: '' },
+						easypaisa: { accountName: '', accountNumber: '', bankName: '' },
+						other: []
+					}
+					
+					// Check if payment method is already saved
+					const isJazzCashSaved = existingPaymentMethods.jazzcash?.accountNumber === jazzcashAccountNumber
+					const isEasyPaisaSaved = existingPaymentMethods.easypaisa?.accountNumber === easypaisaAccountNumber
+					const isOtherBankSaved = existingPaymentMethods.other?.some((b: any) => 
+						b.bankName === otherBankName && b.accountNumber === otherAccountNumber
+					)
+					
+					// Merge with existing payment methods
+					const updatedPaymentMethods = {
+						jazzcash: existingPaymentMethods.jazzcash || { accountName: '', accountNumber: '', bankName: '' },
+						easypaisa: existingPaymentMethods.easypaisa || { accountName: '', accountNumber: '', bankName: '' },
+						other: Array.isArray(existingPaymentMethods.other) ? [...existingPaymentMethods.other] : []
+					}
+					
+					if (method === 'JAZZCASH' && jazzcashAccountName && jazzcashAccountNumber && !isJazzCashSaved) {
+						updatedPaymentMethods.jazzcash = {
+							accountName: jazzcashAccountName,
+							accountNumber: jazzcashAccountNumber,
+							bankName: jazzcashBankName || 'JazzCash'
+						}
+					} else if (method === 'EASYPAISA' && easypaisaAccountName && easypaisaAccountNumber && !isEasyPaisaSaved) {
+						updatedPaymentMethods.easypaisa = {
+							accountName: easypaisaAccountName,
+							accountNumber: easypaisaAccountNumber,
+							bankName: easypaisaBankName || 'EasyPaisa'
+						}
+					} else if (method === 'OTHER' && otherBankName && otherAccountName && otherAccountNumber && !isOtherBankSaved) {
+						updatedPaymentMethods.other.push({
+							bankName: otherBankName,
+							accountName: otherAccountName,
+							accountNumber: otherAccountNumber
+						})
+					}
+					
+					// Only save if there's a new payment method to add
+					if ((method === 'JAZZCASH' && !isJazzCashSaved) || 
+						(method === 'EASYPAISA' && !isEasyPaisaSaved) || 
+						(method === 'OTHER' && !isOtherBankSaved)) {
+						await fetch('/api/account', {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ paymentMethods: updatedPaymentMethods })
+						})
+						toast.success('Payment method saved to profile')
+					}
+				} catch (error) {
+					// Silently fail - payment method saving is not critical
+					console.error('Failed to save payment method:', error)
+				}
+			}
+			
 			clear()
 			setStep(2)
 			toast.success('Order placed successfully')
@@ -209,50 +391,6 @@ export default function CheckoutPage() {
 		}
 	}
 
-	function loadImage(file: File): Promise<HTMLImageElement> {
-		return new Promise((resolve, reject) => {
-			const img = new Image()
-			img.onload = () => resolve(img)
-			img.onerror = reject
-			const reader = new FileReader()
-			reader.onload = () => { img.src = String(reader.result) }
-			reader.onerror = reject
-			reader.readAsDataURL(file)
-		})
-	}
-
-	async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-		setProofError('')
-		const file = e.target.files?.[0]
-		if (!file) return
-		try {
-			const img = await loadImage(file)
-			const maxW = 800, maxH = 800
-			let { width, height } = img
-			const ratio = Math.min(maxW / width, maxH / height, 1)
-			width = Math.round(width * ratio)
-			height = Math.round(height * ratio)
-			const canvas = document.createElement('canvas')
-			canvas.width = width
-			canvas.height = height
-			const ctx = canvas.getContext('2d')!
-			ctx.drawImage(img, 0, 0, width, height)
-			const dataUrl = canvas.toDataURL('image/jpeg', 0.6)
-			const bytes = approxBytesFromDataUrl(dataUrl)
-			if (bytes > 1.5 * 1024 * 1024) {
-				const msg = 'Image too large. Please upload a smaller screenshot (under 1.5MB).'
-				setProofError(msg)
-				setPaymentProofDataUrl('')
-				showError(msg, 'Image Error')
-				return
-			}
-			setPaymentProofDataUrl(dataUrl)
-			toast.success('Screenshot added')
-		} catch {
-			setProofError('Failed to read image. Please try another file.')
-			showError('Failed to read image. Please try another file.', 'Image Error')
-		}
-	}
 
 	// Save guest location after login
 	useEffect(() => {
@@ -296,19 +434,33 @@ export default function CheckoutPage() {
 		}
 	}, [session])
 
-	if (!session) {
+	// Wait for session to be determined before showing anything
+	useEffect(() => {
+		if (status === 'unauthenticated') {
+			// Redirect to login with callback URL
+			router.push('/auth/login?callbackUrl=/checkout')
+		}
+	}, [status, router])
+
+	// Show loading state while checking authentication
+	if (status === 'loading') {
 		return (
 			<div className="container-pg py-12">
-				<h1 className="text-2xl font-semibold">Checkout</h1>
-				<p className="mt-4">Please log in to continue.</p>
-				<button 
-					className="mt-4 rounded-md bg-brand-accent px-4 py-2 text-white hover:bg-orange-600 transition-colors" 
-					onClick={() => router.push('/auth/login?callbackUrl=/checkout')}
-				>
-					Login
-				</button>
+				<div className="flex items-center justify-center">
+					<div className="flex flex-col items-center gap-4">
+						<div className="relative w-16 h-16">
+							<div className="absolute inset-0 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+						</div>
+						<p className="text-sm text-gray-600">Loading...</p>
+					</div>
+				</div>
 			</div>
 		)
+	}
+
+	// Don't render checkout if not authenticated (will redirect)
+	if (status === 'unauthenticated' || !session) {
+		return null
 	}
 
 	return (
@@ -320,7 +472,7 @@ export default function CheckoutPage() {
 
 			{step === 0 && (
 				<div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2 rounded-md border p-3 sm:p-4 space-y-4">
+					<div className="lg:col-span-2 rounded-md border p-3 sm:p-4 space-y-4 max-w-2xl">
 						{locationLoading ? (
 							<div className="skeleton h-48" />
 						) : !userDeliveryLocation ? (
@@ -329,7 +481,7 @@ export default function CheckoutPage() {
 								<p className="text-xs sm:text-sm text-amber-700 mb-4">You need to set your delivery address before proceeding with checkout.</p>
 								<Link
 									href="/change-location?redirect=/checkout"
-									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-4 py-2 text-white hover:bg-orange-600 transition-colors text-sm sm:text-base"
+									className="btn-primary inline-flex items-center gap-2"
 								>
 									Select Location
 								</Link>
@@ -337,9 +489,9 @@ export default function CheckoutPage() {
 						) : (
 							<>
 								<div>
-									<label className="text-sm">Full name</label>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Full name</label>
 									<input 
-										className={`mt-1 w-full rounded-md border px-3 py-2 bg-gray-50 ${formErrors.name ? 'border-red-500' : ''}`} 
+										className={`input-enhanced bg-gray-50 max-w-sm ${formErrors.name ? 'border-red-500 focus:ring-red-500' : ''}`} 
 										value={form.name} 
 										readOnly
 										disabled
@@ -348,9 +500,9 @@ export default function CheckoutPage() {
 									{formErrors.name && <div className="mt-1 text-xs text-red-600">{formErrors.name}</div>}
 								</div>
 								<div>
-									<label className="text-sm">Email</label>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Email</label>
 									<input 
-										className="mt-1 w-full rounded-md border px-3 py-2 bg-gray-50" 
+										className="input-enhanced bg-gray-50 max-w-sm" 
 										value={userProfile?.email || ''} 
 										readOnly
 										disabled
@@ -358,18 +510,113 @@ export default function CheckoutPage() {
 									<p className="mt-1 text-xs text-slate-500">From your account</p>
 								</div>
 								<div>
-									<label className="text-sm">Phone</label>
-									<input 
-										className={`mt-1 w-full rounded-md border px-3 py-2 ${formErrors.phone ? 'border-red-500' : ''}`} 
-										value={form.phone} 
-										onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFormErrors({ ...formErrors, phone: undefined }) }} 
-										placeholder="Enter your phone number"
-									/>
-									{formErrors.phone && <div className="mt-1 text-xs text-red-600">{formErrors.phone}</div>}
+									<label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+										<Phone className="h-4 w-4 text-gray-600" />
+										Phone
+									</label>
+									{userProfile?.phone ? (
+										<div className="max-w-sm">
+											<input 
+												type="tel"
+												className="input-enhanced bg-gray-50" 
+												value={userProfile.phone} 
+												readOnly
+												disabled
+											/>
+											<p className="mt-1 text-xs text-slate-500">From your profile</p>
+											<button
+												type="button"
+												onClick={() => {
+													setForm({ ...form, phone: '' })
+													setPhoneSaved(false)
+												}}
+												className="mt-1 text-xs text-brand-accent hover:underline"
+											>
+												Edit phone number
+											</button>
+										</div>
+									) : (
+										<div className="relative max-w-sm">
+											<input 
+												type="tel"
+												className={`input-enhanced pr-10 ${formErrors.phone ? 'border-red-500 focus:ring-red-500' : ''}`} 
+												value={form.phone} 
+												onChange={(e) => { 
+													const value = e.target.value
+													// Only allow numbers
+													const cleanedValue = value.replace(/[^0-9]/g, '')
+													setForm({ ...form, phone: cleanedValue }); 
+													setFormErrors({ ...formErrors, phone: undefined });
+													setPhoneSaved(false);
+												}} 
+												placeholder="Enter your phone number"
+											/>
+										{form.phone.trim().length >= 7 && !phoneSaved && (
+											<button
+												type="button"
+												onClick={async () => {
+													if (savingPhone) return
+													setSavingPhone(true)
+													try {
+														const res = await fetch('/api/account', {
+															method: 'PUT',
+															headers: { 'Content-Type': 'application/json' },
+															body: JSON.stringify({ phone: form.phone.trim() })
+														})
+														const json = await res.json()
+														if (res.ok && json.success) {
+															setPhoneSaved(true)
+															setUserProfile(prev => prev ? { ...prev, phone: form.phone.trim() } : null)
+															toast.success('Phone number saved')
+														} else {
+															toast.error(json.message || 'Failed to save phone number')
+														}
+													} catch (error) {
+														toast.error('Failed to save phone number')
+													} finally {
+														setSavingPhone(false)
+													}
+												}}
+												className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 hover:text-green-700 transition-colors"
+												title="Save for next time"
+											>
+												{savingPhone ? (
+													<div className="h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+												) : (
+													<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+													</svg>
+												)}
+											</button>
+										)}
+										{phoneSaved && (
+											<button
+												type="button"
+												onClick={() => {
+													setPhoneSaved(false)
+													setForm({ ...form, phone: '' })
+												}}
+												className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-700 transition-colors"
+												title="Edit phone number"
+											>
+												<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+												</svg>
+											</button>
+										)}
+											{form.phone.trim().length >= 7 && !phoneSaved && (
+												<div className="mt-1 text-xs text-gray-500">Click the checkmark to save for next time</div>
+											)}
+											{formErrors.phone && <div className="mt-1 text-xs text-red-600">{formErrors.phone}</div>}
+										</div>
+									)}
 								</div>
 								<div>
-									<label className="text-sm">Delivery Address</label>
-									<div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-slate-700">
+									<label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+										<MapPin className="h-4 w-4 text-gray-600" />
+										Delivery Address
+									</label>
+									<div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-slate-700 max-w-2xl">
 										{userDeliveryLocation.address}
 										{userDeliveryLocation.city && `, ${userDeliveryLocation.city}`}
 									</div>
@@ -388,43 +635,280 @@ export default function CheckoutPage() {
 						)}
 						{userDeliveryLocation && (
 							<div>
-								<label className="text-sm">Payment method</label>
-								<div className="mt-2 flex flex-col sm:flex-row gap-2">
-									<button onClick={() => setMethod('COD')} className={`rounded-md border px-3 py-2 text-sm sm:text-base ${method === 'COD' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>Cash on Delivery</button>
-									<button onClick={() => setMethod('JAZZCASH')} className={`rounded-md border px-3 py-2 text-sm sm:text-base ${method === 'JAZZCASH' ? 'bg-brand-accent text-white border-brand-accent' : ''}`}>JazzCash</button>
+								<label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+									<CreditCard className="h-4 w-4 text-gray-600" />
+									Payment method
+								</label>
+								<div className="flex flex-wrap gap-2">
+									<button 
+										onClick={() => setMethod('COD')} 
+										className={`p-2 rounded-md border-2 transition-all ${method === 'COD' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
+									>
+										<img 
+											src="/cod.png" 
+											alt="Cash on Delivery" 
+											className="h-8 w-auto object-contain"
+											onError={(e) => {
+												const target = e.target as HTMLImageElement
+												target.style.display = 'none'
+												const parent = target.parentElement
+												if (parent) {
+													parent.innerHTML = '<span class="text-sm">Cash on Delivery</span>'
+												}
+											}}
+										/>
+									</button>
+									<button 
+										onClick={() => {
+											setMethod('JAZZCASH')
+											setShowPaymentMethodDialog(true)
+										}} 
+										className={`p-2 rounded-md border-2 transition-all ${method === 'JAZZCASH' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
+									>
+										<img 
+											src="/jazzcash.png" 
+											alt="JazzCash" 
+											className="h-8 w-auto object-contain"
+											onError={(e) => {
+												const target = e.target as HTMLImageElement
+												target.style.display = 'none'
+												const parent = target.parentElement
+												if (parent) {
+													parent.innerHTML = '<span class="text-sm">JazzCash</span>'
+												}
+											}}
+										/>
+									</button>
+									<button 
+										onClick={() => {
+											setMethod('EASYPAISA')
+											setShowPaymentMethodDialog(true)
+										}} 
+										className={`p-2 rounded-md border-2 transition-all ${method === 'EASYPAISA' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
+									>
+										<img 
+											src="/easypaisa.png" 
+											alt="EasyPaisa" 
+											className="h-8 w-auto object-contain"
+											onError={(e) => {
+												const target = e.target as HTMLImageElement
+												target.style.display = 'none'
+												const parent = target.parentElement
+												if (parent) {
+													parent.innerHTML = '<span class="text-sm">EasyPaisa</span>'
+												}
+											}}
+										/>
+									</button>
 								</div>
-							{method === 'JAZZCASH' && (
-								<div className="mt-3 rounded-md border p-3 bg-amber-50 text-sm">
-									<div className="font-medium">JazzCash instructions</div>
-									<div className="mt-1">Send the total to: {jcInstruction?.account || 'JazzCash 03XX-XXXXXXX'}</div>
-									<div className="mt-1">Amount: {formatCurrencyPKR(subtotal)}</div>
-									<div className="mt-1">Message: {jcInstruction?.message || 'Upload your payment screenshot and provide reference number.'}</div>
-									<div className="mt-3 grid gap-2 sm:grid-cols-2">
-										<div>
-											<label className="text-sm">Reference number</label>
-											<input 
-												value={paymentReference} 
-												onChange={(e) => { setPaymentReference(e.target.value); setFormErrors({ ...formErrors, paymentReference: undefined }) }} 
-												className={`mt-1 w-full rounded-md border px-3 py-2 ${formErrors.paymentReference ? 'border-red-500' : ''}`} 
-												placeholder="e.g., TXN123456" 
-											/>
-											{formErrors.paymentReference && <div className="mt-1 text-xs text-red-600">{formErrors.paymentReference}</div>}
+							{/* Selected Payment Method Display */}
+							{method !== 'COD' && (
+								<div className="mt-3 rounded-md border p-3 text-sm">
+									<div className="flex items-center justify-between mb-3">
+										<div className="flex items-center gap-2">
+											{method === 'JAZZCASH' && (
+												<>
+													<img src="/jazzcash.png" alt="JazzCash" className="h-6 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+													<span className="font-medium">JazzCash</span>
+												</>
+											)}
+											{method === 'EASYPAISA' && (
+												<>
+													<img src="/easypaisa.png" alt="EasyPaisa" className="h-6 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+													<span className="font-medium">EasyPaisa</span>
+												</>
+											)}
+											{method === 'OTHER' && (
+												<div className="flex items-center gap-2">
+													<img 
+														src="/bank.png" 
+														alt={otherBankName || 'Other Bank'} 
+														className="h-6 w-auto object-contain" 
+														onError={(e) => {
+															(e.target as HTMLImageElement).style.display = 'none'
+														}} 
+													/>
+													<span className="font-medium">{otherBankName || 'Other Bank'}</span>
+												</div>
+											)}
 										</div>
-										<div>
-											<label className="text-sm">Payment screenshot</label>
-											<input type="file" accept="image/*" onChange={onFileChange} className="mt-1 w-full rounded-md border px-3 py-2" />
-											{proofError && <div className="mt-1 text-xs text-red-600">{proofError}</div>}
+										<button
+											type="button"
+										onClick={() => {
+											setMethod('COD')
+											// Clear all payment method fields when switching to COD
+											setJazzcashAccountName('')
+											setJazzcashAccountNumber('')
+											setJazzcashBankName('')
+											setEasypaisaAccountName('')
+											setEasypaisaAccountNumber('')
+											setEasypaisaBankName('')
+											setOtherBankName('')
+											setOtherAccountName('')
+											setOtherAccountNumber('')
+										}}
+											className="text-xs text-red-600 hover:underline"
+										>
+											Remove
+										</button>
+									</div>
+									
+									{/* Payment Instructions */}
+									<div className="mt-2 space-y-2">
+										<div className="flex items-center gap-2">
+											<Phone className="h-4 w-4 text-gray-600" />
+											<span className="font-medium">Send payment to:</span>
+										</div>
+										<div className="text-2xl font-bold text-brand-accent">03004056650</div>
+										<div className="mt-2 space-y-1">
+											<div className="flex items-center justify-between">
+												<span className="font-medium flex items-center gap-2">
+													<Banknote className="h-4 w-4 text-gray-600" />
+													Product Amount:
+												</span>
+												<span className="font-semibold">{formatCurrencyPKR(subtotal)}</span>
+											</div>
+											<div className="flex items-center justify-between">
+												<span className="font-medium flex items-center gap-2">
+													<Truck className="h-4 w-4 text-gray-600" />
+													Delivery Charges:
+												</span>
+												<span className="font-semibold">{formatCurrencyPKR(deliveryFee)}</span>
+											</div>
+											<div className="flex items-center justify-between pt-2 border-t border-gray-200">
+												<span className="font-bold">Total Amount:</span>
+												<span className="font-bold text-lg text-brand-accent">{formatCurrencyPKR(total)}</span>
+											</div>
 										</div>
 									</div>
-									{paymentProofDataUrl && (
-										<div className="mt-2">
-											<img src={paymentProofDataUrl} alt="Payment proof" className="h-32 rounded border object-cover" />
+									
+									{/* Account Details Display - User's account (sending from) */}
+									{(method === 'JAZZCASH' && (jazzcashAccountName || jazzcashAccountNumber)) && (
+										<div className="mt-4 space-y-2 p-3 bg-gray-50 rounded-md">
+											<div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+												<CreditCard className="h-4 w-4 text-gray-600" />
+												Your account details <span className="text-xs text-gray-500 font-normal">(sending payment through {jazzcashBankName || 'JazzCash'})</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Bank Name: </span>
+												<span className="text-sm text-gray-900">{jazzcashBankName || 'JazzCash'}</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Account Name: </span>
+												<span className="text-sm text-gray-900">{jazzcashAccountName}</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Account Number: </span>
+												<span className="text-sm text-gray-900">{jazzcashAccountNumber}</span>
+											</div>
+											<button 
+												onClick={() => {
+													setShowPaymentMethodDialog(true)
+												}}
+												className="text-xs text-brand-accent hover:underline mt-2"
+											>
+												Change payment method
+											</button>
+										</div>
+									)}
+									
+									{(method === 'EASYPAISA' && (easypaisaAccountName || easypaisaAccountNumber)) && (
+										<div className="mt-4 space-y-2 p-3 bg-gray-50 rounded-md">
+											<div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+												<CreditCard className="h-4 w-4 text-gray-600" />
+												Your account details <span className="text-xs text-gray-500 font-normal">(sending payment through {easypaisaBankName || 'EasyPaisa'})</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Bank Name: </span>
+												<span className="text-sm text-gray-900">{easypaisaBankName || 'EasyPaisa'}</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Account Name: </span>
+												<span className="text-sm text-gray-900">{easypaisaAccountName}</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Account Number: </span>
+												<span className="text-sm text-gray-900">{easypaisaAccountNumber}</span>
+											</div>
+											<button 
+												onClick={() => {
+													setShowPaymentMethodDialog(true)
+												}}
+												className="text-xs text-brand-accent hover:underline mt-2"
+											>
+												Change payment method
+											</button>
+										</div>
+									)}
+									
+									{(method === 'OTHER' && (otherAccountName || otherAccountNumber)) && (
+										<div className="mt-4 space-y-2 p-3 bg-gray-50 rounded-md">
+											<div className="text-sm font-medium text-gray-700 mb-2">Your account details (sending through {otherBankName}):</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Bank Name: </span>
+												<span className="text-sm text-gray-900">{otherBankName}</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Account Name: </span>
+												<span className="text-sm text-gray-900">{otherAccountName}</span>
+											</div>
+											<div>
+												<span className="text-sm font-medium text-gray-700">Account Number: </span>
+												<span className="text-sm text-gray-900">{otherAccountNumber}</span>
+											</div>
+											<button 
+												onClick={() => {
+													setShowPaymentMethodDialog(true)
+												}}
+												className="text-xs text-brand-accent hover:underline mt-2"
+											>
+												Change payment method
+											</button>
+										</div>
+									)}
+									
+									{/* Show button if no details entered */}
+									{((method === 'JAZZCASH' && !jazzcashAccountName && !jazzcashAccountNumber) ||
+									  (method === 'EASYPAISA' && !easypaisaAccountName && !easypaisaAccountNumber) ||
+									  (method === 'OTHER' && !otherAccountName && !otherAccountNumber)) && (
+										<button 
+											onClick={() => {
+												setShowPaymentMethodDialog(true)
+											}}
+											className="mt-4 w-full btn-primary text-sm py-2"
+										>
+											Select Payment Method
+										</button>
+									)}
+									
+									{/* Payment Method Validation Errors */}
+									{method === 'JAZZCASH' && (formErrors.jazzcashAccountName || formErrors.jazzcashAccountNumber) && (
+										<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+											<div className="text-sm font-medium text-red-800 mb-1">Please complete payment details:</div>
+											{formErrors.jazzcashAccountName && <div className="text-xs text-red-600">• {formErrors.jazzcashAccountName}</div>}
+											{formErrors.jazzcashAccountNumber && <div className="text-xs text-red-600">• {formErrors.jazzcashAccountNumber}</div>}
+										</div>
+									)}
+									{method === 'EASYPAISA' && (formErrors.easypaisaAccountName || formErrors.easypaisaAccountNumber) && (
+										<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+											<div className="text-sm font-medium text-red-800 mb-1">Please complete payment details:</div>
+											{formErrors.easypaisaAccountName && <div className="text-xs text-red-600">• {formErrors.easypaisaAccountName}</div>}
+											{formErrors.easypaisaAccountNumber && <div className="text-xs text-red-600">• {formErrors.easypaisaAccountNumber}</div>}
+										</div>
+									)}
+									{method === 'OTHER' && (formErrors.otherBankName || formErrors.otherAccountName || formErrors.otherAccountNumber) && (
+										<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+											<div className="text-sm font-medium text-red-800 mb-1">Please complete payment details:</div>
+											{formErrors.otherBankName && <div className="text-xs text-red-600">• {formErrors.otherBankName}</div>}
+											{formErrors.otherAccountName && <div className="text-xs text-red-600">• {formErrors.otherAccountName}</div>}
+											{formErrors.otherAccountNumber && <div className="text-xs text-red-600">• {formErrors.otherAccountNumber}</div>}
 										</div>
 									)}
 								</div>
 							)}
-							</div>
-						)}
+							
+						</div>
+					)}
 					</div>
 					<div className="rounded-md border p-3 sm:p-4 h-fit">
 						<div className="text-sm font-medium">Order summary</div>
@@ -436,19 +920,79 @@ export default function CheckoutPage() {
 								</div>
 							))}
 						</div>
+						
+						{/* Delivery Type Selection */}
+						{userDeliveryLocation && (
+							<div className="mt-4 pt-4 border-t">
+								<label className="text-sm font-medium text-gray-700 mb-2 block">Delivery Type</label>
+								<div className="space-y-2">
+									<label className="flex items-start gap-2 cursor-pointer">
+										<input
+											type="radio"
+											name="deliveryType"
+											value="STANDARD"
+											checked={deliveryType === 'STANDARD'}
+											onChange={() => setDeliveryType('STANDARD')}
+											className="mt-0.5 h-4 w-4 text-brand-accent focus:ring-brand-accent"
+										/>
+										<div className="flex-1">
+											<div className="flex items-center gap-2">
+												<img 
+													src="/standard-delivery.png" 
+													alt="Standard Delivery" 
+													className="h-5 w-auto object-contain"
+													onError={(e) => {
+														const target = e.target as HTMLImageElement
+														target.style.display = 'none'
+													}}
+												/>
+												<span className="text-sm font-medium">Standard Delivery</span>
+											</div>
+											<div className="text-xs text-gray-600 ml-7">Rs. 200 • 3-5 days</div>
+										</div>
+									</label>
+									<label className="flex items-start gap-2 cursor-pointer">
+										<input
+											type="radio"
+											name="deliveryType"
+											value="EXPRESS"
+											checked={deliveryType === 'EXPRESS'}
+											onChange={() => setDeliveryType('EXPRESS')}
+											className="mt-0.5 h-4 w-4 text-brand-accent focus:ring-brand-accent"
+										/>
+										<div className="flex-1">
+											<div className="flex items-center gap-2">
+												<img 
+													src="/express-delivery.png" 
+													alt="Express Delivery" 
+													className="h-5 w-auto object-contain"
+													onError={(e) => {
+														const target = e.target as HTMLImageElement
+														target.style.display = 'none'
+													}}
+												/>
+												<span className="text-sm font-medium">Express Delivery</span>
+											</div>
+											<div className="text-xs text-gray-600 ml-7">Rs. 500 • 1-2 days</div>
+										</div>
+									</label>
+								</div>
+							</div>
+						)}
+						
 						<div className="mt-3 flex items-center justify-between text-xs sm:text-sm">
 							<div className="text-slate-600">Subtotal</div>
 							<div className="font-semibold">{formatCurrencyPKR(subtotal)}</div>
 						</div>
 						<div className="mt-1 flex items-center justify-between text-xs sm:text-sm">
 							<div className="text-slate-600">Delivery</div>
-							<div className="font-semibold">{formatCurrencyPKR(200)}</div>
+							<div className="font-semibold">{formatCurrencyPKR(deliveryFee)}</div>
 						</div>
 						<div className="mt-1 flex items-center justify-between border-t pt-2 text-xs sm:text-sm">
 							<div className="font-medium">Total</div>
-							<div className="font-semibold">{formatCurrencyPKR(subtotal + 200)}</div>
+							<div className="font-semibold">{formatCurrencyPKR(total)}</div>
 						</div>
-						<button disabled={loading} className="mt-4 w-full rounded-md bg-brand-accent px-3 py-2 text-white text-sm sm:text-base" onClick={() => setStep(1)}>
+						<button disabled={loading} className="btn-large mt-4 w-full" onClick={handleContinue}>
 							Continue
 						</button>
 					</div>
@@ -457,39 +1001,168 @@ export default function CheckoutPage() {
 
 			{step === 1 && (
 				<div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2 rounded-md border p-3 sm:p-4">
-						<div className="text-sm font-medium">Review</div>
-						<div className="mt-3 text-xs sm:text-sm">
-							<div><span className="text-slate-600">Name:</span> {form.name}</div>
-							<div><span className="text-slate-600">Phone:</span> {form.phone}</div>
-							<div><span className="text-slate-600">City:</span> {form.city}</div>
-							<div><span className="text-slate-600">Address:</span> {form.address}</div>
-							<div className="mt-3"><span className="text-slate-600">Payment:</span> {method}</div>
+					<div className="lg:col-span-2 rounded-md border p-4 sm:p-6">
+						<h2 className="text-lg font-semibold text-gray-900 mb-4">Review Your Order</h2>
+						
+						{/* Shipping Information */}
+						<div className="mb-6 pb-6 border-b">
+							<h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+								<span className="h-1.5 w-1.5 rounded-full bg-brand-accent"></span>
+								Shipping Information
+							</h3>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+								<div>
+									<span className="text-slate-600 block mb-1">Name</span>
+									<span className="font-medium text-gray-900">{form.name}</span>
+								</div>
+								<div>
+									<span className="text-slate-600 block mb-1">Phone</span>
+									<span className="font-medium text-gray-900">{form.phone}</span>
+								</div>
+								<div>
+									<span className="text-slate-600 block mb-1">City</span>
+									<span className="font-medium text-gray-900">{userDeliveryLocation?.city || form.city}</span>
+								</div>
+								<div className="sm:col-span-2">
+									<span className="text-slate-600 block mb-1">Address</span>
+									<span className="font-medium text-gray-900">{userDeliveryLocation?.address || form.address}</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Delivery Type */}
+						<div className="mb-6 pb-6 border-b">
+							<h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+								<span className="h-1.5 w-1.5 rounded-full bg-brand-accent"></span>
+								Delivery Type
+							</h3>
+							<div className="flex items-center gap-3">
+								<img 
+									src={deliveryType === 'STANDARD' ? "/standard-delivery.png" : "/express-delivery.png"} 
+									alt={deliveryType === 'STANDARD' ? "Standard Delivery" : "Express Delivery"} 
+									className="h-8 w-auto object-contain"
+									onError={(e) => {
+										const target = e.target as HTMLImageElement
+										target.style.display = 'none'
+									}}
+								/>
+								<div>
+									<div className="text-sm font-medium text-gray-900">
+										{deliveryType === 'STANDARD' ? 'Standard Delivery' : 'Express Delivery'}
+									</div>
+									<div className="text-xs text-gray-600">
+										{deliveryType === 'STANDARD' ? '3-5 days' : '1-2 days'}
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Payment Information */}
+						<div>
+							<h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+								<span className="h-1.5 w-1.5 rounded-full bg-brand-accent"></span>
+								Payment Information
+							</h3>
+							<div className="flex items-center gap-3 mb-3">
+								{method === 'COD' ? (
+									<img 
+										src="/cod.png" 
+										alt="Cash on Delivery" 
+										className="h-6 w-auto object-contain"
+										onError={(e) => {
+											(e.target as HTMLImageElement).style.display = 'none'
+										}}
+									/>
+								) : method === 'JAZZCASH' ? (
+									<img 
+										src="/jazzcash.png" 
+										alt="JazzCash" 
+										className="h-6 w-auto object-contain"
+										onError={(e) => {
+											(e.target as HTMLImageElement).style.display = 'none'
+										}}
+									/>
+								) : method === 'EASYPAISA' ? (
+									<img 
+										src="/easypaisa.png" 
+										alt="EasyPaisa" 
+										className="h-6 w-auto object-contain"
+										onError={(e) => {
+											(e.target as HTMLImageElement).style.display = 'none'
+										}}
+									/>
+								) : (
+									<img 
+										src="/bank.png" 
+										alt={otherBankName || 'Other Bank'} 
+										className="h-6 w-auto object-contain"
+										onError={(e) => {
+											(e.target as HTMLImageElement).style.display = 'none'
+										}}
+									/>
+								)}
+								<span className="text-sm font-medium text-gray-900">
+									{method === 'COD' ? 'Cash on Delivery' : method === 'JAZZCASH' ? 'JazzCash' : method === 'EASYPAISA' ? 'EasyPaisa' : otherBankName || 'Other Bank'}
+								</span>
+							</div>
 							{method === 'JAZZCASH' && (
-								<div className="mt-2 space-y-1">
-									<div><span className="text-slate-600">Reference:</span> {paymentReference || '-'}</div>
-									{paymentProofDataUrl && <img src={paymentProofDataUrl} alt="Proof" className="h-32 rounded border object-cover" />}
+								<div className="ml-9 space-y-1 text-sm">
+									<div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+										<CreditCard className="h-3 w-3" />
+										Your account details <span className="text-gray-400">(sending payment through {jazzcashBankName || 'JazzCash'})</span>
+									</div>
+									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{jazzcashBankName || 'JazzCash'}</span></div>
+									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{jazzcashAccountName || '-'}</span></div>
+									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{jazzcashAccountNumber || '-'}</span></div>
+								</div>
+							)}
+							{method === 'EASYPAISA' && (
+								<div className="ml-9 space-y-1 text-sm">
+									<div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+										<CreditCard className="h-3 w-3" />
+										Your account details <span className="text-gray-400">(sending payment through {easypaisaBankName || 'EasyPaisa'})</span>
+									</div>
+									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{easypaisaBankName || 'EasyPaisa'}</span></div>
+									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{easypaisaAccountName || '-'}</span></div>
+									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{easypaisaAccountNumber || '-'}</span></div>
+								</div>
+							)}
+							{method === 'OTHER' && (
+								<div className="ml-9 space-y-1 text-sm">
+									<div className="text-xs text-gray-500 mb-1">Your account (sending through {otherBankName}):</div>
+									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{otherBankName || '-'}</span></div>
+									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{otherAccountName || '-'}</span></div>
+									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{otherAccountNumber || '-'}</span></div>
+								</div>
+							)}
+							{method === 'OTHER' && (
+								<div className="ml-9 space-y-1 text-sm">
+									<div className="text-xs text-gray-500 mb-1">Your account (sending through {otherBankName}):</div>
+									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{otherBankName || '-'}</span></div>
+									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{otherAccountName || '-'}</span></div>
+									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{otherAccountNumber || '-'}</span></div>
 								</div>
 							)}
 						</div>
 					</div>
 					<div className="rounded-md border p-3 sm:p-4 h-fit">
-						<div className="flex items-center justify-between text-xs sm:text-sm">
+						<div className="text-sm font-medium mb-3">Order Summary</div>
+						<div className="flex items-center justify-between text-xs sm:text-sm mb-2">
 							<div className="text-slate-600">Subtotal</div>
 							<div className="font-semibold">{formatCurrencyPKR(subtotal)}</div>
 						</div>
-						<div className="flex items-center justify-between mt-1 text-xs sm:text-sm">
+						<div className="flex items-center justify-between text-xs sm:text-sm mb-2">
 							<div className="text-slate-600">Delivery</div>
-							<div className="font-semibold">{formatCurrencyPKR(200)}</div>
+							<div className="font-semibold">{formatCurrencyPKR(deliveryFee)}</div>
 						</div>
-						<div className="flex items-center justify-between mt-1 border-t pt-2 text-xs sm:text-sm">
-							<div className="font-medium">Total</div>
-							<div className="font-semibold">{formatCurrencyPKR(subtotal + 200)}</div>
+						<div className="flex items-center justify-between mt-3 pt-3 border-t text-sm sm:text-base">
+							<div className="font-semibold">Total</div>
+							<div className="font-bold text-lg text-brand-accent">{formatCurrencyPKR(total)}</div>
 						</div>
 						<button disabled={loading} className="mt-4 w-full rounded-md bg-brand-accent px-3 py-2 text-white text-sm sm:text-base" onClick={placeOrder}>
 							{loading ? 'Placing order...' : 'Place order'}
 						</button>
-						<button className="mt-2 w-full rounded-md border px-3 py-2 text-sm sm:text-base" onClick={() => setStep(0)}>Back</button>
+						<button className="btn-secondary mt-2 w-full" onClick={() => setStep(0)}>Back</button>
 					</div>
 				</div>
 			)}
@@ -504,6 +1177,626 @@ export default function CheckoutPage() {
 						<Link href="/products" className="text-brand-accent hover:underline mt-2 inline-block">
 							Or click here to continue shopping
 						</Link>
+					</div>
+				</div>
+			)}
+
+			{/* Payment Method Selection Dialog */}
+			{showPaymentMethodDialog && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowPaymentMethodDialog(false)}>
+					<div 
+						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="p-4 sm:p-6">
+							<div className="flex items-center justify-between mb-4">
+								<h3 className="text-lg font-semibold">Select Payment Method</h3>
+								<button 
+									onClick={() => {
+										setShowPaymentMethodDialog(false)
+										setSelectedPaymentType(null)
+									}}
+									className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+								>
+									×
+								</button>
+							</div>
+							
+							{/* Show all saved payment methods */}
+							{(userProfile?.paymentMethods?.jazzcash?.accountNumber || 
+							  userProfile?.paymentMethods?.easypaisa?.accountNumber || 
+							  (userProfile?.paymentMethods?.other && userProfile.paymentMethods.other.length > 0)) ? (
+								<div className="mb-4">
+									<h4 className="text-sm font-medium text-gray-700 mb-2">Saved Payment Methods</h4>
+									<div className="space-y-2">
+										{/* JazzCash - User's saved JazzCash account */}
+										{userProfile?.paymentMethods?.jazzcash?.accountNumber && (
+											<div className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
+												<button
+													onClick={() => {
+														setMethod('JAZZCASH')
+														setJazzcashAccountName(userProfile.paymentMethods.jazzcash.accountName)
+														setJazzcashAccountNumber(userProfile.paymentMethods.jazzcash.accountNumber)
+														setJazzcashBankName(userProfile.paymentMethods.jazzcash.bankName || 'JazzCash')
+														setShowPaymentMethodDialog(false)
+														setSelectedPaymentType(null)
+													}}
+													className="flex-1 flex items-center gap-3 text-left"
+												>
+													<img src="/jazzcash.png" alt="JazzCash" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+													<div className="flex-1">
+														<div className="font-medium">JazzCash</div>
+														<div className="text-xs text-gray-600">{userProfile.paymentMethods.jazzcash.accountName} • {userProfile.paymentMethods.jazzcash.accountNumber}</div>
+													</div>
+												</button>
+												<button
+													onClick={(e) => {
+														e.stopPropagation()
+														setSelectedPaymentType('JAZZCASH')
+														setEditingJazzCash(true)
+														setJazzcashAccountName(userProfile.paymentMethods.jazzcash.accountName)
+														setJazzcashAccountNumber(userProfile.paymentMethods.jazzcash.accountNumber)
+														setJazzcashBankName(userProfile.paymentMethods.jazzcash.bankName || 'JazzCash')
+														setShowPaymentMethodDialog(false)
+														setShowPaymentDetailsDialog(true)
+													}}
+													className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+													title="Edit"
+												>
+													<Edit2 className="h-4 w-4" />
+												</button>
+											</div>
+										)}
+										
+										{/* EasyPaisa - User's saved EasyPaisa account */}
+										{userProfile?.paymentMethods?.easypaisa?.accountNumber && (
+											<div className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
+												<button
+													onClick={() => {
+														setMethod('EASYPAISA')
+														setEasypaisaAccountName(userProfile.paymentMethods.easypaisa.accountName)
+														setEasypaisaAccountNumber(userProfile.paymentMethods.easypaisa.accountNumber)
+														setEasypaisaBankName(userProfile.paymentMethods.easypaisa.bankName || 'EasyPaisa')
+														setShowPaymentMethodDialog(false)
+														setSelectedPaymentType(null)
+													}}
+													className="flex-1 flex items-center gap-3 text-left"
+												>
+													<img src="/easypaisa.png" alt="EasyPaisa" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+													<div className="flex-1">
+														<div className="font-medium">EasyPaisa</div>
+														<div className="text-xs text-gray-600">{userProfile.paymentMethods.easypaisa.accountName} • {userProfile.paymentMethods.easypaisa.accountNumber}</div>
+													</div>
+												</button>
+												<button
+													onClick={(e) => {
+														e.stopPropagation()
+														setSelectedPaymentType('EASYPAISA')
+														setEditingEasyPaisa(true)
+														setEasypaisaAccountName(userProfile.paymentMethods.easypaisa.accountName)
+														setEasypaisaAccountNumber(userProfile.paymentMethods.easypaisa.accountNumber)
+														setEasypaisaBankName(userProfile.paymentMethods.easypaisa.bankName || 'EasyPaisa')
+														setShowPaymentMethodDialog(false)
+														setShowPaymentDetailsDialog(true)
+													}}
+													className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+													title="Edit"
+												>
+													<Edit2 className="h-4 w-4" />
+												</button>
+											</div>
+										)}
+										
+										{/* Other Banks - User's saved other bank accounts */}
+										{userProfile?.paymentMethods?.other && userProfile.paymentMethods.other.length > 0 && userProfile.paymentMethods.other.map((bank: any, index: number) => (
+											<div key={index} className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
+												<button
+													onClick={() => {
+														setMethod('OTHER')
+														setOtherBankName(bank.bankName)
+														setOtherAccountName(bank.accountName)
+														setOtherAccountNumber(bank.accountNumber)
+														setSelectedOtherBank(bank)
+														setShowPaymentMethodDialog(false)
+														setSelectedPaymentType(null)
+														setShowSavePrompt(false)
+													}}
+													className="flex-1 flex items-center gap-3 text-left"
+												>
+													<img 
+														src="/bank.png" 
+														alt={bank.bankName} 
+														className="h-8 w-auto object-contain" 
+														onError={(e) => {
+															const target = e.target as HTMLImageElement
+															target.style.display = 'none'
+															const parent = target.parentElement
+															if (parent) {
+																const svg = parent.querySelector('svg')
+																if (svg) svg.style.display = 'block'
+															}
+														}} 
+													/>
+													<svg className="h-8 w-8 text-gray-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+													</svg>
+													<div className="flex-1">
+														<div className="font-medium">{bank.bankName}</div>
+														<div className="text-xs text-gray-600">{bank.accountName} • {bank.accountNumber}</div>
+													</div>
+												</button>
+												<button
+													onClick={(e) => {
+														e.stopPropagation()
+														setSelectedPaymentType('OTHER')
+														setEditingPaymentIndex(index)
+														setOtherBankName(bank.bankName)
+														setOtherAccountName(bank.accountName)
+														setOtherAccountNumber(bank.accountNumber)
+														setShowPaymentMethodDialog(false)
+														setShowPaymentDetailsDialog(true)
+													}}
+													className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+													title="Edit"
+												>
+													<Edit2 className="h-4 w-4" />
+												</button>
+											</div>
+										))}
+									</div>
+								</div>
+							) : null}
+							
+							{/* Add New Payment Method Options - Always visible */}
+							<div className={`${(userProfile?.paymentMethods?.jazzcash?.accountNumber || 
+							  userProfile?.paymentMethods?.easypaisa?.accountNumber || 
+							  (userProfile?.paymentMethods?.other && userProfile.paymentMethods.other.length > 0)) ? 'mt-4 pt-4 border-t border-gray-200' : ''}`}>
+								<h4 className="text-sm font-medium text-gray-700 mb-3">
+									{(userProfile?.paymentMethods?.jazzcash?.accountNumber || 
+									  userProfile?.paymentMethods?.easypaisa?.accountNumber || 
+									  (userProfile?.paymentMethods?.other && userProfile.paymentMethods.other.length > 0)) 
+										? 'Add New Payment Method' 
+										: 'Select Payment Method'}
+								</h4>
+								<div className="space-y-2">
+									<button
+										onClick={() => {
+											setSelectedPaymentType('JAZZCASH')
+											setShowPaymentMethodDialog(false)
+											setShowPaymentDetailsDialog(true)
+										}}
+										className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
+									>
+										<img src="/jazzcash.png" alt="JazzCash" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+										<div className="flex-1">
+											<div className="font-medium">Add JazzCash Account</div>
+											<div className="text-xs text-gray-600">Enter your JazzCash account details</div>
+										</div>
+									</button>
+									
+									<button
+										onClick={() => {
+											setSelectedPaymentType('EASYPAISA')
+											setShowPaymentMethodDialog(false)
+											setShowPaymentDetailsDialog(true)
+										}}
+										className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
+									>
+										<img src="/easypaisa.png" alt="EasyPaisa" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+										<div className="flex-1">
+											<div className="font-medium">Add EasyPaisa Account</div>
+											<div className="text-xs text-gray-600">Enter your EasyPaisa account details</div>
+										</div>
+									</button>
+									
+									<button
+										onClick={() => {
+											setSelectedPaymentType('OTHER')
+											setShowPaymentMethodDialog(false)
+											setShowPaymentDetailsDialog(true)
+										}}
+										className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
+									>
+										<img src="/bank.png" alt="Other Bank" className="h-8 w-auto object-contain" onError={(e) => {
+											const target = e.target as HTMLImageElement
+											target.style.display = 'none'
+											const parent = target.parentElement
+											if (parent) {
+												const svg = parent.querySelector('svg')
+												if (svg) svg.style.display = 'block'
+											}
+										}} />
+										<svg className="h-8 w-8 text-gray-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+										</svg>
+										<div className="flex-1">
+											<div className="font-medium">Add Other Bank Account</div>
+											<div className="text-xs text-gray-600">Enter your bank account details (HBL, UBL, etc.)</div>
+										</div>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Payment Details Dialog */}
+			{showPaymentDetailsDialog && selectedPaymentType && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowPaymentDetailsDialog(false)}>
+					<div 
+						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="p-4 sm:p-6">
+							{/* Header */}
+							<div className="flex items-center justify-between mb-4">
+								<div className="flex items-center gap-2">
+									{selectedPaymentType === 'JAZZCASH' && (
+										<>
+											<img src="/jazzcash.png" alt="JazzCash" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+											<div className="font-medium text-lg">{editingJazzCash ? 'Edit JazzCash' : 'JazzCash'}</div>
+										</>
+									)}
+									{selectedPaymentType === 'EASYPAISA' && (
+										<>
+											<img src="/easypaisa.png" alt="EasyPaisa" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+											<div className="font-medium text-lg">{editingEasyPaisa ? 'Edit EasyPaisa' : 'EasyPaisa'}</div>
+										</>
+									)}
+									{selectedPaymentType === 'OTHER' && (
+										<div className="font-medium text-lg">{editingPaymentIndex !== null ? 'Edit Other Bank' : 'Other Bank'}</div>
+									)}
+								</div>
+								<button 
+									onClick={() => {
+										setShowPaymentDetailsDialog(false)
+										setSelectedPaymentType(null)
+										setEditingJazzCash(false)
+										setEditingEasyPaisa(false)
+										setEditingPaymentIndex(null)
+									}}
+									className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+								>
+									×
+								</button>
+							</div>
+
+							{/* Payment Instructions */}
+							<div className="mt-4 space-y-3">
+								<div>
+									<span className="font-medium text-sm text-gray-700">Send payment to:</span>
+									<div className="text-2xl font-bold text-brand-accent mt-1">03004056650</div>
+								</div>
+								<div>
+									<span className="font-medium text-sm text-gray-700">Amount: </span>
+									<span className="font-semibold">{formatCurrencyPKR(subtotal)}</span>
+								</div>
+							</div>
+
+							{/* Account Details Form */}
+							<div className="mt-6 space-y-4">
+								{selectedPaymentType === 'OTHER' && (
+									<div>
+										<label className="text-sm font-medium text-gray-700 mb-1.5 block">Bank Name *</label>
+										<input 
+											value={otherBankName} 
+											onChange={(e) => {
+												setOtherBankName(e.target.value)
+												setFormErrors({ ...formErrors, otherBankName: undefined })
+											}} 
+											className={`input-enhanced w-full ${formErrors.otherBankName ? 'border-red-500 focus:ring-red-500' : ''}`} 
+											placeholder="e.g., HBL, UBL, Meezan Bank"
+										/>
+										{formErrors.otherBankName && (
+											<div className="mt-1 text-xs text-red-600">{formErrors.otherBankName}</div>
+										)}
+									</div>
+								)}
+								
+								<div>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Your Account Name * <span className="text-xs text-gray-500 font-normal">(letters only, no numbers)</span></label>
+									<input 
+										value={selectedPaymentType === 'JAZZCASH' ? jazzcashAccountName : selectedPaymentType === 'EASYPAISA' ? easypaisaAccountName : otherAccountName} 
+										onChange={(e) => { 
+											const value = e.target.value
+											// Remove numbers from account name
+											const cleanedValue = value.replace(/[0-9]/g, '')
+											if (selectedPaymentType === 'JAZZCASH') {
+												setJazzcashAccountName(cleanedValue)
+												setFormErrors({ ...formErrors, jazzcashAccountName: undefined })
+											} else if (selectedPaymentType === 'EASYPAISA') {
+												setEasypaisaAccountName(cleanedValue)
+												setFormErrors({ ...formErrors, easypaisaAccountName: undefined })
+											} else {
+												setOtherAccountName(cleanedValue)
+												setFormErrors({ ...formErrors, otherAccountName: undefined })
+											}
+										}} 
+										className={`input-enhanced w-full ${(selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountName : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountName : formErrors.otherAccountName) ? 'border-red-500 focus:ring-red-500' : ''}`} 
+										placeholder="Enter your account name"
+									/>
+									{(selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountName : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountName : formErrors.otherAccountName) && (
+										<div className="mt-1 text-xs text-red-600">
+											{selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountName : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountName : formErrors.otherAccountName}
+										</div>
+									)}
+								</div>
+								
+								<div>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Your Account Number * <span className="text-xs text-gray-500">(numbers only)</span></label>
+									<input 
+										type="tel"
+										value={selectedPaymentType === 'JAZZCASH' ? jazzcashAccountNumber : selectedPaymentType === 'EASYPAISA' ? easypaisaAccountNumber : otherAccountNumber} 
+										onChange={(e) => { 
+											const value = e.target.value
+											// Only allow numbers
+											const cleanedValue = value.replace(/[^0-9]/g, '')
+											if (selectedPaymentType === 'JAZZCASH') {
+												setJazzcashAccountNumber(cleanedValue)
+												setFormErrors({ ...formErrors, jazzcashAccountNumber: undefined })
+											} else if (selectedPaymentType === 'EASYPAISA') {
+												setEasypaisaAccountNumber(cleanedValue)
+												setFormErrors({ ...formErrors, easypaisaAccountNumber: undefined })
+											} else {
+												setOtherAccountNumber(cleanedValue)
+												setFormErrors({ ...formErrors, otherAccountNumber: undefined })
+											}
+										}} 
+										className={`input-enhanced w-full ${(selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountNumber : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountNumber : formErrors.otherAccountNumber) ? 'border-red-500 focus:ring-red-500' : ''}`} 
+										placeholder="e.g., 03001234567"
+									/>
+									{(selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountNumber : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountNumber : formErrors.otherAccountNumber) && (
+										<div className="mt-1 text-xs text-red-600">
+											{selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountNumber : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountNumber : formErrors.otherAccountNumber}
+										</div>
+									)}
+								</div>
+							</div>
+
+							{/* Action Buttons */}
+							<div className="mt-6 flex gap-3">
+								<button 
+									onClick={() => {
+										setShowPaymentDetailsDialog(false)
+										setSelectedPaymentType(null)
+										setEditingJazzCash(false)
+										setEditingEasyPaisa(false)
+										setEditingPaymentIndex(null)
+									}}
+									className="btn-secondary flex-1"
+								>
+									Cancel
+								</button>
+								<button 
+									onClick={async () => {
+										let accountName = ''
+										let accountNumber = ''
+										
+										if (selectedPaymentType === 'JAZZCASH') {
+											accountName = jazzcashAccountName.trim()
+											accountNumber = jazzcashAccountNumber.trim()
+											if (!accountName) {
+												setFormErrors({ ...formErrors, jazzcashAccountName: 'Account name is required' })
+												return
+											}
+											if (/[0-9]/.test(accountName)) {
+												setFormErrors({ ...formErrors, jazzcashAccountName: 'Account name should not contain numbers' })
+												return
+											}
+											if (!accountNumber) {
+												setFormErrors({ ...formErrors, jazzcashAccountNumber: 'Account number is required' })
+												return
+											}
+											if (!/^[0-9]+$/.test(accountNumber)) {
+												setFormErrors({ ...formErrors, jazzcashAccountNumber: 'Account number should contain only numbers' })
+												return
+											}
+										} else if (selectedPaymentType === 'EASYPAISA') {
+											accountName = easypaisaAccountName.trim()
+											accountNumber = easypaisaAccountNumber.trim()
+											if (!accountName) {
+												setFormErrors({ ...formErrors, easypaisaAccountName: 'Account name is required' })
+												return
+											}
+											if (/[0-9]/.test(accountName)) {
+												setFormErrors({ ...formErrors, easypaisaAccountName: 'Account name should not contain numbers' })
+												return
+											}
+											if (!accountNumber) {
+												setFormErrors({ ...formErrors, easypaisaAccountNumber: 'Account number is required' })
+												return
+											}
+											if (!/^[0-9]+$/.test(accountNumber)) {
+												setFormErrors({ ...formErrors, easypaisaAccountNumber: 'Account number should contain only numbers' })
+												return
+											}
+										} else {
+											if (!otherBankName.trim()) {
+												setFormErrors({ ...formErrors, otherBankName: 'Bank name is required' })
+												return
+											}
+											accountName = otherAccountName.trim()
+											accountNumber = otherAccountNumber.trim()
+											if (!accountName) {
+												setFormErrors({ ...formErrors, otherAccountName: 'Account name is required' })
+												return
+											}
+											if (/[0-9]/.test(accountName)) {
+												setFormErrors({ ...formErrors, otherAccountName: 'Account name should not contain numbers' })
+												return
+											}
+											if (!accountNumber) {
+												setFormErrors({ ...formErrors, otherAccountNumber: 'Account number is required' })
+												return
+											}
+											if (!/^[0-9]+$/.test(accountNumber)) {
+												setFormErrors({ ...formErrors, otherAccountNumber: 'Account number should contain only numbers' })
+												return
+											}
+										}
+										
+										setMethod(selectedPaymentType === 'OTHER' ? 'OTHER' : selectedPaymentType)
+										
+										// If editing, save immediately
+										if ((selectedPaymentType === 'JAZZCASH' && editingJazzCash) || 
+											(selectedPaymentType === 'EASYPAISA' && editingEasyPaisa) ||
+											(selectedPaymentType === 'OTHER' && editingPaymentIndex !== null)) {
+											// Auto-save the updated payment method
+											if (session?.user?.email) {
+												try {
+													const existingPaymentMethods = userProfile?.paymentMethods || {
+														jazzcash: { accountName: '', accountNumber: '', bankName: '' },
+														easypaisa: { accountName: '', accountNumber: '', bankName: '' },
+														other: []
+													}
+													
+													const updatedPaymentMethods = {
+														jazzcash: existingPaymentMethods.jazzcash || { accountName: '', accountNumber: '', bankName: '' },
+														easypaisa: existingPaymentMethods.easypaisa || { accountName: '', accountNumber: '', bankName: '' },
+														other: Array.isArray(existingPaymentMethods.other) ? [...existingPaymentMethods.other] : []
+													}
+													
+													if (selectedPaymentType === 'JAZZCASH' && editingJazzCash) {
+														updatedPaymentMethods.jazzcash = {
+															accountName: jazzcashAccountName,
+															accountNumber: jazzcashAccountNumber,
+															bankName: jazzcashBankName || 'JazzCash'
+														}
+													} else if (selectedPaymentType === 'EASYPAISA' && editingEasyPaisa) {
+														updatedPaymentMethods.easypaisa = {
+															accountName: easypaisaAccountName,
+															accountNumber: easypaisaAccountNumber,
+															bankName: easypaisaBankName || 'EasyPaisa'
+														}
+													} else if (selectedPaymentType === 'OTHER' && editingPaymentIndex !== null) {
+														updatedPaymentMethods.other[editingPaymentIndex] = {
+															bankName: otherBankName,
+															accountName: otherAccountName,
+															accountNumber: otherAccountNumber
+														}
+													}
+													
+													await fetch('/api/account', {
+														method: 'PUT',
+														headers: { 'Content-Type': 'application/json' },
+														body: JSON.stringify({ paymentMethods: updatedPaymentMethods })
+													})
+													
+													// Reload user profile
+													const profileRes = await fetch('/api/account', { cache: 'no-store' })
+													const profileJson = await profileRes.json()
+													if (profileJson?.data) {
+														setUserProfile(profileJson.data)
+													}
+													
+													toast.success('Payment method updated')
+												} catch (error) {
+													console.error('Failed to update payment method:', error)
+													toast.error('Failed to update payment method')
+												}
+											}
+											setEditingJazzCash(false)
+											setEditingEasyPaisa(false)
+											setEditingPaymentIndex(null)
+										} else {
+											// If adding new, show save prompt
+											setShowSavePrompt(true)
+										}
+										
+										setShowPaymentDetailsDialog(false)
+										setSelectedPaymentType(null)
+									}}
+									className="btn-primary flex-1"
+								>
+									Confirm
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Save to Profile Prompt */}
+			{showSavePrompt && method !== 'COD' && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowSavePrompt(false)}>
+					<div 
+						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="p-4 sm:p-6">
+							<h3 className="text-lg font-semibold mb-2">Save Payment Method?</h3>
+							<p className="text-sm text-gray-600 mb-4">Would you like to save this payment method to your account for faster checkout next time?</p>
+							<div className="flex gap-3">
+								<button 
+									onClick={async () => {
+										if (session?.user?.email) {
+											try {
+												// Get existing payment methods to merge with
+												const existingPaymentMethods = userProfile?.paymentMethods || {
+													jazzcash: { accountName: '', accountNumber: '', bankName: '' },
+													easypaisa: { accountName: '', accountNumber: '', bankName: '' },
+													other: []
+												}
+												
+												const updatedPaymentMethods = {
+													jazzcash: existingPaymentMethods.jazzcash || { accountName: '', accountNumber: '', bankName: '' },
+													easypaisa: existingPaymentMethods.easypaisa || { accountName: '', accountNumber: '', bankName: '' },
+													other: Array.isArray(existingPaymentMethods.other) ? [...existingPaymentMethods.other] : []
+												}
+												
+												if (method === 'JAZZCASH' && jazzcashAccountName && jazzcashAccountNumber) {
+													updatedPaymentMethods.jazzcash = {
+														accountName: jazzcashAccountName,
+														accountNumber: jazzcashAccountNumber,
+														bankName: jazzcashBankName || 'JazzCash'
+													}
+												} else if (method === 'EASYPAISA' && easypaisaAccountName && easypaisaAccountNumber) {
+													updatedPaymentMethods.easypaisa = {
+														accountName: easypaisaAccountName,
+														accountNumber: easypaisaAccountNumber,
+														bankName: easypaisaBankName || 'EasyPaisa'
+													}
+												} else if (method === 'OTHER' && otherBankName && otherAccountName && otherAccountNumber) {
+													updatedPaymentMethods.other.push({
+														bankName: otherBankName,
+														accountName: otherAccountName,
+														accountNumber: otherAccountNumber
+													})
+												}
+												
+												await fetch('/api/account', {
+													method: 'PUT',
+													headers: { 'Content-Type': 'application/json' },
+													body: JSON.stringify({ paymentMethods: updatedPaymentMethods })
+												})
+												
+												// Reload user profile
+												const profileRes = await fetch('/api/account', { cache: 'no-store' })
+												const profileJson = await profileRes.json()
+												if (profileJson?.data) {
+													setUserProfile(profileJson.data)
+												}
+												
+												toast.success('Payment method saved to profile')
+											} catch (error) {
+												console.error('Failed to save payment method:', error)
+											}
+										}
+										setShowSavePrompt(false)
+									}}
+									className="btn-primary flex-1"
+								>
+									Save
+								</button>
+								<button 
+									onClick={() => setShowSavePrompt(false)}
+									className="btn-secondary flex-1"
+								>
+									Skip
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			)}

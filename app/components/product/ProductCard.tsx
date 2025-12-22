@@ -1,10 +1,13 @@
 "use client"
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cart'
 import { useSession } from 'next-auth/react'
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingCart, Star, Heart } from 'lucide-react'
 import { toast } from 'sonner'
+import { useWishlist } from '@/app/hooks/useWishlist'
+import { useProductReviews } from '@/app/hooks/useProductReviews'
 
 type Variant = { id?: string; _id?: string; label: string; unitWeight: number; pricePerKg: number; unit?: string }
 
@@ -27,8 +30,15 @@ export default function ProductCard({
 }) {
 	const { add } = useCartStore()
 	const { status } = useSession()
+	const [isHovering, setIsHovering] = useState(false)
 	const variant = variants?.[0]
 	const unitPrice = variant?.pricePerKg ? Math.round(variant.pricePerKg * variant.unitWeight) : 0
+	const variantId = variant?.id || (variant as any)?._id
+
+	// Use optimized hooks with SWR caching
+	const { isWishlisted, mutate: mutateWishlist } = useWishlist()
+	const { reviewData, isLoading: reviewsLoading } = useProductReviews(id)
+	const wishlisted = isWishlisted(id, variantId)
 	
 	// Calculate original price (assume discount if badge exists)
 	const discountPercent = badges?.[0] ? (typeof badges[0] === 'string' && badges[0].includes('%') ? parseInt(badges[0]) : 15) : 0
@@ -46,8 +56,7 @@ export default function ProductCard({
 	const unitLabels: Record<string, string> = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
 	const unitLabel = unitLabels[unit] || unit
 	const displayWeightStr = `${displayWeight}${unitLabel}`
-	
-	const variantId = variant?.id || (variant as any)?._id
+
 	const imgSrc = images?.[0] || ''
 	const lowStock = typeof (variant as any)?.stockQty === 'number' ? (variant as any).stockQty : undefined
 
@@ -94,12 +103,58 @@ export default function ProductCard({
 	}
 	
 	const productHref = href || `/products/${id}`
+
+	async function toggleWishlist(e: React.MouseEvent) {
+		e.preventDefault()
+		e.stopPropagation()
+		
+		if (status !== 'authenticated') {
+			window.location.href = '/auth/login?callbackUrl=' + encodeURIComponent(window.location.pathname) as any
+			return
+		}
+
+		const productId = id
+		
+		try {
+			if (wishlisted) {
+				// Remove from wishlist
+				const res = await fetch('/api/wishlist', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ productId, variantId: variantId ? String(variantId) : null })
+				})
+				const json = await res.json()
+				if (json.success) {
+					mutateWishlist() // Refresh wishlist cache
+					toast.success('Removed from wishlist')
+				}
+			} else {
+				// Add to wishlist
+				const res = await fetch('/api/wishlist', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ productId, variantId: variantId ? String(variantId) : null })
+				})
+				const json = await res.json()
+				if (json.success) {
+					mutateWishlist() // Refresh wishlist cache
+					toast.success('Added to wishlist')
+				}
+			}
+		} catch (error) {
+			console.error('Wishlist error:', error)
+		}
+	}
 	
 	return (
 		<div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
 			{/* Product Image */}
-			<Link href={productHref as any}>
-				<div className="relative h-40 bg-white p-2">
+			<Link href={productHref as any} prefetch={true}>
+				<div 
+					className="relative h-40 bg-white p-2 group"
+					onMouseEnter={() => setIsHovering(true)}
+					onMouseLeave={() => setIsHovering(false)}
+				>
 					{imgSrc ? (
 						<img
 							src={imgSrc}
@@ -115,17 +170,54 @@ export default function ProductCard({
 							{discountPercent}% OFF
 						</span>
 					)}
+					{/* Wishlist Heart Icon - Show on Hover */}
+					<button
+						onClick={toggleWishlist}
+						className={`absolute top-3 left-3 p-2 rounded-full bg-white shadow-md transition-all ${
+							isHovering ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+						} ${wishlisted ? 'text-red-600' : 'text-gray-400 hover:text-red-500'}`}
+						title={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+					>
+						<Heart className={`h-5 w-5 ${wishlisted ? 'fill-current' : ''}`} />
+					</button>
 				</div>
 			</Link>
 			
 			{/* Product Info */}
 			<div className="p-3">
-				<Link href={productHref as any}>
+				<Link href={productHref as any} prefetch={true}>
 					<h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem] hover:text-brand-accent transition-colors">
 						{title}
 					</h3>
 				</Link>
 				<p className="text-xs text-gray-600 mb-2">{displayWeightStr}</p>
+				
+				{/* Reviews */}
+				<div className="flex items-center gap-1 mb-2 min-h-[16px]">
+					{reviewsLoading ? (
+						<span className="text-xs text-transparent">Loading...</span>
+					) : reviewData && reviewData.totalReviews > 0 ? (
+						<>
+							<div className="flex items-center gap-0.5">
+								{[1, 2, 3, 4, 5].map((star) => (
+									<Star
+										key={star}
+										className={`h-3 w-3 ${
+											star <= Math.round(reviewData.averageRating)
+												? 'text-yellow-400 fill-yellow-400'
+												: 'text-gray-300'
+										}`}
+									/>
+								))}
+							</div>
+							<span className="text-xs text-gray-600">
+								({reviewData.averageRating.toFixed(1)}) {reviewData.totalReviews}
+							</span>
+						</>
+					) : (
+						<span className="text-xs text-gray-400">No reviews</span>
+					)}
+				</div>
 				
 				{/* Price */}
 				<div className="flex items-center gap-2 mb-3">

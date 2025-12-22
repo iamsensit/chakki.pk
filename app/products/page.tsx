@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import ProductCard from '@/app/components/product/ProductCard'
-import { redirect } from 'next/navigation'
+import ProductFilters from './ProductFilters'
 
 function buildQuery(params: Record<string, any>) {
 	const search = new URLSearchParams()
@@ -41,59 +41,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
 	return (
 		<div className="container-pg py-4 sm:py-6">
 			<div className="grid gap-4 sm:gap-6 lg:grid-cols-4">
-				<aside className="lg:col-span-1 rounded-md border p-3 sm:p-4 h-fit">
-					<div className="text-sm font-medium">Filters</div>
-					<form className="mt-3 grid gap-3">
-						<input name="q" defaultValue={searchParams.q} placeholder="Search..." className="w-full rounded-md border px-3 py-2 text-sm" />
-						<div>
-							<label className="text-sm">Category</label>
-							<select name="category" defaultValue={searchParams.category} className="mt-1 w-full rounded-md border px-3 py-2 text-sm">
-								<option value="">All</option>
-								{meta.categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
-							</select>
-						</div>
-						<div>
-							<label className="text-sm">Brand</label>
-							<select name="brand" defaultValue={searchParams.brand} className="mt-1 w-full rounded-md border px-3 py-2 text-sm">
-								<option value="">All</option>
-								{meta.brands.map((b: string) => <option key={b} value={b}>{b}</option>)}
-							</select>
-						</div>
-						<div className="grid grid-cols-2 gap-2">
-							<div>
-								<label className="text-sm">Min Price</label>
-								<input name="minPrice" defaultValue={searchParams.minPrice} type="number" className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
-							</div>
-							<div>
-								<label className="text-sm">Max Price</label>
-								<input name="maxPrice" defaultValue={searchParams.maxPrice} type="number" className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
-							</div>
-						</div>
-						<div className="flex items-center gap-2">
-							<input id="inStock" name="inStock" type="checkbox" defaultChecked={searchParams.inStock === 'true'} className="rounded border-gray-300" />
-							<label htmlFor="inStock" className="text-sm">In stock</label>
-						</div>
-						<div>
-							<label className="text-sm">Sort by</label>
-							<select name="sort" defaultValue={searchParams.sort} className="mt-1 w-full rounded-md border px-3 py-2 text-sm">
-								<option value="popularity">Popularity</option>
-								<option value="price_asc">Price: Low to High</option>
-								<option value="price_desc">Price: High to Low</option>
-								<option value="newest">Newest</option>
-							</select>
-						</div>
-						<div className="flex gap-2">
-							<button formAction={async (fd: FormData) => {
-								'use server'
-								const entries = Object.fromEntries(fd.entries()) as Record<string, string>
-								const params: any = { ...entries }
-								if (!params.inStock) delete params.inStock; else params.inStock = 'true'
-								redirect(`/products?${buildQuery(params)}`)
-							}} className="rounded-md bg-brand-accent px-3 py-2 text-white text-sm">Apply</button>
-							<Link href="/products" className="rounded-md border px-3 py-2 text-sm">Reset</Link>
-						</div>
-					</form>
-				</aside>
+				<ProductFilters categories={meta.categories} brands={meta.brands} />
 				<section className="lg:col-span-3">
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
 						<h1 className="text-xl sm:text-2xl font-semibold">All Products</h1>

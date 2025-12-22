@@ -58,12 +58,17 @@ export const updateCartItemSchema = z.object({
 
 // Orders
 export const createOrderSchema = z.object({
-	paymentMethod: z.enum(['COD', 'JAZZCASH']),
+	paymentMethod: z.enum(['COD', 'JAZZCASH', 'EASYPAISA']),
+	deliveryType: z.enum(['STANDARD', 'EXPRESS']).optional(),
 	shippingName: z.string().min(2),
 	shippingPhone: z.string().min(7),
 	shippingAddress: z.string().min(6),
 	city: z.string().min(2),
-	coupon: z.string().optional()
+	coupon: z.string().optional(),
+	jazzcashAccountName: z.string().optional(),
+	jazzcashAccountNumber: z.string().optional(),
+	easypaisaAccountName: z.string().optional(),
+	easypaisaAccountNumber: z.string().optional()
 })
 
 // Payments

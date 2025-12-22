@@ -27,7 +27,13 @@ export async function GET() {
 	return json(true, 'Profile', { 
 		name: (user as any)?.name ?? '', 
 		email: (user as any)?.email ?? '', 
+		phone: (user as any)?.phone ?? '',
 		emailVerified: (user as any)?.emailVerified ?? false,
+		paymentMethods: (user as any)?.paymentMethods ?? {
+			jazzcash: { accountName: '', accountNumber: '', bankName: '' },
+			easypaisa: { accountName: '', accountNumber: '', bankName: '' },
+			other: []
+		},
 		isAdmin 
 	})
 }
@@ -37,9 +43,42 @@ export async function PUT(req: NextRequest) {
 	const session = await auth()
 	if (!session?.user?.email) return json(false, 'Unauthorized', undefined, undefined, 401)
 	const body = await req.json()
-	const name = typeof body.name === 'string' ? body.name : undefined
-	if (!name) return json(false, 'Invalid name', undefined, undefined, 400)
-	await User.updateOne({ email: session.user.email }, { $set: { name } })
+	
+	const updateData: any = {}
+	
+	if (typeof body.name === 'string' && body.name.trim()) {
+		updateData.name = body.name.trim()
+	}
+	
+	if (typeof body.phone === 'string') {
+		updateData.phone = body.phone.trim() || ''
+	}
+	
+	if (body.paymentMethods) {
+		// Use the payment methods directly from the request body
+		// This ensures all fields including the 'other' array are properly saved
+		updateData.paymentMethods = {
+			jazzcash: body.paymentMethods.jazzcash || { accountName: '', accountNumber: '', bankName: '' },
+			easypaisa: body.paymentMethods.easypaisa || { accountName: '', accountNumber: '', bankName: '' },
+			other: Array.isArray(body.paymentMethods.other) ? body.paymentMethods.other : []
+		}
+	}
+	
+	if (Object.keys(updateData).length === 0) {
+		return json(false, 'No valid fields to update', undefined, undefined, 400)
+	}
+	
+	// Use findOneAndUpdate to ensure proper handling of nested arrays
+	const updatedUser = await User.findOneAndUpdate(
+		{ email: session.user.email },
+		{ $set: updateData },
+		{ new: true, runValidators: true }
+	)
+	
+	if (!updatedUser) {
+		return json(false, 'User not found', undefined, undefined, 404)
+	}
+	
 	return json(true, 'Profile updated')
 }
 

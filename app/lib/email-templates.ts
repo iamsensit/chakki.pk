@@ -64,10 +64,11 @@ interface OrderItem {
 interface OrderData {
 	_id: string
 	status: string
-	paymentMethod: 'COD' | 'JAZZCASH'
-	paymentStatus: string
+	paymentMethod: 'COD' | 'JAZZCASH' | 'EASYPAISA' | 'OTHER'
+	paymentStatus?: string // Optional, removed from Order model
 	totalAmount: number
 	deliveryFee: number
+	deliveryType?: 'STANDARD' | 'EXPRESS'
 	shippingName: string
 	shippingPhone: string
 	shippingAddress: string
@@ -93,6 +94,7 @@ function getStatusBadge(status: string, paymentStatus?: string) {
 	const statusMap: Record<string, { color: string; bg: string; text: string }> = {
 		PENDING: { color: '#f59e0b', bg: '#fef3c7', text: 'PENDING' },
 		CONFIRMED: { color: '#10b981', bg: '#d1fae5', text: 'CONFIRMED' },
+		SHIPPING_IN_PROCESS: { color: '#3b82f6', bg: '#dbeafe', text: 'SHIPPING IN PROCESS' },
 		SHIPPED: { color: '#3b82f6', bg: '#dbeafe', text: 'SHIPPED' },
 		DELIVERED: { color: '#10b981', bg: '#d1fae5', text: 'DELIVERED' },
 		CANCELLED: { color: '#ef4444', bg: '#fee2e2', text: 'CANCELLED' }
@@ -141,9 +143,11 @@ function renderOrderItems(items: OrderItem[]) {
 	}).join('')
 }
 
-export function renderOrderEmailTemplate(order: OrderData, title: string, message: string, type: 'placed' | 'payment' | 'confirmed' | 'shipped' | 'delivered' = 'placed') {
-	const { statusStyle, paymentStyle } = getStatusBadge(order.status, order.paymentStatus)
+export function renderOrderEmailTemplate(order: OrderData, title: string, message: string, type: 'placed' | 'payment' | 'confirmed' | 'shipped' | 'delivered' = 'placed', deliveryType?: string, deliveryTime?: string) {
+	const { statusStyle, paymentStyle } = getStatusBadge(order.status, undefined)
 	const subtotal = order.totalAmount - order.deliveryFee
+	const orderDeliveryType = deliveryType || order.deliveryType || 'STANDARD'
+	const orderDeliveryTime = deliveryTime || (orderDeliveryType === 'EXPRESS' ? '1-2 days' : '3-5 days')
 	
 	return `
 		<!DOCTYPE html>
@@ -210,6 +214,12 @@ export function renderOrderEmailTemplate(order: OrderData, title: string, messag
 														<div><strong>Phone:</strong> ${order.shippingPhone}</div>
 														<div><strong>Address:</strong> ${order.shippingAddress}</div>
 														<div><strong>City:</strong> ${order.city}</div>
+														${type === 'confirmed' ? `
+															<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
+																<div><strong>Delivery Method:</strong> ${orderDeliveryType === 'EXPRESS' ? '🚀 Express Delivery' : '📦 Standard Delivery'}</div>
+																<div><strong>Expected Delivery:</strong> ${orderDeliveryTime}</div>
+															</div>
+														` : ''}
 													</div>
 												</div>
 											</td>
@@ -227,11 +237,7 @@ export function renderOrderEmailTemplate(order: OrderData, title: string, messag
 														<div style="display:flex;justify-content:space-between;margin-bottom:8px;">
 															<span style="color:#64748b;">Payment Method:</span>
 															<span style="font-weight:600;color:#0f172a;">${order.paymentMethod}</span>
-														</div>
-														<div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-															<span style="color:#64748b;">Payment Status:</span>
-															${paymentStyle ? `<span style="display:inline-block;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${paymentStyle.bg};color:${paymentStyle.color};">${order.paymentStatus}</span>` : `<span style="font-weight:600;color:#0f172a;">${order.paymentStatus}</span>`}
-														</div>
+													</div>
 														${order.paymentReference ? `
 															<div style="display:flex;justify-content:space-between;margin-bottom:8px;">
 																<span style="color:#64748b;">Reference:</span>

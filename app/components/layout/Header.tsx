@@ -565,13 +565,13 @@ export default function Header() {
 								{/* Navigation Links */}
 								<nav className="space-y-1">
 									{status === 'authenticated' ? (
-										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
-											<User className="h-5 w-5" />
-											<span>My Profile</span>
-							</Link>
+									<Link href="/account" prefetch={true} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+										<User className="h-5 w-5" />
+										<span>My Profile</span>
+									</Link>
 									) : null}
 									
-									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/account" prefetch={true} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
 										<ClipboardList className="h-5 w-5" />
 										<span>My Orders</span>
 							</Link>

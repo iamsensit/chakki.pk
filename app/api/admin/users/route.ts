@@ -26,9 +26,11 @@ export async function GET(req: NextRequest) {
 		const allowList = getAdminEmailsList()
 		const isPrimaryAdmin = currentUserEmail && allowList.includes(currentUserEmail)
 
-		// Primary admins (from ADMIN_EMAILS) can see all users
-		// Sub-admins (CADMIN) can only see non-admin users (USER role only)
-		const filter = isPrimaryAdmin ? {} : { role: 'USER' }
+		// Only show admins (ADMIN and CADMIN roles) and verified users
+		const filter = { 
+			role: { $in: ['ADMIN', 'CADMIN'] },
+			emailVerified: true 
+		}
 
 		const users = await User.find(filter)
 			.select('name email role emailVerified createdAt')
@@ -115,6 +117,11 @@ export async function POST(req: NextRequest) {
 		const user = await User.findOne({ email: targetEmail })
 		if (!user) {
 			return json(false, 'User not found', undefined, { email: 'User not found' }, 404)
+		}
+
+		// Only allow granting access to verified users
+		if (action === 'grant' && !(user as any).emailVerified) {
+			return json(false, 'User email is not verified. Please verify the email first.', undefined, { email: 'Email not verified' }, 400)
 		}
 
 		// Prevent revoking admin access from primary admins (ADMIN role or in ADMIN_EMAILS)

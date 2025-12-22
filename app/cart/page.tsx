@@ -54,7 +54,7 @@ export default function CartPage() {
 								<div className="text-xs text-slate-600">{i.variantLabel}</div>
 								<div className="mt-2 flex items-center gap-2 sm:gap-3 text-sm">
 									<button aria-label="Decrease" onClick={() => updateQty(i.id, Math.max(1, i.quantity - 1))} className="rounded-md border p-1 hover:bg-gray-50"><Minus className="h-4 w-4" /></button>
-									<input aria-label="Quantity" type="number" min={1} value={i.quantity} onChange={(e) => updateQty(i.id, Number(e.target.value))} className="w-16 rounded border px-2 py-1 text-center" />
+									<input aria-label="Quantity" type="number" min={1} value={i.quantity} onChange={(e) => updateQty(i.id, Number(e.target.value))} className="w-16 rounded-md border border-gray-200 px-2 py-1 text-center text-sm focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent transition-all" />
 									<button aria-label="Increase" onClick={() => updateQty(i.id, i.quantity + 1)} className="rounded-md border p-1 hover:bg-gray-50"><Plus className="h-4 w-4" /></button>
 									<button aria-label="Remove item" onClick={() => handleRemove(i)} className="ml-1 sm:ml-2 text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
 								</div>
@@ -68,7 +68,7 @@ export default function CartPage() {
 						<div className="text-sm text-slate-600">Subtotal</div>
 						<div className="font-semibold">{formatCurrencyPKR(total)}</div>
 					</div>
-					<Link href="/checkout" className="mt-4 block w-full rounded-md bg-brand-accent px-3 py-2 text-center text-white">Proceed to Checkout</Link>
+					<Link href="/checkout" className="btn-large mt-4 w-full text-center animate-fade-in">Proceed to Checkout</Link>
 				</div>
 			</div>
 		</div>

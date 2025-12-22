@@ -1,16 +1,27 @@
 "use client"
 
-import { ShoppingCart } from 'lucide-react'
+import { useState } from 'react'
+import { ShoppingCart, Star, Heart } from 'lucide-react'
 import { useCartStore } from '@/store/cart'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useWishlist } from '@/app/hooks/useWishlist'
+import { useProductReviews } from '@/app/hooks/useProductReviews'
 
 export default function FlashDealCard({ product }: { product: any }) {
 	const { add } = useCartStore()
 	const { status } = useSession()
+	const [isHovering, setIsHovering] = useState(false)
 	const variant = product.variants?.[0]
 	const unitPrice = variant?.pricePerKg ? Math.round(variant.pricePerKg * variant.unitWeight) : 0
+	const variantId = variant?.id || (variant as any)?._id
+	const productId = product._id || product.id
+
+	// Use optimized hooks with SWR caching
+	const { isWishlisted, mutate: mutateWishlist } = useWishlist()
+	const { reviewData, isLoading: reviewsLoading } = useProductReviews(productId)
+	const wishlisted = isWishlisted(String(productId), variantId)
 	
 	// Calculate original price (assume 10-20% discount for flash deals)
 	const discountPercent = product.badges?.[0] || 15
@@ -28,9 +39,6 @@ export default function FlashDealCard({ product }: { product: any }) {
 	const unitLabels: Record<string, string> = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
 	const unitLabel = unitLabels[unit] || unit
 	const displayWeightStr = `${displayWeight}${unitLabel}`
-	
-	const variantId = variant?.id || (variant as any)?._id
-	const productId = product._id || product.id
 	
 	async function handleAddToCart(e: React.MouseEvent) {
 		e.preventDefault()
@@ -73,12 +81,62 @@ export default function FlashDealCard({ product }: { product: any }) {
 		
 		toast.success('Added to cart')
 	}
+
+	async function toggleWishlist(e: React.MouseEvent) {
+		e.preventDefault()
+		e.stopPropagation()
+		
+		if (status !== 'authenticated') {
+			window.location.href = '/auth/login?callbackUrl=' + encodeURIComponent(window.location.pathname) as any
+			return
+		}
+		
+		try {
+			if (wishlisted) {
+				// Remove from wishlist
+				const res = await fetch('/api/wishlist', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ productId: String(productId), variantId: variantId ? String(variantId) : null })
+				})
+				const json = await res.json()
+				if (json.success) {
+					mutateWishlist() // Refresh wishlist cache
+					toast.success('Removed from wishlist')
+				}
+			} else {
+				// Add to wishlist
+				const res = await fetch('/api/wishlist', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ productId: String(productId), variantId: variantId ? String(variantId) : null })
+				})
+				const json = await res.json()
+				if (json.success) {
+					mutateWishlist() // Refresh wishlist cache
+					toast.success('Added to wishlist')
+				}
+			}
+		} catch (error) {
+			console.error('Wishlist error:', error)
+		}
+	}
 	
 	return (
-		<div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow min-w-[200px] flex-shrink-0">
+		<div 
+			className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow min-w-[200px] flex-shrink-0"
+			data-product-id={product._id || product.id}
+		>
 			{/* Product Image */}
-			<Link href={`/products/${product.slug ?? (product.id ?? product._id)}`}>
-				<div className="relative h-40 bg-white p-2">
+			<Link 
+				href={`/products/${product.slug ?? (product.id ?? product._id)}`}
+				prefetch={true}
+			>
+				<div 
+					className="relative h-40 bg-white p-2 group"
+					onMouseEnter={() => setIsHovering(true)}
+					onMouseLeave={() => setIsHovering(false)}
+				>
 					{product.images?.[0] ? (
 						<img
 							src={product.images[0]}
@@ -94,17 +152,58 @@ export default function FlashDealCard({ product }: { product: any }) {
 							{discountPercent}% OFF
 						</span>
 					)}
+					{/* Wishlist Heart Icon - Show on Hover */}
+					<button
+						onClick={toggleWishlist}
+						className={`absolute top-3 left-3 p-2 rounded-full bg-white shadow-md transition-all ${
+							isHovering ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+						} ${wishlisted ? 'text-red-600' : 'text-gray-400 hover:text-red-500'}`}
+						title={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+					>
+						<Heart className={`h-5 w-5 ${wishlisted ? 'fill-current' : ''}`} />
+					</button>
 				</div>
 			</Link>
 			
 			{/* Product Info */}
 			<div className="p-3">
-				<Link href={`/products/${product.slug ?? (product.id ?? product._id)}`}>
+				<Link 
+					href={`/products/${product.slug ?? (product.id ?? product._id)}`}
+					prefetch={true}
+				>
 					<h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem] hover:text-brand-accent transition-colors">
 						{product.title}
 					</h3>
 				</Link>
 				<p className="text-xs text-gray-600 mb-2">{displayWeightStr}</p>
+				
+				{/* Reviews */}
+				<div className="flex items-center gap-1 mb-2 min-h-[16px]">
+					{reviewsLoading ? (
+						// Show nothing while loading to avoid flicker
+						<span className="text-xs text-transparent">Loading...</span>
+					) : reviewData && reviewData.totalReviews > 0 ? (
+						<>
+							<div className="flex items-center gap-0.5">
+								{[1, 2, 3, 4, 5].map((star) => (
+									<Star
+										key={star}
+										className={`h-3 w-3 ${
+											star <= Math.round(reviewData.averageRating)
+												? 'text-yellow-400 fill-yellow-400'
+												: 'text-gray-300'
+										}`}
+									/>
+								))}
+							</div>
+							<span className="text-xs text-gray-600">
+								({reviewData.averageRating.toFixed(1)}) {reviewData.totalReviews}
+							</span>
+						</>
+					) : (
+						<span className="text-xs text-gray-400">No reviews</span>
+					)}
+				</div>
 				
 				{/* Price */}
 				<div className="flex items-center gap-2 mb-3">

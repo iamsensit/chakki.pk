@@ -203,7 +203,17 @@ export async function POST(req: NextRequest) {
 
 		const previousCodOrders = await Order.countDocuments({ userId, paymentMethod: 'COD' })
 		const isFirstCod = parsed.data.paymentMethod === 'COD' && isFirstOrderCodFree(previousCodOrders)
-		const deliveryFee = parsed.data.paymentMethod === 'COD' ? getCodDeliveryFee(previousCodOrders) : 0
+		
+		// Calculate delivery fee based on delivery type
+		let deliveryFee = 0
+		if (parsed.data.paymentMethod === 'COD') {
+			deliveryFee = getCodDeliveryFee(previousCodOrders)
+		} else if (parsed.data.deliveryType === 'EXPRESS') {
+			deliveryFee = 500
+		} else {
+			deliveryFee = 200 // STANDARD delivery
+		}
+		
 		const totalAmount = orderItems.reduce((sum: number, i: any) => sum + i.unitPrice * i.quantity, 0) + deliveryFee
 
 		const order = await Order.create({
@@ -214,12 +224,17 @@ export async function POST(req: NextRequest) {
 			isFirstCodFree: isFirstCod,
 			totalAmount,
 			deliveryFee,
+			deliveryType: parsed.data.deliveryType || 'STANDARD',
 			shippingName: parsed.data.shippingName,
 			shippingPhone: parsed.data.shippingPhone,
 			shippingAddress: parsed.data.shippingAddress,
 			city: parsed.data.city,
 			paymentReference: parsed.data.paymentMethod === 'JAZZCASH' ? paymentReference : '',
 			paymentProofDataUrl: parsed.data.paymentMethod === 'JAZZCASH' ? paymentProofDataUrl : '',
+			jazzcashAccountName: parsed.data.jazzcashAccountName || '',
+			jazzcashAccountNumber: parsed.data.jazzcashAccountNumber || '',
+			easypaisaAccountName: parsed.data.easypaisaAccountName || '',
+			easypaisaAccountNumber: parsed.data.easypaisaAccountNumber || '',
 			items: orderItems
 		})
 

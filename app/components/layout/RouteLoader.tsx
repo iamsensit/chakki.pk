@@ -12,6 +12,7 @@ function RouteLoaderInner() {
 	const previousSearchParams = useRef<string>(searchParams.toString())
 	const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const loadingStartTime = useRef<number | null>(null)
+	const isNavigatingRef = useRef<boolean>(false)
 	const minLoadingTime = 300 // Minimum time to show loader (ms)
 
 	// Show loader immediately on link clicks and router navigation
@@ -36,6 +37,7 @@ function RouteLoaderInner() {
 							// Only show loader if navigating to a different page
 							if (newPath !== currentPath || newSearch !== currentSearch) {
 								loadingStartTime.current = Date.now()
+								isNavigatingRef.current = true
 								setLoading(true)
 							}
 						}
@@ -51,6 +53,8 @@ function RouteLoaderInner() {
 						
 						// Only show loader if navigating to a different page
 						if (newPath !== currentPath || newSearch !== currentSearch) {
+							loadingStartTime.current = Date.now()
+							isNavigatingRef.current = true
 							setLoading(true)
 						}
 					}
@@ -65,11 +69,23 @@ function RouteLoaderInner() {
 		// Intercept router.push by listening to popstate and pushstate
 		const handleRouteChange = () => {
 			loadingStartTime.current = Date.now()
+			isNavigatingRef.current = true
 			setLoading(true)
 		}
 
 		// Listen for browser navigation events
 		window.addEventListener('popstate', handleRouteChange)
+		
+		// Listen for Next.js navigation events
+		// Next.js uses custom events for navigation
+		const handleNextNavigation = () => {
+			loadingStartTime.current = Date.now()
+			isNavigatingRef.current = true
+			setLoading(true)
+		}
+		
+		// Listen for route change start
+		window.addEventListener('beforeunload', handleNextNavigation)
 		
 		// Intercept pushState and replaceState
 		const originalPushState = history.pushState
@@ -90,6 +106,7 @@ function RouteLoaderInner() {
 						// Only show loader if navigating to a different page
 						if (newPath !== currentPath || newSearch !== currentSearch) {
 							loadingStartTime.current = Date.now()
+							isNavigatingRef.current = true
 							setLoading(true)
 						}
 					}
@@ -125,6 +142,7 @@ function RouteLoaderInner() {
 						// Only show loader if navigating to a different page
 						if (newPath !== currentPath || newSearch !== currentSearch) {
 							loadingStartTime.current = Date.now()
+							isNavigatingRef.current = true
 							setLoading(true)
 						}
 					}
@@ -160,12 +178,16 @@ function RouteLoaderInner() {
 		const pathChanged = previousPathname.current !== currentPath
 		const searchChanged = previousSearchParams.current !== currentSearch
 
+		// If route changed, we're no longer navigating
+		if (pathChanged || searchChanged) {
+			isNavigatingRef.current = false
+			previousPathname.current = currentPath
+			previousSearchParams.current = currentSearch
+		}
+
 		if (loading) {
 			if (pathChanged || searchChanged) {
-				// Route has changed, wait for page to render
-				previousPathname.current = currentPath
-				previousSearchParams.current = currentSearch
-
+				// Route has changed, wait for page to fully render
 				// Clear any existing timeout
 				if (navigationTimeoutRef.current) {
 					clearTimeout(navigationTimeoutRef.current)
@@ -176,27 +198,71 @@ function RouteLoaderInner() {
 				const remainingTime = Math.max(0, minLoadingTime - elapsed)
 
 				// Wait for DOM to update and page to be ready
-				// Use requestAnimationFrame to ensure DOM has updated, then wait a bit more
+				// Use multiple requestAnimationFrame to ensure DOM has fully updated
 				requestAnimationFrame(() => {
 					requestAnimationFrame(() => {
-						// Wait for minimum loading time + small delay for smooth transition
-						navigationTimeoutRef.current = setTimeout(() => {
-							setLoading(false)
-							loadingStartTime.current = null
-						}, remainingTime + 150)
+						requestAnimationFrame(() => {
+							// Wait for minimum loading time + delay for smooth transition
+							navigationTimeoutRef.current = setTimeout(() => {
+								// Check if page is actually loaded
+								const checkAndHide = () => {
+									// Wait for both DOM ready and React hydration
+									if (document.readyState === 'complete') {
+										// Additional check: ensure main content is rendered
+										const mainContent = document.querySelector('main, [role="main"], .container-pg, body > div')
+										if (mainContent) {
+											// Wait a bit more for React hydration and images
+											setTimeout(() => {
+												setLoading(false)
+												loadingStartTime.current = null
+												isNavigatingRef.current = false
+											}, 150)
+										} else {
+											// Content not ready yet, wait a bit more
+											setTimeout(checkAndHide, 100)
+										}
+									} else {
+										// Page still loading, wait for load event
+										const handleLoad = () => {
+											setTimeout(() => {
+												setLoading(false)
+												loadingStartTime.current = null
+												isNavigatingRef.current = false
+											}, 150)
+										}
+										window.addEventListener('load', handleLoad, { once: true })
+										// Fallback timeout (max 2 seconds)
+										setTimeout(() => {
+											setLoading(false)
+											loadingStartTime.current = null
+											isNavigatingRef.current = false
+										}, 2000)
+									}
+								}
+								checkAndHide()
+							}, remainingTime + 150)
+						})
 					})
 				})
-			} else {
-				// Route didn't change - hide loader (same page navigation)
+			} else if (isNavigatingRef.current) {
+				// Navigation started but route hasn't changed yet
+				// Give it more time (max 1 second)
 				if (navigationTimeoutRef.current) {
 					clearTimeout(navigationTimeoutRef.current)
 				}
-				// Hide after a short delay to prevent flicker
 				navigationTimeoutRef.current = setTimeout(() => {
-					setLoading(false)
-					loadingStartTime.current = null
-				}, 100)
+					// Only hide if route still hasn't changed (might be same page)
+					if (previousPathname.current === pathname && previousSearchParams.current === currentSearch) {
+						setLoading(false)
+						loadingStartTime.current = null
+						isNavigatingRef.current = false
+					}
+				}, 1000)
 			}
+		} else {
+			// Not loading - update refs
+			previousPathname.current = currentPath
+			previousSearchParams.current = currentSearch
 		}
 
 		return () => {

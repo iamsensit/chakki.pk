@@ -1,10 +1,10 @@
 "use client"
 
 import useSWR from 'swr'
-import { useState, useMemo } from 'react'
-import { TrendingUp, Package, DollarSign, ShoppingCart, Calendar, Filter, Download, BarChart3, PieChart } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { TrendingUp, Package, DollarSign, ShoppingCart, Calendar, Filter, Download, BarChart3, PieChart, Eye, X, User, Phone, MapPin, Truck } from 'lucide-react'
 import { formatCurrencyPKR } from '@/app/lib/price'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
@@ -12,9 +12,68 @@ export default function TransactionsPage() {
 	const { data: ordersData, isLoading: ordersLoading } = useSWR('/api/orders', fetcher)
 	const { data: posData, isLoading: posLoading } = useSWR('/api/pos/sales', fetcher)
 	const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('month')
+	const [selectedOrder, setSelectedOrder] = useState<any>(null)
+	const [selectedPOS, setSelectedPOS] = useState<any>(null)
+	const [orderDetailsLoading, setOrderDetailsLoading] = useState(false)
+	const [posDetailsLoading, setPosDetailsLoading] = useState(false)
+	const [productDetails, setProductDetails] = useState<Record<string, any>>({})
+	const [stockProductDetails, setStockProductDetails] = useState<Record<string, any>>({})
+	const [stockLoading, setStockLoading] = useState(true)
 	
 	const orders = ordersData?.data || []
 	const posSales = posData?.data || []
+	
+	async function loadOrderDetails(order: any) {
+		setOrderDetailsLoading(true)
+		setSelectedOrder(order)
+		
+		// Load product details for each item
+		const productIds = order.items?.map((item: any) => item.productId).filter(Boolean) || []
+		const uniqueProductIds = [...new Set(productIds)]
+		
+		const details: Record<string, any> = {}
+		await Promise.all(
+			uniqueProductIds.map(async (productId: any) => {
+				try {
+					const res = await fetch(`/api/products/${String(productId)}`)
+					const json = await res.json()
+					if (json?.success && json?.data) {
+						details[String(productId)] = json.data
+					}
+				} catch (error) {
+					console.error('Failed to load product:', productId, error)
+				}
+			})
+		)
+		setProductDetails(details)
+		setOrderDetailsLoading(false)
+	}
+	
+	async function loadPOSDetails(sale: any) {
+		setPosDetailsLoading(true)
+		setSelectedPOS(sale)
+		
+		// Load product details for each item
+		const productIds = sale.items?.map((item: any) => item.productId).filter(Boolean) || []
+		const uniqueProductIds = [...new Set(productIds)]
+		
+		const details: Record<string, any> = {}
+		await Promise.all(
+			uniqueProductIds.map(async (productId: any) => {
+				try {
+					const res = await fetch(`/api/products/${String(productId)}`)
+					const json = await res.json()
+					if (json?.success && json?.data) {
+						details[String(productId)] = json.data
+					}
+				} catch (error) {
+					console.error('Failed to load product:', productId, error)
+				}
+			})
+		)
+		setProductDetails(details)
+		setPosDetailsLoading(false)
+	}
 	
 	const now = new Date()
 	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -84,6 +143,42 @@ export default function TransactionsPage() {
 		
 		return Object.values(sold).sort((a, b) => b.revenue - a.revenue)
 	}, [filteredOrders, filteredPOS])
+
+	// Fetch product details for stock movement table
+	useEffect(() => {
+		if (stockSold.length === 0) {
+			setStockLoading(false)
+			return
+		}
+		
+		setStockLoading(true)
+		const uniqueProductIds = [...new Set(stockSold.map((item: any) => item.productId).filter(Boolean))]
+		
+		Promise.all(
+			uniqueProductIds.map(async (productId: any) => {
+				try {
+					const res = await fetch(`/api/products/${String(productId)}`)
+					const json = await res.json()
+					if (json?.success && json?.data) {
+						return { productId: String(productId), product: json.data }
+					}
+					return null
+				} catch (error) {
+					console.error('Failed to load product:', productId, error)
+					return null
+				}
+			})
+		).then((results) => {
+			const details: Record<string, any> = {}
+			results.forEach((result) => {
+				if (result) {
+					details[result.productId] = result.product
+				}
+			})
+			setStockProductDetails(details)
+			setStockLoading(false)
+		})
+	}, [stockSold])
 	
 	const isLoading = ordersLoading || posLoading
 	
@@ -182,7 +277,7 @@ export default function TransactionsPage() {
 						Stock Movement
 					</h2>
 				</div>
-				{isLoading ? (
+				{isLoading || stockLoading ? (
 					<div className="space-y-2">
 						{[...Array(5)].map((_, i) => (
 							<div key={i} className="skeleton h-16" />
@@ -204,26 +299,58 @@ export default function TransactionsPage() {
 								</tr>
 							</thead>
 							<tbody>
-								{stockSold.map((item, idx) => (
-									<motion.tr
-										key={`${item.productId}-${item.variantId || 'none'}`}
-										initial={{ opacity: 0, x: -20 }}
-										animate={{ opacity: 1, x: 0 }}
-										transition={{ delay: idx * 0.05 }}
-										className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-									>
-										<td className="py-3 px-4">
-											<div className="font-medium text-slate-900">{item.title}</div>
-											{item.variantId && (
-												<div className="text-xs text-slate-500">Variant ID: {item.variantId.slice(-6)}</div>
-											)}
-										</td>
-										<td className="py-3 px-4 text-right font-medium text-slate-900">{item.quantity}</td>
-										<td className="py-3 px-4 text-right font-semibold text-brand-accent">
-											{formatCurrencyPKR(item.revenue)}
-										</td>
-									</motion.tr>
-								))}
+								{stockSold.map((item, idx) => {
+									const product = stockProductDetails[item.productId]
+									const productName = product?.title || item.title || 'Product'
+									const productImage = product?.images?.[0] || ''
+									
+									// Find variant label if variantId exists
+									let variantLabel = ''
+									if (item.variantId && product?.variants) {
+										const variant = product.variants.find((v: any) => 
+											String(v._id || v.id) === String(item.variantId)
+										)
+										variantLabel = variant?.label || ''
+									}
+									
+									return (
+										<motion.tr
+											key={`${item.productId}-${item.variantId || 'none'}`}
+											initial={{ opacity: 0, x: -20 }}
+											animate={{ opacity: 1, x: 0 }}
+											transition={{ delay: idx * 0.05 }}
+											className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+										>
+											<td className="py-3 px-4">
+												<div className="flex items-center gap-3">
+													{productImage && (
+														<img
+															src={productImage}
+															alt={productName}
+															className="w-12 h-12 object-cover rounded-md"
+														/>
+													)}
+													<div>
+														<div className="font-medium text-slate-900">{productName}</div>
+														{variantLabel && (
+															<div className="text-xs text-slate-500">Variant: {variantLabel}</div>
+														)}
+														{item.variantId && !variantLabel && (
+															<div className="text-xs text-slate-500">Variant ID: {String(item.variantId).slice(-8)}</div>
+														)}
+														{product?.brand && (
+															<div className="text-xs text-slate-400">Brand: {product.brand}</div>
+														)}
+													</div>
+												</div>
+											</td>
+											<td className="py-3 px-4 text-right font-medium text-slate-900">{item.quantity}</td>
+											<td className="py-3 px-4 text-right font-semibold text-brand-accent">
+												{formatCurrencyPKR(item.revenue)}
+											</td>
+										</motion.tr>
+									)
+								})}
 							</tbody>
 						</table>
 					</div>
@@ -262,9 +389,18 @@ export default function TransactionsPage() {
 										<span className="font-medium text-slate-900">
 											Order #{String(order._id).slice(-8)}
 										</span>
-										<span className="text-sm font-semibold text-brand-accent">
-											{formatCurrencyPKR(order.totalAmount)}
-										</span>
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-semibold text-brand-accent">
+												{formatCurrencyPKR(order.totalAmount)}
+											</span>
+											<button
+												onClick={() => loadOrderDetails(order)}
+												className="p-1.5 hover:bg-slate-200 rounded transition-colors"
+												title="View order details"
+											>
+												<Eye className="h-4 w-4 text-slate-600" />
+											</button>
+										</div>
 									</div>
 									<div className="flex items-center gap-2 text-xs text-slate-600">
 										<Calendar className="h-3 w-3" />
@@ -310,9 +446,18 @@ export default function TransactionsPage() {
 										<span className="font-medium text-slate-900">
 											{sale.receiptNumber || 'POS Sale'}
 										</span>
-										<span className="text-sm font-semibold text-emerald-600">
-											{formatCurrencyPKR(sale.total)}
-										</span>
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-semibold text-emerald-600">
+												{formatCurrencyPKR(sale.total)}
+											</span>
+											<button
+												onClick={() => loadPOSDetails(sale)}
+												className="p-1.5 hover:bg-slate-200 rounded transition-colors"
+												title="View sale details"
+											>
+												<Eye className="h-4 w-4 text-slate-600" />
+											</button>
+										</div>
 									</div>
 									<div className="flex items-center gap-2 text-xs text-slate-600">
 										<Calendar className="h-3 w-3" />
@@ -328,6 +473,252 @@ export default function TransactionsPage() {
 					)}
 				</div>
 			</div>
+
+			{/* Order Details Modal */}
+			<AnimatePresence>
+				{selectedOrder && (
+					<div
+						className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+						onClick={() => {
+							setSelectedOrder(null)
+							setProductDetails({})
+						}}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							className="max-w-4xl w-full bg-white rounded-xl p-6 max-h-[90vh] overflow-y-auto"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div className="flex items-center justify-between mb-6">
+								<h3 className="text-2xl font-bold text-slate-900">
+									Order #{String(selectedOrder._id).slice(-8).toUpperCase()}
+								</h3>
+								<button
+									onClick={() => {
+										setSelectedOrder(null)
+										setProductDetails({})
+									}}
+									className="btn-secondary p-2"
+								>
+									<X className="h-5 w-5" />
+								</button>
+							</div>
+
+							{orderDetailsLoading ? (
+								<div className="text-center py-8">
+									<div className="skeleton h-32 w-full" />
+								</div>
+							) : (
+								<div className="space-y-6">
+									{/* Order Info */}
+									<div className="grid md:grid-cols-2 gap-4">
+										<div className="p-4 bg-slate-50 rounded-lg">
+											<div className="text-sm text-slate-600 mb-1">Order Status</div>
+											<div className="font-semibold text-slate-900">{selectedOrder.status}</div>
+										</div>
+										<div className="p-4 bg-slate-50 rounded-lg">
+											<div className="text-sm text-slate-600 mb-1">Payment Status</div>
+											<div className="font-semibold text-slate-900">{selectedOrder.paymentStatus}</div>
+										</div>
+									</div>
+
+									{/* Customer Information */}
+									<div className="p-4 border rounded-lg">
+										<h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+											<User className="h-4 w-4" />
+											Customer Information
+										</h4>
+										<div className="text-sm space-y-2 text-slate-600">
+											<p><span className="font-medium">Name:</span> {selectedOrder.shippingName}</p>
+											<p className="flex items-center gap-1.5">
+												<Phone className="h-3.5 w-3.5" />
+												<span>{selectedOrder.shippingPhone}</span>
+											</p>
+											<p className="flex items-center gap-1.5">
+												<MapPin className="h-3.5 w-3.5" />
+												<span>{selectedOrder.shippingAddress}, {selectedOrder.city}</span>
+											</p>
+										</div>
+									</div>
+
+									{/* Delivery Info */}
+									{selectedOrder.deliveryType && (
+										<div className="p-4 border rounded-lg">
+											<h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-2">
+												<Truck className="h-4 w-4" />
+												Delivery Information
+											</h4>
+											<div className="text-sm text-slate-600 space-y-1">
+												<p><span className="font-medium">Delivery Type:</span> {selectedOrder.deliveryType}</p>
+												<p><span className="font-medium">Delivery Fee:</span> {formatCurrencyPKR(selectedOrder.deliveryFee || 0)}</p>
+											</div>
+										</div>
+									)}
+
+									{/* Order Items */}
+									<div className="p-4 border rounded-lg">
+										<h4 className="font-semibold text-slate-900 mb-4">Order Items</h4>
+										<div className="space-y-4">
+											{selectedOrder.items?.map((item: any, i: number) => {
+												const product = productDetails[item.productId]
+												const productImage = product?.images?.[0] || ''
+												return (
+													<div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
+														{productImage && (
+															<img
+																src={productImage}
+																alt={item.title || 'Product'}
+																className="w-20 h-20 object-cover rounded-md"
+															/>
+														)}
+														<div className="flex-1">
+															<p className="font-medium text-slate-900">{item.title || 'Product'}</p>
+															{item.variantId && (
+																<p className="text-sm text-slate-600">Variant ID: {String(item.variantId).slice(-6)}</p>
+															)}
+															<p className="text-sm text-slate-600 mt-1">
+																Quantity: {item.quantity} × {formatCurrencyPKR(item.unitPrice)}
+															</p>
+														</div>
+														<div className="font-semibold text-slate-900">
+															{formatCurrencyPKR(item.unitPrice * item.quantity)}
+														</div>
+													</div>
+												)
+											})}
+										</div>
+										<div className="mt-4 pt-4 border-t flex items-center justify-between">
+											<span className="text-lg font-bold text-slate-900">Total</span>
+											<span className="text-xl font-bold text-brand-accent">
+												{formatCurrencyPKR(selectedOrder.totalAmount)}
+											</span>
+										</div>
+									</div>
+
+									{/* Payment Info */}
+									{selectedOrder.paymentMethod !== 'COD' && (
+										<div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+											<h4 className="font-semibold text-blue-900 mb-2">Payment Information</h4>
+											<div className="text-sm space-y-1 text-blue-700">
+												<p><span className="font-medium">Payment Method:</span> {selectedOrder.paymentMethod}</p>
+												{selectedOrder.paymentReference && (
+													<p><span className="font-medium">Reference:</span> {selectedOrder.paymentReference}</p>
+												)}
+											</div>
+										</div>
+									)}
+								</div>
+							)}
+						</motion.div>
+					</div>
+				)}
+			</AnimatePresence>
+
+			{/* POS Sale Details Modal */}
+			<AnimatePresence>
+				{selectedPOS && (
+					<div
+						className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+						onClick={() => {
+							setSelectedPOS(null)
+							setProductDetails({})
+						}}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							className="max-w-4xl w-full bg-white rounded-xl p-6 max-h-[90vh] overflow-y-auto"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div className="flex items-center justify-between mb-6">
+								<h3 className="text-2xl font-bold text-slate-900">
+									{selectedPOS.receiptNumber || 'POS Sale'}
+								</h3>
+								<button
+									onClick={() => {
+										setSelectedPOS(null)
+										setProductDetails({})
+									}}
+									className="btn-secondary p-2"
+								>
+									<X className="h-5 w-5" />
+								</button>
+							</div>
+
+							{posDetailsLoading ? (
+								<div className="text-center py-8">
+									<div className="skeleton h-32 w-full" />
+								</div>
+							) : (
+								<div className="space-y-6">
+									{/* Sale Info */}
+									<div className="grid md:grid-cols-2 gap-4">
+										<div className="p-4 bg-slate-50 rounded-lg">
+											<div className="text-sm text-slate-600 mb-1">Receipt Number</div>
+											<div className="font-semibold text-slate-900">{selectedPOS.receiptNumber}</div>
+										</div>
+										<div className="p-4 bg-slate-50 rounded-lg">
+											<div className="text-sm text-slate-600 mb-1">Payment Method</div>
+											<div className="font-semibold text-slate-900">{selectedPOS.paymentMethod}</div>
+										</div>
+									</div>
+
+									{/* Date */}
+									<div className="p-4 bg-slate-50 rounded-lg">
+										<div className="text-sm text-slate-600 mb-1">Sale Date</div>
+										<div className="font-semibold text-slate-900">
+											{new Date(selectedPOS.createdAt).toLocaleString()}
+										</div>
+									</div>
+
+									{/* Sale Items */}
+									<div className="p-4 border rounded-lg">
+										<h4 className="font-semibold text-slate-900 mb-4">Items Sold</h4>
+										<div className="space-y-4">
+											{selectedPOS.items?.map((item: any, i: number) => {
+												const product = productDetails[item.productId]
+												const productImage = product?.images?.[0] || ''
+												return (
+													<div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
+														{productImage && (
+															<img
+																src={productImage}
+																alt={item.title || 'Product'}
+																className="w-20 h-20 object-cover rounded-md"
+															/>
+														)}
+														<div className="flex-1">
+															<p className="font-medium text-slate-900">{item.title || 'Product'}</p>
+															{item.variantId && (
+																<p className="text-sm text-slate-600">Variant ID: {String(item.variantId).slice(-6)}</p>
+															)}
+															<p className="text-sm text-slate-600 mt-1">
+																Quantity: {item.quantity} × {formatCurrencyPKR(item.unitPrice)}
+															</p>
+														</div>
+														<div className="font-semibold text-slate-900">
+															{formatCurrencyPKR(item.unitPrice * item.quantity)}
+														</div>
+													</div>
+												)
+											})}
+										</div>
+										<div className="mt-4 pt-4 border-t flex items-center justify-between">
+											<span className="text-lg font-bold text-slate-900">Total</span>
+											<span className="text-xl font-bold text-emerald-600">
+												{formatCurrencyPKR(selectedPOS.total)}
+											</span>
+										</div>
+									</div>
+								</div>
+							)}
+						</motion.div>
+					</div>
+				)}
+			</AnimatePresence>
 		</div>
 	)
 }

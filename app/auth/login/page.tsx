@@ -99,7 +99,7 @@ function LoginForm() {
 					<form onSubmit={handleSubmit} className="space-y-6">
 						{/* Email Input */}
 						<div>
-							<label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+							<label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
 								Email Address
 							</label>
 							<div className="relative">
@@ -110,8 +110,8 @@ function LoginForm() {
 									onChange={e => { setEmail(e.target.value); setErrors({ ...errors, email: undefined }) }} 
 									placeholder="you@example.com" 
 									type="email"
-									className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent ${
-										errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+									className={`input-enhanced pl-10 max-w-md ${
+										errors.email ? 'border-red-500 focus:ring-red-500' : ''
 									}`}
 								/>
 							</div>
@@ -121,7 +121,7 @@ function LoginForm() {
 						{/* Password Input */}
 						<div>
 							<div className="flex items-center justify-between mb-2">
-								<label htmlFor="password" className="block text-sm font-medium text-gray-700">
+								<label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
 									Password
 								</label>
 								<Link href="/auth/forgot-password" className="text-xs text-brand-accent hover:text-orange-600 transition-colors">
@@ -136,8 +136,8 @@ function LoginForm() {
 									value={password} 
 									onChange={e => { setPassword(e.target.value); setErrors({ ...errors, password: undefined }) }} 
 									placeholder="Enter your password" 
-									className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent ${
-										errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+									className={`input-enhanced pl-10 max-w-md ${
+										errors.password ? 'border-red-500 focus:ring-red-500' : ''
 									}`}
 								/>
 							</div>
@@ -148,7 +148,7 @@ function LoginForm() {
 						<button 
 							type="submit"
 							disabled={loading}
-							className="w-full bg-brand-accent hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+							className="btn-large w-full max-w-md animate-fade-in"
 						>
 							{loading ? (
 								<>

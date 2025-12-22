@@ -24,11 +24,49 @@ export async function POST(req: NextRequest) {
 
     // Deduct stock
     for (const it of items) {
-      if (it.variantId) {
-        await Product.updateOne(
-          { _id: it.productId, 'variants._id': it.variantId },
-          { $inc: { 'variants.$.stockQty': -it.quantity } }
-        )
+      // Validate productId exists and is not "undefined" string
+      if (!it.productId || it.productId === 'undefined' || it.productId === 'null') {
+        console.error('Invalid or missing productId in item:', it)
+        continue
+      }
+      
+      // Validate productId is a valid ObjectId format (24 hex characters)
+      if (!/^[0-9a-fA-F]{24}$/.test(it.productId)) {
+        console.error('Invalid productId format:', it.productId)
+        continue
+      }
+      
+      try {
+        if (it.variantId) {
+          // Validate variantId format if provided
+          if (!/^[0-9a-fA-F]{24}$/.test(it.variantId)) {
+            console.error('Invalid variantId format:', it.variantId)
+            continue
+          }
+          // Update variant stock
+          await Product.updateOne(
+            { _id: it.productId, 'variants._id': it.variantId },
+            { $inc: { 'variants.$.stockQty': -it.quantity } }
+          )
+        } else {
+          // Update product-level stock if no variant
+          // Note: This assumes the product has a stockQty field at the product level
+          // If your schema doesn't have this, you may need to update the first variant or skip this
+          await Product.updateOne(
+            { _id: it.productId },
+            { $inc: { stockQty: -it.quantity } }
+          ).catch((err) => {
+            // If stockQty doesn't exist at product level, try updating first variant
+            console.warn('Product-level stock update failed, trying variant update:', err)
+            return Product.updateOne(
+              { _id: it.productId },
+              { $inc: { 'variants.0.stockQty': -it.quantity } }
+            )
+          })
+        }
+      } catch (err) {
+        console.error(`Failed to update stock for product ${it.productId}:`, err)
+        // Continue with other items even if one fails
       }
     }
 

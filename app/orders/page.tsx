@@ -6,7 +6,6 @@ import { formatCurrencyPKR } from '@/app/lib/price'
 import Link from 'next/link'
 
 type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
-type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 
 interface OrderItem {
   _id?: string
@@ -23,8 +22,7 @@ interface Order {
   _id: string
   userId?: string
   status: OrderStatus
-  paymentMethod: 'COD' | 'JAZZCASH'
-  paymentStatus: PaymentStatus
+  paymentMethod: 'COD' | 'JAZZCASH' | 'EASYPAISA' | 'OTHER'
   totalAmount: number
   deliveryFee: number
   shippingName: string
@@ -44,6 +42,23 @@ export default function TrackOrderPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [error, setError] = useState('')
   const [searchMethod, setSearchMethod] = useState<'id' | 'phone'>('id')
+
+  const getStatusLabel = (status: OrderStatus) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Awaiting Confirmation'
+      case 'PROCESSING':
+        return 'Shipment Pending'
+      case 'SHIPPED':
+        return 'Shipped'
+      case 'DELIVERED':
+        return 'Delivered'
+      case 'CANCELLED':
+        return 'Cancelled'
+      default:
+        return status
+    }
+  }
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
@@ -79,18 +94,6 @@ export default function TrackOrderPage() {
     }
   }
 
-  const getPaymentStatusColor = (status: PaymentStatus) => {
-    switch (status) {
-      case 'PAID':
-        return 'bg-green-100 text-green-800'
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'FAILED':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -251,7 +254,7 @@ export default function TrackOrderPage() {
               <div className="text-right">
                 <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
                   {getStatusIcon(order.status)}
-                  <span>{order.status}</span>
+                  <span>{getStatusLabel(order.status)}</span>
                 </div>
               </div>
             </div>
@@ -309,10 +312,6 @@ export default function TrackOrderPage() {
                     <span className="font-medium text-gray-900">{order.paymentMethod}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Payment Status:</span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                      {order.paymentStatus}
-                    </span>
                   </div>
                   {order.paymentReference && (
                     <div className="flex justify-between">

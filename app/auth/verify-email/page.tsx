@@ -42,7 +42,8 @@ function VerifyEmailForm() {
 			}
 			setVerified(true)
 			toast.success('Email verified! You can now sign in.')
-			setTimeout(() => router.push('/auth/login'), 1000)
+			const callbackUrl = search.get('callbackUrl') || '/'
+			setTimeout(() => router.push(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`), 1000)
 		} catch (err: any) {
 			toast.error(err.message || 'Verification failed')
 		} finally {
