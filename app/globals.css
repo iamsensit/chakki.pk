@@ -77,6 +77,65 @@ body {
 	@apply mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8;
 }
 
+/* Mobile optimizations - reduce sizes and spacing */
+@media (max-width: 768px) {
+	/* Reduce padding on mobile */
+	.container-pg {
+		@apply px-3;
+	}
+	
+	/* Smaller text sizes on mobile */
+	h1 { @apply text-xl; }
+	h2 { @apply text-lg; }
+	h3 { @apply text-base; }
+	
+	/* Reduce gaps */
+	.space-y-6 > * + * { @apply mt-3; }
+	.space-y-4 > * + * { @apply mt-2; }
+	.gap-6 { @apply gap-3; }
+	.gap-4 { @apply gap-2; }
+	
+	/* Smaller icons on mobile */
+	svg { @apply h-4 w-4; }
+	
+	/* Reduce card padding */
+	.card-enhanced { @apply p-3; }
+	
+	/* Compact buttons */
+	.btn-primary, .btn-secondary { @apply px-3 py-1.5 text-xs; }
+}
+
+/* Custom Sonner Toast Styles */
+[data-sonner-toast] {
+	background: white !important;
+	border: 1px solid #e5e7eb !important;
+}
+
+[data-sonner-toast] [data-title] {
+	color: #F4991A !important;
+	font-weight: 500;
+}
+
+[data-sonner-toast] [data-description] {
+	color: #6b7280 !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+	color: #F4991A !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+	color: #F4991A !important;
+}
+
+[data-sonner-toast][data-type="info"] [data-icon] {
+	color: #F4991A !important;
+}
+
+[data-sonner-toast][data-type="warning"] [data-icon] {
+	color: #F4991A !important;
+}
+
 .skeleton {
 	@apply animate-pulse bg-gray-200 rounded;
 }

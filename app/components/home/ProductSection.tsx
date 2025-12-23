@@ -11,10 +11,10 @@ type ProductSectionProps = {
 
 export default function ProductSection({ title, products, sliderId }: ProductSectionProps) {
 	return (
-		<section className="container-pg py-6">
-			<h2 className="text-xl font-bold text-gray-900 mb-4">{title}</h2>
+		<section className="container-pg py-3 sm:py-6">
+			<h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4">{title}</h2>
 			<div className="relative">
-				<div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth" id={sliderId}>
+				<div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth" id={sliderId}>
 					{products.map((p: any, idx: number) => (
 						<FlashDealCard key={p._id || p.id || idx} product={p} />
 					))}

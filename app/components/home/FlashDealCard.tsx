@@ -126,7 +126,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 	
 	return (
 		<div 
-			className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow min-w-[200px] flex-shrink-0"
+			className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow min-w-[160px] sm:min-w-[200px] flex-shrink-0"
 			data-product-id={product._id || product.id}
 		>
 			{/* Product Image */}
@@ -135,7 +135,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 				prefetch={true}
 			>
 				<div 
-					className="relative h-40 bg-white p-2 group"
+					className="relative h-32 sm:h-40 bg-white p-1.5 sm:p-2 group"
 					onMouseEnter={() => setIsHovering(true)}
 					onMouseLeave={() => setIsHovering(false)}
 				>
@@ -146,51 +146,51 @@ export default function FlashDealCard({ product }: { product: any }) {
 							className="w-full h-full object-cover rounded bg-gray-100"
 						/>
 					) : (
-						<div className="w-full h-full flex items-center justify-center text-xs text-gray-400 rounded bg-gray-100">No image</div>
+						<div className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-gray-400 rounded bg-gray-100">No image</div>
 					)}
 					{/* Discount Badge */}
 					{discountPercent > 0 && (
-						<span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
+						<span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-red-500 text-white text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
 							{discountPercent}% OFF
 						</span>
 					)}
 					{/* Wishlist Heart Icon - Show on Hover */}
 					<button
 						onClick={toggleWishlist}
-						className={`absolute top-3 left-3 p-2 rounded-full bg-white shadow-md transition-all ${
+						className={`absolute top-2 left-2 sm:top-3 sm:left-3 p-1.5 sm:p-2 rounded-full bg-white shadow-md transition-all ${
 							isHovering ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
 						} ${wishlisted ? 'text-red-600' : 'text-gray-400 hover:text-red-500'}`}
 						title={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
 					>
-						<Heart className={`h-5 w-5 ${wishlisted ? 'fill-current' : ''}`} />
+						<Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${wishlisted ? 'fill-current' : ''}`} />
 					</button>
 				</div>
 			</Link>
 			
 			{/* Product Info */}
-			<div className="p-3">
+			<div className="p-2 sm:p-3">
 				<Link 
 					href={`/products/${product.slug ?? (product.id ?? product._id)}`}
 					prefetch={true}
 				>
-					<h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem] hover:text-brand-accent transition-colors">
+					<h3 className="font-semibold text-xs sm:text-sm text-gray-900 mb-0.5 sm:mb-1 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] hover:text-brand-accent transition-colors">
 						{product.title}
 					</h3>
 				</Link>
-				<p className="text-xs text-gray-600 mb-2">{displayWeightStr}</p>
+				<p className="text-[10px] sm:text-xs text-gray-600 mb-1 sm:mb-2">{displayWeightStr}</p>
 				
 				{/* Reviews */}
-				<div className="flex items-center gap-1 mb-2 min-h-[16px]">
+				<div className="flex items-center gap-1 mb-1 sm:mb-2 min-h-[14px] sm:min-h-[16px]">
 					{reviewsLoading ? (
 						// Show nothing while loading to avoid flicker
-						<span className="text-xs text-transparent">Loading...</span>
+						<span className="text-[10px] sm:text-xs text-transparent">Loading...</span>
 					) : reviewData && reviewData.totalReviews > 0 ? (
 						<>
 							<div className="flex items-center gap-0.5">
 								{[1, 2, 3, 4, 5].map((star) => (
 									<Star
 										key={star}
-										className={`h-3 w-3 ${
+										className={`h-2.5 w-2.5 sm:h-3 sm:w-3 ${
 											star <= Math.round(reviewData.averageRating)
 												? 'text-yellow-400 fill-yellow-400'
 												: 'text-gray-300'
@@ -198,30 +198,41 @@ export default function FlashDealCard({ product }: { product: any }) {
 									/>
 								))}
 							</div>
-							<span className="text-xs text-gray-600">
+							<span className="text-[10px] sm:text-xs text-gray-600">
 								({reviewData.averageRating.toFixed(1)}) {reviewData.totalReviews}
 							</span>
 						</>
 					) : (
-						<span className="text-xs text-gray-400">No reviews</span>
+						<>
+							<div className="flex items-center gap-0.5">
+								{[1, 2, 3, 4, 5].map((star) => (
+									<Star
+										key={star}
+										className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-300"
+									/>
+								))}
+							</div>
+							<span className="text-[10px] sm:text-xs text-gray-400">(0)</span>
+						</>
 					)}
 				</div>
 				
 				{/* Price */}
-				<div className="flex items-center gap-2 mb-3">
-					<span className="text-base font-bold text-brand-accent">Rs. {unitPrice}</span>
+				<div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+					<span className="text-sm sm:text-base font-bold text-brand-accent">Rs. {unitPrice}</span>
 					{originalPrice > unitPrice && (
-						<span className="text-xs text-gray-500 line-through">Rs. {originalPrice}</span>
+						<span className="text-[10px] sm:text-xs text-gray-500 line-through">Rs. {originalPrice}</span>
 					)}
 				</div>
 				
 				{/* Add to Cart Button */}
 				<button
 					onClick={handleAddToCart}
-					className="w-full bg-brand-accent hover:bg-orange-600 text-white text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2"
+					className="w-full bg-brand-accent hover:bg-orange-600 text-white text-xs sm:text-sm font-medium py-1.5 sm:py-2 rounded-md transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
 				>
-					<ShoppingCart className="h-4 w-4" />
-					ADD TO CART
+					<ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+					<span className="hidden xs:inline">ADD TO CART</span>
+					<span className="xs:hidden">ADD</span>
 				</button>
 			</div>
 		</div>

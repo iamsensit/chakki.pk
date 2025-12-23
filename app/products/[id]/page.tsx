@@ -202,12 +202,12 @@ export default function ProductDetailPage() {
 		}
 	}
 
-	if (loading) return <div className="container-pg py-8"><div className="skeleton h-64" /></div>
-	if (!data) return <div className="container-pg py-8">Product not found.</div>
+	if (loading) return <div className="container-pg py-4 md:py-6 lg:py-8"><div className="skeleton h-64" /></div>
+	if (!data) return <div className="container-pg py-4 md:py-6 lg:py-8">Product not found.</div>
 
 	return (
-		<div className="container-pg py-8">
-			<div className="grid gap-8 lg:grid-cols-2">
+		<div className="container-pg py-4 md:py-6 lg:py-8 pb-16 md:pb-6 lg:pb-8">
+			<div className="grid gap-4 sm:gap-6 md:gap-8 lg:grid-cols-2">
 				{/* Left Side - Product Images */}
 				<div>
 					{/* Main Image */}
@@ -217,21 +217,21 @@ export default function ProductDetailPage() {
 					
 					{/* Thumbnail Navigation */}
 					{(data.images?.length ?? 0) > 0 && (
-						<div className="relative flex items-center gap-2">
+						<div className="relative flex items-center gap-1.5 sm:gap-2">
 							{canScrollLeft && (
 								<button 
 									onClick={() => setThumbnailStartIndex(Math.max(0, thumbnailStartIndex - 1))}
 									className="absolute left-0 z-10 p-1 bg-white border rounded-md shadow-sm hover:bg-gray-50"
 								>
-									<ChevronLeft className="h-4 w-4" />
+									<ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
 								</button>
 							)}
-							<div className="flex gap-2 flex-1 justify-center">
+							<div className="flex gap-1.5 sm:gap-2 flex-1 justify-center">
 								{visibleThumbnails.map((src: string, i: number) => (
 									<button 
 										key={i} 
 										onClick={() => setActiveImg(src)} 
-										className={`h-20 w-20 rounded-md border-2 overflow-hidden transition-all ${
+										className={`h-16 w-16 sm:h-20 sm:w-20 rounded-md border-2 overflow-hidden transition-all ${
 											activeImg === src ? 'border-brand-accent ring-2 ring-brand-accent/20' : 'border-gray-200'
 										}`}
 									>
@@ -244,7 +244,7 @@ export default function ProductDetailPage() {
 									onClick={() => setThumbnailStartIndex(thumbnailStartIndex + 1)}
 									className="absolute right-0 z-10 p-1 bg-white border rounded-md shadow-sm hover:bg-gray-50"
 								>
-									<ChevronRight className="h-4 w-4" />
+									<ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
 								</button>
 							)}
 						</div>
@@ -252,9 +252,9 @@ export default function ProductDetailPage() {
 				</div>
 
 				{/* Right Side - Product Info */}
-				<div className="space-y-4">
+				<div className="space-y-3 sm:space-y-4">
 					{/* Product Name */}
-					<h1 className="text-3xl font-semibold text-gray-900">{data.title}</h1>
+					<h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900">{data.title}</h1>
 					
 					{/* Star Rating */}
 					<div className="flex items-center gap-2">
@@ -280,12 +280,12 @@ export default function ProductDetailPage() {
 					</div>
 
 					{/* Pricing */}
-					<div className="flex items-center gap-3">
-						<span className="text-2xl font-bold text-green-600">{formatCurrencyPKR(unitPrice)}</span>
+					<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+						<span className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrencyPKR(unitPrice)}</span>
 						{discount > 0 && (
 							<>
-								<span className="text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
-								<span className="px-2 py-1 bg-green-100 text-green-700 text-sm font-medium rounded">
+								<span className="text-base sm:text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
+								<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-medium rounded">
 									-{discount}%
 								</span>
 							</>
@@ -307,19 +307,19 @@ export default function ProductDetailPage() {
 					</div>
 
 					{/* Action Links */}
-					<div className="flex items-center gap-6 text-sm">
+					<div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm">
 						<Link 
 							href="/returns" 
 							className="flex items-center gap-1.5 text-gray-600 hover:text-brand-accent transition-colors"
 						>
-							<HelpCircle className="h-4 w-4" />
+							<HelpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 							<span>Return Policy</span>
 						</Link>
 						<button 
 							onClick={() => setShowShippingDialog(true)}
 							className="flex items-center gap-1.5 text-gray-600 hover:text-brand-accent transition-colors"
 						>
-							<Truck className="h-4 w-4" />
+							<Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 							<span>Shipping</span>
 						</button>
 						<button 
@@ -333,16 +333,17 @@ export default function ProductDetailPage() {
 							}}
 							className="flex items-center gap-1.5 text-gray-600 hover:text-brand-accent transition-colors"
 						>
-							<MessageCircle className="h-4 w-4" />
-							<span>Ask About This product</span>
+							<MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+							<span className="hidden sm:inline">Ask About This product</span>
+							<span className="sm:hidden">Ask About</span>
 						</button>
 					</div>
 
 					{/* Variant Selection */}
 					{data.variants && data.variants.length > 1 && (
 						<div>
-							<label className="text-sm font-medium text-gray-700 mb-1.5 block">Select Variant</label>
-							<div className="flex flex-wrap gap-2">
+							<label className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5 block">Select Variant</label>
+							<div className="flex flex-wrap gap-1.5 sm:gap-2">
 								{data.variants.map((v: any) => {
 									let displayWeight = v.unitWeight || 0
 									if (v.unit === 'g') {
@@ -358,7 +359,7 @@ export default function ProductDetailPage() {
 										<button 
 											key={v.id || v._id} 
 											onClick={() => setVariantId(v.id || String(v._id))} 
-											className={`btn-secondary ${(v.id === variantId || String(v._id) === variantId) ? 'bg-brand-accent text-white border-brand-accent' : ''}`}
+											className={`btn-secondary text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 sm:py-2 ${(v.id === variantId || String(v._id) === variantId) ? 'bg-brand-accent text-white border-brand-accent' : ''}`}
 										>
 											{displayLabel}
 										</button>
@@ -370,34 +371,34 @@ export default function ProductDetailPage() {
 
 					{/* Quantity Selector */}
 					<div>
-						<label className="text-sm font-medium text-gray-700 mb-1.5 block">Quantity</label>
-						<div className="flex items-center gap-2">
+						<label className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5 block">Quantity</label>
+						<div className="flex items-center gap-1.5 sm:gap-2">
 							<button 
 								onClick={() => setQty(Math.max(1, qty - 1))}
-								className="h-10 w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+								className="h-9 w-9 sm:h-10 sm:w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
 							>
-								<Minus className="h-4 w-4" />
+								<Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 							</button>
 							<input 
 								type="number" 
 								min={1} 
 								value={qty} 
 								onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} 
-								className="input-enhanced w-20 text-center"
+								className="input-enhanced w-16 sm:w-20 text-center text-sm sm:text-base"
 							/>
 							<button 
 								onClick={() => setQty(qty + 1)}
-								className="h-10 w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+								className="h-9 w-9 sm:h-10 sm:w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
 							>
-								<Plus className="h-4 w-4" />
+								<Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 							</button>
 						</div>
 					</div>
 
 					{/* Add to Cart and Wishlist */}
-					<div className="flex items-center gap-3">
+					<div className="flex items-center gap-2 sm:gap-3">
 						<button 
-							className="btn-large flex-1 h-12" 
+							className="btn-large flex-1 h-11 sm:h-12 text-sm sm:text-base" 
 							onClick={onAdd} 
 							disabled={!inStock}
 						>
@@ -405,20 +406,20 @@ export default function ProductDetailPage() {
 						</button>
 						<button 
 							onClick={toggleWishlist}
-							className={`h-12 w-12 rounded-md border-2 flex items-center justify-center transition-colors ${
+							className={`h-11 w-11 sm:h-12 sm:w-12 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
 								wishlisted ? 'bg-red-50 border-red-300 text-red-600' : 'border-gray-300 text-gray-400 hover:border-gray-400'
 							}`}
 						>
-							<Heart className={`h-5 w-5 ${wishlisted ? 'fill-current' : ''}`} />
+							<Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${wishlisted ? 'fill-current' : ''}`} />
 						</button>
 					</div>
 
 					{/* Guaranteed Safe Checkout */}
-					<div className="pt-4 border-t">
-						<p className="text-xs text-gray-500 mb-2">Guaranteed safe checkout</p>
-						<div className="flex items-center gap-3 flex-wrap">
+					<div className="pt-3 sm:pt-4 border-t">
+						<p className="text-[10px] sm:text-xs text-gray-500 mb-2">Guaranteed safe checkout</p>
+						<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
 							{/* JazzCash Logo */}
-							<div className="h-10 w-20 flex items-center justify-center">
+							<div className="h-8 w-16 sm:h-10 sm:w-20 flex items-center justify-center">
 								<img 
 									src="/jazzcash.png" 
 									alt="JazzCash" 
@@ -426,7 +427,7 @@ export default function ProductDetailPage() {
 								/>
 							</div>
 							{/* EasyPaisa Logo */}
-							<div className="h-10 w-20 flex items-center justify-center">
+							<div className="h-8 w-16 sm:h-10 sm:w-20 flex items-center justify-center">
 								<img 
 									src="/easypaisa.png" 
 									alt="EasyPaisa" 
@@ -434,7 +435,7 @@ export default function ProductDetailPage() {
 								/>
 							</div>
 							{/* Visa Logo */}
-							<div className="h-10 w-16 flex items-center justify-center">
+							<div className="h-8 w-12 sm:h-10 sm:w-16 flex items-center justify-center">
 								<img 
 									src="/visa.png" 
 									alt="Visa" 
@@ -442,7 +443,7 @@ export default function ProductDetailPage() {
 								/>
 							</div>
 							{/* Mastercard Logo */}
-							<div className="h-10 w-16 flex items-center justify-center">
+							<div className="h-8 w-12 sm:h-10 sm:w-16 flex items-center justify-center">
 								<img 
 									src="/master.png" 
 									alt="Mastercard" 
@@ -453,18 +454,18 @@ export default function ProductDetailPage() {
 					</div>
 
 					{/* Share Buttons */}
-					<div className="flex items-center gap-3 pt-4 border-t">
-						<span className="text-sm text-gray-600">Share:</span>
+					<div className="flex items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
+						<span className="text-xs sm:text-sm text-gray-600">Share:</span>
 						<button 
 							onClick={() => {
 								const url = window.location.href
 								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
 								window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400')
 							}}
-							className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share on Facebook"
 						>
-							<svg className="h-4 w-4" fill="#1877F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1877F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 								<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
 							</svg>
 						</button>
@@ -474,10 +475,10 @@ export default function ProductDetailPage() {
 								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
 								window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400')
 							}}
-							className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share on Twitter"
 						>
-							<svg className="h-4 w-4" fill="#1DA1F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1DA1F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 								<path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
 							</svg>
 						</button>
@@ -487,10 +488,10 @@ export default function ProductDetailPage() {
 								const text = `Check out ${data.title} - ${formatCurrencyPKR(unitPrice)}`
 								window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400')
 							}}
-							className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share on WhatsApp"
 						>
-							<svg className="h-4 w-4" fill="#25D366" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#25D366" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 								<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
 							</svg>
 						</button>
@@ -516,22 +517,22 @@ export default function ProductDetailPage() {
 									alert('Link copied to clipboard!')
 								}
 							}}
-							className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share"
 						>
-							<Share2 className="h-4 w-4 text-gray-600" />
+							<Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-600" />
 						</button>
 					</div>
 				</div>
 			</div>
 
 			{/* Product Details Tabs */}
-			<div className="mt-12">
+			<div className="mt-6 sm:mt-8 md:mt-12">
 				<div className="border-b border-gray-200">
-					<div className="flex gap-6">
+					<div className="flex gap-4 sm:gap-6">
 						<button
 							onClick={() => setActiveTab('description')}
-							className={`pb-4 px-1 text-sm font-medium transition-colors ${
+							className={`pb-3 sm:pb-4 px-1 text-xs sm:text-sm font-medium transition-colors ${
 								activeTab === 'description' 
 									? 'text-brand-accent border-b-2 border-brand-accent' 
 									: 'text-gray-600 hover:text-gray-900'
@@ -541,7 +542,7 @@ export default function ProductDetailPage() {
 						</button>
 						<button
 							onClick={() => setActiveTab('reviews')}
-							className={`pb-4 px-1 text-sm font-medium transition-colors ${
+							className={`pb-3 sm:pb-4 px-1 text-xs sm:text-sm font-medium transition-colors ${
 								activeTab === 'reviews' 
 									? 'text-brand-accent border-b-2 border-brand-accent' 
 									: 'text-gray-600 hover:text-gray-900'
@@ -552,10 +553,10 @@ export default function ProductDetailPage() {
 					</div>
 				</div>
 
-				<div className="mt-6">
+				<div className="mt-4 sm:mt-6">
 					{activeTab === 'description' && (
 						<div className="prose max-w-none">
-							<p className="text-gray-700 leading-relaxed whitespace-pre-line">{data.description || 'No description available.'}</p>
+							<p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-line">{data.description || 'No description available.'}</p>
 							{/* Product Highlights */}
 							{selectedVariant && (
 								<div className="mt-6">
@@ -841,9 +842,9 @@ function RelatedProductsSection({ productId, relatedProducts, category }: { prod
 	if (products.length === 0) return null
 
 	return (
-		<div className="mt-10">
-			<h2 className="text-lg font-semibold mb-4">Related Products</h2>
-			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+		<div className="mt-6 sm:mt-8 md:mt-10">
+			<h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Related Products</h2>
+			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
 				{products.map((p: any) => (
 					<FlashDealCard key={p._id || p.id} product={p} />
 				))}

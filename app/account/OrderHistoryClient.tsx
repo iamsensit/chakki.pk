@@ -198,69 +198,69 @@ export default function OrderHistoryClient() {
 					initial={{ opacity: 0, y: 6 }} 
 					animate={{ opacity: 1, y: 0 }} 
 					transition={{ duration: 0.2, delay: idx * 0.03 }} 
-					className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+					className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
 				>
-					<div className="flex items-start justify-between mb-4">
-						<div className="flex-1">
-							<div className="flex items-center gap-3 mb-3">
-								<div className="text-base font-semibold text-slate-900">Order #{String(o._id).slice(-8).toUpperCase()}</div>
-								<span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(o.status)} flex items-center gap-1.5`}>
+					<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+						<div className="flex-1 min-w-0">
+							<div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+								<div className="text-sm sm:text-base font-semibold text-slate-900">Order #{String(o._id).slice(-8).toUpperCase()}</div>
+								<span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium border ${getStatusColor(o.status)} flex items-center gap-1 sm:gap-1.5`}>
 									{getStatusIcon(o.status)}
-									{getStatusLabel(o.status)}
+									<span className="whitespace-nowrap">{getStatusLabel(o.status)}</span>
 								</span>
 								{o.status === 'CONFIRMED' && (
-									<span className="px-3 py-1 rounded-full text-xs font-medium border text-indigo-600 bg-indigo-50 border-indigo-200 flex items-center gap-1.5">
-										<Package className="h-3.5 w-3.5" />
-										Shipment Pending
+									<span className="px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium border text-indigo-600 bg-indigo-50 border-indigo-200 flex items-center gap-1 sm:gap-1.5">
+										<Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+										<span className="whitespace-nowrap">Shipment Pending</span>
 									</span>
 								)}
 							</div>
 							{getStatusDescription(o.status, o) && (
-								<div className="text-sm text-slate-600 mb-4 leading-relaxed">
+								<div className="text-xs sm:text-sm text-slate-600 mb-3 sm:mb-4 leading-relaxed">
 									{getStatusDescription(o.status, o)}
 								</div>
 							)}
 							{(o.status === 'CONFIRMED' || o.status === 'SHIPPING_IN_PROCESS') && (
-								<div className="mb-4 text-sm text-slate-700 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5">
+								<div className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-700 bg-blue-50 border border-blue-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5">
 									<span className="font-semibold text-blue-900">Expected Delivery:</span>{' '}
 									<span className="text-blue-800">{deliveryTime} (by {dateStr})</span>
 								</div>
 							)}
-							<div className="flex flex-wrap items-center gap-6 text-sm text-slate-600">
-								<div className="flex items-center gap-2">
-									<Package className="h-4 w-4 text-slate-500" />
+							<div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-slate-600">
+								<div className="flex items-center gap-1.5 sm:gap-2">
+									<Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-500" />
 									<span>{o.items?.length || 0} items</span>
 								</div>
-								<div className="flex items-center gap-2">
-									<Clock className="h-4 w-4 text-slate-500" />
+								<div className="flex items-center gap-1.5 sm:gap-2">
+									<Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-500" />
 									<span>{new Date(o.createdAt).toLocaleDateString('en-PK', {
 										year: 'numeric',
 										month: 'short',
 										day: 'numeric'
 									})}</span>
 								</div>
-								<div className="font-semibold text-base text-slate-900">
+								<div className="font-semibold text-sm sm:text-base text-slate-900 ml-auto sm:ml-0">
 									{formatCurrencyPKR(o.totalAmount)}
 								</div>
 							</div>
 							{o.status === 'CANCELLED' && o.cancellationReason && (
-								<div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+								<div className="mt-3 sm:mt-4 text-xs sm:text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5">
 									<strong className="font-semibold">Cancellation Reason:</strong> {o.cancellationReason}
 								</div>
 							)}
 							{o.status === 'CANCELLED' && (
-								<div className="mt-4 flex flex-wrap gap-2">
+								<div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
 									<button
 										onClick={() => handleWhatsAppContact(o, 'why_cancelled')}
-										className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors border border-slate-300"
+										className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
 									>
-										<HelpCircle className="h-3.5 w-3.5" />
-										Why Cancelled?
+										<HelpCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+										<span className="whitespace-nowrap">Why Cancelled?</span>
 									</button>
 								</div>
 							)}
 							{o.shippedAt && (
-								<div className="mt-4 text-sm text-blue-700">
+								<div className="mt-3 sm:mt-4 text-xs sm:text-sm text-blue-700">
 									<span className="font-medium">Shipped on:</span> {new Date(o.shippedAt).toLocaleDateString('en-PK', {
 										year: 'numeric',
 										month: 'short',
@@ -269,7 +269,7 @@ export default function OrderHistoryClient() {
 								</div>
 							)}
 							{o.deliveredAt && (
-								<div className="mt-4 text-sm text-green-700">
+								<div className="mt-3 sm:mt-4 text-xs sm:text-sm text-green-700">
 									<span className="font-medium">Delivered on:</span> {new Date(o.deliveredAt).toLocaleDateString('en-PK', {
 										year: 'numeric',
 										month: 'short',
@@ -278,7 +278,7 @@ export default function OrderHistoryClient() {
 								</div>
 							)}
 							{o.cancelledAt && (
-								<div className="mt-4 text-sm text-red-700">
+								<div className="mt-3 sm:mt-4 text-xs sm:text-sm text-red-700">
 									<span className="font-medium">Cancelled on:</span> {new Date(o.cancelledAt).toLocaleDateString('en-PK', {
 										year: 'numeric',
 										month: 'short',
@@ -289,85 +289,85 @@ export default function OrderHistoryClient() {
 						</div>
 						<button
 							onClick={() => setExpandedOrder(expandedOrder === String(o._id) ? null : String(o._id))}
-							className="text-sm font-medium text-brand-accent hover:text-brand-accent/80 hover:underline transition-colors whitespace-nowrap"
+							className="text-xs sm:text-sm font-medium text-brand-accent hover:text-brand-accent/80 hover:underline transition-colors whitespace-nowrap self-start sm:self-auto"
 						>
 							{expandedOrder === String(o._id) ? 'Hide Details' : 'View Details'}
 						</button>
 					</div>
 					
 					{expandedOrder === String(o._id) && (
-						<div className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+						<div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-200 space-y-3 sm:space-y-4">
 							<div>
-								<div className="font-semibold text-slate-900 mb-2 text-sm">Shipping Address</div>
-								<div className="text-sm text-slate-600 leading-relaxed">
+								<div className="font-semibold text-slate-900 mb-1.5 sm:mb-2 text-xs sm:text-sm">Shipping Address</div>
+								<div className="text-xs sm:text-sm text-slate-600 leading-relaxed">
 									{o.shippingName}<br />
 									{o.shippingPhone}<br />
 									{o.shippingAddress}, {o.city}
 								</div>
 							</div>
 							<div>
-								<div className="font-semibold text-slate-900 mb-2 text-sm">Order Items</div>
-								<div className="space-y-2">
+								<div className="font-semibold text-slate-900 mb-1.5 sm:mb-2 text-xs sm:text-sm">Order Items</div>
+								<div className="space-y-1.5 sm:space-y-2">
 									{o.items?.map((item: any, i: number) => (
-										<div key={i} className="text-sm text-slate-600 flex items-center justify-between py-1">
-											<span>{item.title || 'Product'} {item.variantLabel ? `(${item.variantLabel})` : ''} × {item.quantity}</span>
-											<span className="font-medium">{formatCurrencyPKR(item.unitPrice * item.quantity)}</span>
+										<div key={i} className="text-xs sm:text-sm text-slate-600 flex items-center justify-between py-1">
+											<span className="flex-1 min-w-0 pr-2 truncate">{item.title || 'Product'} {item.variantLabel ? `(${item.variantLabel})` : ''} × {item.quantity}</span>
+											<span className="font-medium flex-shrink-0">{formatCurrencyPKR(item.unitPrice * item.quantity)}</span>
 										</div>
 									))}
 								</div>
 							</div>
-							<div className="flex items-center justify-between text-sm pt-2 border-t border-slate-100">
+							<div className="flex items-center justify-between text-xs sm:text-sm pt-2 border-t border-slate-100">
 								<span className="text-slate-600">Delivery Fee:</span>
 								<span className="font-medium">{formatCurrencyPKR(o.deliveryFee || 0)}</span>
 							</div>
-							<div className="flex items-center justify-between font-bold text-base pt-2 border-t border-slate-200">
+							<div className="flex items-center justify-between font-bold text-sm sm:text-base pt-2 border-t border-slate-200">
 								<span className="text-slate-900">Total:</span>
 								<span className="text-slate-900">{formatCurrencyPKR(o.totalAmount)}</span>
 							</div>
 							{/* Contact Options Section */}
-							<div className="mt-4 pt-4 border-t border-slate-200">
-								<div className="flex flex-wrap items-center gap-2 mb-3">
+							<div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200">
+								<div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
 									{(o.status === 'PENDING' || o.status === 'CONFIRMED' || o.status === 'SHIPPING_IN_PROCESS') && (
 										<>
 											<button
 												onClick={() => handleWhatsAppContact(o, 'cancel')}
-												className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-md text-xs font-medium transition-colors border border-red-200"
+												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-red-200"
 											>
-												<XCircle className="h-3.5 w-3.5" />
-												Cancel Order
+												<XCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+												<span className="whitespace-nowrap">Cancel Order</span>
 											</button>
 											<button
 												onClick={() => handleWhatsAppContact(o, 'why_not_shipped')}
-												className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-md text-xs font-medium transition-colors border border-amber-200"
+												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-amber-200"
 											>
-												<Clock className="h-3.5 w-3.5" />
-												Why Not Shipped?
+												<Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+												<span className="whitespace-nowrap">Why Not Shipped?</span>
 											</button>
 											<button
 												onClick={() => handleWhatsAppContact(o, 'fast_shipment')}
-												className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md text-xs font-medium transition-colors border border-blue-200"
+												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-blue-200"
 											>
-												<Truck className="h-3.5 w-3.5" />
-												Fast Shipment
+												<Truck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+												<span className="whitespace-nowrap">Fast Shipment</span>
 											</button>
 										</>
 									)}
 									{(o.status === 'SHIPPED' || o.status === 'DELIVERED') && (
 										<button
 											onClick={() => handleWhatsAppContact(o, 'tracking')}
-											className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md text-xs font-medium transition-colors border border-blue-200"
+											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-blue-200"
 										>
-											<Truck className="h-3.5 w-3.5" />
-											Track Order
+											<Truck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+											<span className="whitespace-nowrap">Track Order</span>
 										</button>
 									)}
 									{o.status === 'CANCELLED' && (
 										<button
 											onClick={() => handleWhatsAppContact(o, 'why_cancelled')}
-											className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors border border-slate-300"
+											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
 										>
-											<HelpCircle className="h-3.5 w-3.5" />
-											Why Cancelled?
+											<HelpCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+											<span className="whitespace-nowrap">Why Cancelled?</span>
 										</button>
 									)}
 									
@@ -375,23 +375,23 @@ export default function OrderHistoryClient() {
 									<div className="relative dropdown-container">
 										<button
 											onClick={() => setOpenDropdown(openDropdown === String(o._id) ? null : String(o._id))}
-											className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-md text-xs font-medium transition-colors border border-slate-300"
+											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
 										>
-											<MessageCircle className="h-3.5 w-3.5" />
-											Other Queries
-											<ChevronDown className={`h-3 w-3 transition-transform ${openDropdown === String(o._id) ? 'rotate-180' : ''}`} />
+											<MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+											<span className="whitespace-nowrap">Other Queries</span>
+											<ChevronDown className={`h-2.5 w-2.5 sm:h-3 sm:w-3 transition-transform ${openDropdown === String(o._id) ? 'rotate-180' : ''}`} />
 										</button>
 										
 										{openDropdown === String(o._id) && (
-											<div className="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1">
+											<div className="absolute top-full left-0 mt-1 w-44 sm:w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1">
 												<button
 													onClick={() => {
 														handleWhatsAppContact(o, 'refund')
 														setOpenDropdown(null)
 													}}
-													className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+													className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 sm:gap-2"
 												>
-													<MessageCircle className="h-3.5 w-3.5" />
+													<MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 													Request Refund
 												</button>
 												<button
@@ -399,9 +399,9 @@ export default function OrderHistoryClient() {
 														handleWhatsAppContact(o, 'change_address')
 														setOpenDropdown(null)
 													}}
-													className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+													className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 sm:gap-2"
 												>
-													<MessageCircle className="h-3.5 w-3.5" />
+													<MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 													Change Address
 												</button>
 												<button
@@ -409,9 +409,9 @@ export default function OrderHistoryClient() {
 														handleWhatsAppContact(o, 'damaged')
 														setOpenDropdown(null)
 													}}
-													className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+													className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 sm:gap-2"
 												>
-													<MessageCircle className="h-3.5 w-3.5" />
+													<MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 													Damaged Item
 												</button>
 												<button
@@ -419,9 +419,9 @@ export default function OrderHistoryClient() {
 														handleWhatsAppContact(o, 'wrong_item')
 														setOpenDropdown(null)
 													}}
-													className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+													className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 sm:gap-2"
 												>
-													<MessageCircle className="h-3.5 w-3.5" />
+													<MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 													Wrong Item Received
 												</button>
 												<button
@@ -429,9 +429,9 @@ export default function OrderHistoryClient() {
 														handleWhatsAppContact(o, 'general')
 														setOpenDropdown(null)
 													}}
-													className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-t border-slate-100"
+													className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 sm:gap-2 border-t border-slate-100"
 												>
-													<MessageCircle className="h-3.5 w-3.5" />
+													<MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 													General Query
 												</button>
 											</div>

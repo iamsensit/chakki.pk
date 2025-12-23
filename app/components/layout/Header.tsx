@@ -394,7 +394,7 @@ export default function Header() {
 	}
 
 	return (
-		<header className="sticky top-0 z-40 bg-white border-b shadow-sm">
+		<header className="sticky top-0 z-40 bg-white border-b shadow-sm hidden md:block">
 			{/* Top Navigation Bar */}
 			<div className="container-pg flex h-14 items-center justify-between gap-2 sm:gap-4">
 				{/* Left: Hamburger Menu + Logo */}

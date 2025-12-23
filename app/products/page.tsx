@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import ProductCard from '@/app/components/product/ProductCard'
 import ProductFilters from './ProductFilters'
+import MobileSearchBar from '@/app/components/home/MobileSearchBar'
 
 function buildQuery(params: Record<string, any>) {
 	const search = new URLSearchParams()
@@ -39,14 +40,18 @@ async function fetchMeta() {
 export default async function ProductsPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
 	const [{ items, total }, meta] = await Promise.all([fetchProducts(searchParams), fetchMeta()])
 	return (
-		<div className="container-pg py-4 sm:py-6">
-			<div className="grid gap-4 sm:gap-6 lg:grid-cols-4">
-				<ProductFilters categories={meta.categories} brands={meta.brands} />
-				<section className="lg:col-span-3">
-					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-						<h1 className="text-xl sm:text-2xl font-semibold">All Products</h1>
-						<div className="text-xs sm:text-sm text-slate-600">{total} results</div>
-					</div>
+		<div className="pb-16 md:pb-0">
+			{/* Mobile Search Bar - Only visible on mobile */}
+			<MobileSearchBar />
+			
+			<div className="container-pg py-2 sm:py-4 md:py-6">
+				<div className="grid gap-4 sm:gap-6 lg:grid-cols-4">
+					<ProductFilters categories={meta.categories} brands={meta.brands} />
+					<section className="lg:col-span-3">
+						<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+							<h1 className="text-lg sm:text-xl md:text-2xl font-semibold">All Products</h1>
+							<div className="text-xs sm:text-sm text-slate-600">{total} results</div>
+						</div>
 					{items.length === 0 ? (
 						<div className="mt-6 sm:mt-10 rounded-md border p-6 sm:p-8 text-center text-sm sm:text-base text-slate-600">No products found. Try adjusting filters or keywords.</div>
 					) : (
@@ -65,7 +70,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
 							))}
 						</div>
 					)}
-				</section>
+					</section>
+				</div>
 			</div>
 		</div>
 	)

@@ -1,7 +1,9 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Providers from './providers'
 import Header from '@/app/components/layout/Header'
+import MobileHeader from '@/app/components/layout/MobileHeader'
+import MobileBottomNav from '@/app/components/layout/MobileBottomNav'
 import Footer from '@/app/components/layout/Footer'
 import { Toaster } from 'sonner'
 import StructuredData from '@/app/components/SEO/StructuredData'
@@ -34,13 +36,26 @@ export const metadata: Metadata = {
 	},
 	icons: {
 		icon: [
-			{ url: '/icon.png', sizes: 'any', type: 'image/png' },
+			{ url: '/icon.png', sizes: '192x192', type: 'image/png' },
+			{ url: '/icon.png', sizes: '512x512', type: 'image/png' },
 		],
 		apple: [
 			{ url: '/icon.png', sizes: '180x180', type: 'image/png' },
 		],
+		shortcut: [
+			{ url: '/icon.png', sizes: '192x192', type: 'image/png' },
+		],
 	},
-	manifest: '/manifest.json'
+	manifest: '/manifest.json',
+	appleWebApp: {
+		capable: true,
+		statusBarStyle: 'default',
+		title: 'چَکّی',
+	},
+}
+
+export const viewport: Viewport = {
+	themeColor: '#F4991A',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -51,12 +66,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<Providers>
 					<ErrorDialogProvider>
 						<Header />
+						<MobileHeader />
+						<MobileBottomNav />
 						<CartSync />
 						<LocationSync />
-						{children}
+						<div className="pb-16 md:pb-0">
+							{children}
+						</div>
 						<Footer />
 						<RouteLoader />
-						<Toaster richColors position="top-right" duration={1000} />
+						<Toaster 
+							position="top-right" 
+							duration={1000}
+							toastOptions={{
+								classNames: {
+									toast: 'bg-white border border-gray-200 shadow-lg',
+									title: 'text-brand-accent font-medium',
+									description: 'text-gray-600',
+									success: 'bg-white',
+									error: 'bg-white',
+									info: 'bg-white',
+									warning: 'bg-white',
+								},
+								style: {
+									background: 'white',
+									color: '#F4991A',
+								},
+							}}
+						/>
 					</ErrorDialogProvider>
 				</Providers>
 			</body>

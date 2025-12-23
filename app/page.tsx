@@ -3,6 +3,8 @@ import Product from '@/models/Product'
 import Category from '@/models/Category'
 import CategorySlider from '@/app/components/home/CategorySlider'
 import ProductSection from '@/app/components/home/ProductSection'
+import MobileSearchBar from '@/app/components/home/MobileSearchBar'
+import ServiceMarquee from '@/app/components/home/ServiceMarquee'
 
 async function fetchCategories() {
 	try {
@@ -169,9 +171,17 @@ export default async function HomePage() {
 	const specialOffers = await fetchSpecialOffers()
 	
 	return (
-		<main className="bg-white">
+		<main className="bg-white pb-16 md:pb-0">
+			{/* Mobile Search Bar - Only visible on mobile */}
+			<MobileSearchBar />
+			
+			{/* Service Marquee - Mobile only, centered below search bar */}
+			<div className="md:hidden">
+				<ServiceMarquee />
+			</div>
+			
 			{/* Categories Section - Horizontal Scrollable */}
-			<section className="container-pg py-6">
+			<section className="container-pg py-3 sm:py-4 md:py-6">
 				<CategorySlider categories={categories} categoryImages={categoryImages} />
 			</section>
 

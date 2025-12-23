@@ -217,7 +217,17 @@ export default function ProductCard({
 							</span>
 						</>
 					) : (
-						<span className="text-xs text-gray-400">No reviews</span>
+						<>
+							<div className="flex items-center gap-0.5">
+								{[1, 2, 3, 4, 5].map((star) => (
+									<Star
+										key={star}
+										className="h-3 w-3 text-gray-300"
+									/>
+								))}
+							</div>
+							<span className="text-xs text-gray-400">(0)</span>
+						</>
 					)}
 				</div>
 				
