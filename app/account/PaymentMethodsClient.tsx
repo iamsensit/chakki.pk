@@ -171,7 +171,7 @@ export default function PaymentMethodsClient() {
 						setNewPaymentData({ bankName: '', accountName: '', accountNumber: '' })
 						setShowAddPaymentDialog(true)
 					}}
-					className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-accent px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+					className="inline-flex items-center justify-center gap-2  bg-brand-accent px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white hover:bg-orange-600 transition-colors"
 				>
 					<Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 					<span className="hidden sm:inline">Add new payment method</span>
@@ -180,10 +180,10 @@ export default function PaymentMethodsClient() {
 			</div>
 
 			{/* JazzCash Section */}
-			<div className="bg-white border border-slate-200 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+			<div className="bg-white border border-slate-200  sm:rounded-xl shadow-sm p-4 sm:p-6">
 				<h3 className="text-sm sm:text-base font-semibold text-slate-900 mb-3 sm:mb-4">JazzCash</h3>
 				{paymentMethods.jazzcash.accountNumber ? (
-					<div className="border border-slate-200 rounded-lg p-3 sm:p-4 bg-white">
+					<div className="border border-slate-200  p-3 sm:p-4 bg-white">
 						<div className="flex items-center justify-between gap-3">
 							<div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
 								<img src="/jazzcash.png" alt="JazzCash" className="h-7 w-auto sm:h-8 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -204,14 +204,14 @@ export default function PaymentMethodsClient() {
 										})
 										setShowAddPaymentDialog(true)
 									}}
-									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
 									title="Edit"
 								>
 									<Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 								</button>
 								<button
 									onClick={() => deletePaymentMethod('JAZZCASH')}
-									className="p-1.5 sm:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+									className="p-1.5 sm:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50  transition-colors"
 									title="Delete"
 									disabled={submitting}
 								>
@@ -226,10 +226,10 @@ export default function PaymentMethodsClient() {
 			</div>
 
 			{/* EasyPaisa Section */}
-			<div className="bg-white border border-slate-200 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+			<div className="bg-white border border-slate-200  sm:rounded-xl shadow-sm p-4 sm:p-6">
 				<h3 className="text-sm sm:text-base font-semibold text-slate-900 mb-3 sm:mb-4">EasyPaisa</h3>
 				{paymentMethods.easypaisa.accountNumber ? (
-					<div className="border border-slate-200 rounded-lg p-3 sm:p-4 bg-white">
+					<div className="border border-slate-200  p-3 sm:p-4 bg-white">
 						<div className="flex items-center justify-between gap-3">
 							<div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
 								<img src="/easypaisa.png" alt="EasyPaisa" className="h-7 w-auto sm:h-8 object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -250,14 +250,14 @@ export default function PaymentMethodsClient() {
 										})
 										setShowAddPaymentDialog(true)
 									}}
-									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
 									title="Edit"
 								>
 									<Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 								</button>
 								<button
 									onClick={() => deletePaymentMethod('EASYPAISA')}
-									className="p-1.5 sm:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+									className="p-1.5 sm:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50  transition-colors"
 									title="Delete"
 									disabled={submitting}
 								>
@@ -272,12 +272,12 @@ export default function PaymentMethodsClient() {
 			</div>
 
 			{/* Other Banks Section */}
-			<div className="bg-white border border-slate-200 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+			<div className="bg-white border border-slate-200  sm:rounded-xl shadow-sm p-4 sm:p-6">
 				<h3 className="text-sm sm:text-base font-semibold text-slate-900 mb-3 sm:mb-4">Other Banks</h3>
 				{paymentMethods.other.length > 0 ? (
 					<div className="space-y-2 sm:space-y-3">
 						{paymentMethods.other.map((bank, index) => (
-							<div key={index} className="border border-slate-200 rounded-lg p-3 sm:p-4 bg-white">
+							<div key={index} className="border border-slate-200  p-3 sm:p-4 bg-white">
 								<div className="flex items-center justify-between gap-3">
 									<div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
 										<img 
@@ -306,14 +306,14 @@ export default function PaymentMethodsClient() {
 												})
 												setShowAddPaymentDialog(true)
 											}}
-											className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+											className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
 											title="Edit"
 										>
 											<Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 										</button>
 										<button
 											onClick={() => deletePaymentMethod('OTHER', index)}
-											className="p-1.5 sm:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+											className="p-1.5 sm:p-2 text-slate-600 hover:text-red-600 hover:bg-red-50  transition-colors"
 											title="Delete"
 											disabled={submitting}
 										>
@@ -333,7 +333,7 @@ export default function PaymentMethodsClient() {
 			{showAddPaymentDialog && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50" onClick={() => setShowAddPaymentDialog(false)}>
 					<div 
-						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+						className="bg-white  shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="p-4 sm:p-6">
@@ -365,7 +365,7 @@ export default function PaymentMethodsClient() {
 													setNewPaymentData({ bankName: 'JazzCash', accountName: '', accountNumber: '' })
 												}
 											}}
-											className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center justify-between"
+											className="w-full p-3 sm:p-4 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center justify-between"
 										>
 											<div className="flex items-center gap-2 sm:gap-3">
 												<img src="/jazzcash.png" alt="JazzCash" className="h-6 w-auto sm:h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -391,7 +391,7 @@ export default function PaymentMethodsClient() {
 													setNewPaymentData({ bankName: 'EasyPaisa', accountName: '', accountNumber: '' })
 												}
 											}}
-											className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center justify-between"
+											className="w-full p-3 sm:p-4 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center justify-between"
 										>
 											<div className="flex items-center gap-2 sm:gap-3">
 												<img src="/easypaisa.png" alt="EasyPaisa" className="h-6 w-auto sm:h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -408,7 +408,7 @@ export default function PaymentMethodsClient() {
 												setNewPaymentData({ bankName: '', accountName: '', accountNumber: '' })
 												setShowBankList(true)
 											}}
-											className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-2 sm:gap-3"
+											className="w-full p-3 sm:p-4 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-2 sm:gap-3"
 										>
 											<CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-gray-600" />
 											<span className="font-medium text-sm sm:text-base">Other Bank</span>
@@ -445,7 +445,7 @@ export default function PaymentMethodsClient() {
 														setNewPaymentData(prev => ({ ...prev, bankName }))
 														setShowBankList(false)
 													}}
-													className="w-full p-2.5 sm:p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all text-left flex items-center gap-2 sm:gap-3"
+													className="w-full p-2.5 sm:p-3 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all text-left flex items-center gap-2 sm:gap-3"
 												>
 													<img 
 														src="/bank.png" 
@@ -467,7 +467,7 @@ export default function PaymentMethodsClient() {
 													<input 
 														value={newPaymentData.bankName} 
 														onChange={(e) => setNewPaymentData(prev => ({ ...prev, bankName: e.target.value }))} 
-														className="w-full h-11 sm:h-[50px] rounded-lg border border-[#e5e5e5] px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
+														className="w-full h-11 sm:h-[50px]  border border-[#e5e5e5] px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
 														placeholder="Enter bank name"
 													/>
 												</div>
@@ -478,7 +478,7 @@ export default function PaymentMethodsClient() {
 												<input 
 													value={newPaymentData.accountName} 
 													onChange={(e) => setNewPaymentData(prev => ({ ...prev, accountName: e.target.value }))} 
-													className="w-full h-11 sm:h-[50px] rounded-lg border border-[#e5e5e5] px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
+													className="w-full h-11 sm:h-[50px]  border border-[#e5e5e5] px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
 													placeholder="Your name"
 												/>
 											</div>
@@ -488,7 +488,7 @@ export default function PaymentMethodsClient() {
 												<input 
 													value={newPaymentData.accountNumber} 
 													onChange={(e) => setNewPaymentData(prev => ({ ...prev, accountNumber: e.target.value }))} 
-													className="w-full h-11 sm:h-[50px] rounded-lg border border-[#e5e5e5] px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
+													className="w-full h-11 sm:h-[50px]  border border-[#e5e5e5] px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
 													placeholder="03001234567"
 												/>
 											</div>
@@ -502,14 +502,14 @@ export default function PaymentMethodsClient() {
 														setEditingIndex(null)
 														setNewPaymentData({ bankName: '', accountName: '', accountNumber: '' })
 													}}
-													className="flex-1 h-11 sm:h-[50px] rounded-lg border border-slate-300 px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
+													className="flex-1 h-11 sm:h-[50px]  border border-slate-300 px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
 													disabled={submitting}
 												>
 													Cancel
 												</button>
 												<button 
 													onClick={savePaymentMethod}
-													className="flex-1 h-11 sm:h-[50px] rounded-lg bg-brand-accent px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
+													className="flex-1 h-11 sm:h-[50px]  bg-brand-accent px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
 													disabled={submitting}
 												>
 													{submitting ? (isEditing || editingIndex !== null ? 'Updating...' : 'Saving...') : (isEditing || editingIndex !== null ? 'Update' : 'Save')}

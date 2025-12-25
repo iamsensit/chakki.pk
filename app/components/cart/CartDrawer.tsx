@@ -26,7 +26,7 @@ function MiniThumb({ image, productId, title }: { image?: string; productId: str
 		return () => { mounted = false }
 	}, [image, productId])
 	return (
-		<div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+		<div className="h-14 w-14 sm:h-16 sm:w-16  bg-gray-100 overflow-hidden flex-shrink-0">
 			{src && <img src={src} alt={title} className="h-full w-full object-cover" />}
 		</div>
 	)
@@ -125,7 +125,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 							</div>
 							<button
 								onClick={onClose}
-								className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+								className="p-2 hover:bg-gray-100  transition-colors"
 								aria-label="Close cart"
 							>
 								<X className="h-5 w-5 text-gray-600" />
@@ -142,7 +142,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 									<Link
 										href="/products"
 										onClick={onClose}
-										className="mt-6 px-6 py-3 bg-brand-accent text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+										className="mt-6 px-6 py-3 bg-brand-accent text-white  font-medium hover:bg-orange-600 transition-colors"
 									>
 										Start Shopping
 									</Link>
@@ -155,7 +155,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 												key={i.id}
 												initial={{ opacity: 0, y: 20 }}
 												animate={{ opacity: 1, y: 0 }}
-												className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+												className="flex items-start gap-3 p-3 bg-gray-50 "
 											>
 												<MiniThumb image={i.image} productId={i.productId} title={i.title} />
 												<div className="flex-1 min-w-0">
@@ -167,7 +167,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 														<div className="flex items-center gap-2">
 															<button
 																onClick={() => onDecrement(i.id)}
-																className="h-7 w-7 rounded-md border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-white transition-colors font-medium"
+																className="h-7 w-7  border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-white transition-colors font-medium"
 																aria-label="Decrease quantity"
 															>
 																-
@@ -175,7 +175,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 															<span className="w-8 text-center text-sm font-medium text-gray-900">{i.quantity}</span>
 															<button
 																onClick={() => onIncrement(i.id)}
-																className="h-7 w-7 rounded-md border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-white transition-colors font-medium"
+																className="h-7 w-7  border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-white transition-colors font-medium"
 																aria-label="Increase quantity"
 															>
 																+
@@ -199,14 +199,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 										<Link
 											href="/checkout"
 											onClick={onClose}
-											className="block w-full text-center py-3.5 bg-brand-accent text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+											className="block w-full text-center py-3.5 bg-brand-accent text-white  font-medium hover:bg-orange-600 transition-colors"
 										>
 											Proceed to Checkout
 										</Link>
 										<Link
 											href="/cart"
 											onClick={onClose}
-											className="block w-full text-center py-2.5 text-brand-accent font-medium hover:bg-orange-50 rounded-lg transition-colors"
+											className="block w-full text-center py-2.5 text-brand-accent font-medium hover:bg-orange-50  transition-colors"
 										>
 											View Full Cart
 										</Link>

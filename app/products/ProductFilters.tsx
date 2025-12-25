@@ -48,7 +48,7 @@ function ProductFiltersInner({ categories, brands }: ProductFiltersProps) {
 			<div className="lg:hidden mb-3">
 				<button
 					onClick={() => setIsOpen(!isOpen)}
-					className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+					className="w-full flex items-center justify-between bg-white border border-gray-300  px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
 					aria-label="Toggle filters"
 				>
 					<div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ function ProductFiltersInner({ categories, brands }: ProductFiltersProps) {
 			</div>
 
 			{/* Filters Section - Collapsible on mobile, always visible on desktop */}
-			<aside className={`lg:col-span-1 rounded-md border p-3 sm:p-4 h-fit ${
+			<aside className={`lg:col-span-1  border p-3 sm:p-4 h-fit ${
 				isOpen 
 					? 'block mb-4 lg:mb-0' 
 					: 'hidden lg:block'
@@ -161,7 +161,7 @@ function ProductFiltersInner({ categories, brands }: ProductFiltersProps) {
 				<div className="pt-2">
 					<Link 
 						href="/products" 
-						className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-md px-4 py-2.5 text-sm transition-colors"
+						className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium  px-4 py-2.5 text-sm transition-colors"
 					>
 						Reset
 					</Link>
@@ -174,7 +174,7 @@ function ProductFiltersInner({ categories, brands }: ProductFiltersProps) {
 
 export default function ProductFilters({ categories, brands }: ProductFiltersProps) {
 	return (
-		<Suspense fallback={<div className="lg:col-span-1 rounded-md border p-3 sm:p-4 h-fit"><div className="skeleton h-64" /></div>}>
+		<Suspense fallback={<div className="lg:col-span-1  border p-3 sm:p-4 h-fit"><div className="skeleton h-64" /></div>}>
 			<ProductFiltersInner categories={categories} brands={brands} />
 		</Suspense>
 	)

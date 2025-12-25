@@ -198,7 +198,7 @@ export default function OrderHistoryClient() {
 					initial={{ opacity: 0, y: 6 }} 
 					animate={{ opacity: 1, y: 0 }} 
 					transition={{ duration: 0.2, delay: idx * 0.03 }} 
-					className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
+					className=" border border-slate-200 bg-white p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
 				>
 					<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
 						<div className="flex-1 min-w-0">
@@ -221,7 +221,7 @@ export default function OrderHistoryClient() {
 								</div>
 							)}
 							{(o.status === 'CONFIRMED' || o.status === 'SHIPPING_IN_PROCESS') && (
-								<div className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-700 bg-blue-50 border border-blue-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5">
+								<div className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-700 bg-blue-50 border border-blue-200  px-3 sm:px-4 py-2 sm:py-2.5">
 									<span className="font-semibold text-blue-900">Expected Delivery:</span>{' '}
 									<span className="text-blue-800">{deliveryTime} (by {dateStr})</span>
 								</div>
@@ -244,7 +244,7 @@ export default function OrderHistoryClient() {
 								</div>
 							</div>
 							{o.status === 'CANCELLED' && o.cancellationReason && (
-								<div className="mt-3 sm:mt-4 text-xs sm:text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5">
+								<div className="mt-3 sm:mt-4 text-xs sm:text-sm text-red-700 bg-red-50 border border-red-200  px-3 sm:px-4 py-2 sm:py-2.5">
 									<strong className="font-semibold">Cancellation Reason:</strong> {o.cancellationReason}
 								</div>
 							)}
@@ -252,7 +252,7 @@ export default function OrderHistoryClient() {
 								<div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
 									<button
 										onClick={() => handleWhatsAppContact(o, 'why_cancelled')}
-										className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
+										className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700  text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
 									>
 										<HelpCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 										<span className="whitespace-nowrap">Why Cancelled?</span>
@@ -331,21 +331,21 @@ export default function OrderHistoryClient() {
 										<>
 											<button
 												onClick={() => handleWhatsAppContact(o, 'cancel')}
-												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-red-200"
+												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-red-50 hover:bg-red-100 text-red-700  text-[10px] sm:text-xs font-medium transition-colors border border-red-200"
 											>
 												<XCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 												<span className="whitespace-nowrap">Cancel Order</span>
 											</button>
 											<button
 												onClick={() => handleWhatsAppContact(o, 'why_not_shipped')}
-												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-amber-200"
+												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700  text-[10px] sm:text-xs font-medium transition-colors border border-amber-200"
 											>
 												<Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 												<span className="whitespace-nowrap">Why Not Shipped?</span>
 											</button>
 											<button
 												onClick={() => handleWhatsAppContact(o, 'fast_shipment')}
-												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-blue-200"
+												className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700  text-[10px] sm:text-xs font-medium transition-colors border border-blue-200"
 											>
 												<Truck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 												<span className="whitespace-nowrap">Fast Shipment</span>
@@ -355,7 +355,7 @@ export default function OrderHistoryClient() {
 									{(o.status === 'SHIPPED' || o.status === 'DELIVERED') && (
 										<button
 											onClick={() => handleWhatsAppContact(o, 'tracking')}
-											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-blue-200"
+											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700  text-[10px] sm:text-xs font-medium transition-colors border border-blue-200"
 										>
 											<Truck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 											<span className="whitespace-nowrap">Track Order</span>
@@ -364,7 +364,7 @@ export default function OrderHistoryClient() {
 									{o.status === 'CANCELLED' && (
 										<button
 											onClick={() => handleWhatsAppContact(o, 'why_cancelled')}
-											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
+											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700  text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
 										>
 											<HelpCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 											<span className="whitespace-nowrap">Why Cancelled?</span>
@@ -375,7 +375,7 @@ export default function OrderHistoryClient() {
 									<div className="relative dropdown-container">
 										<button
 											onClick={() => setOpenDropdown(openDropdown === String(o._id) ? null : String(o._id))}
-											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-md text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
+											className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700  text-[10px] sm:text-xs font-medium transition-colors border border-slate-300"
 										>
 											<MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
 											<span className="whitespace-nowrap">Other Queries</span>
@@ -383,7 +383,7 @@ export default function OrderHistoryClient() {
 										</button>
 										
 										{openDropdown === String(o._id) && (
-											<div className="absolute top-full left-0 mt-1 w-44 sm:w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1">
+											<div className="absolute top-full left-0 mt-1 w-44 sm:w-48 bg-white border border-slate-200  shadow-lg z-10 py-1">
 												<button
 													onClick={() => {
 														handleWhatsAppContact(o, 'refund')

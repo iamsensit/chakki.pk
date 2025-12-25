@@ -400,7 +400,7 @@ export default function Header() {
 				{/* Left: Hamburger Menu + Logo */}
 				<div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink-0">
 					<button
-						className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0"
+						className="p-1.5 sm:p-2 hover:bg-gray-100  transition-colors flex-shrink-0"
 						aria-label="Menu"
 						onClick={() => setMobileOpen(true)}
 					>
@@ -443,7 +443,7 @@ export default function Header() {
 							<ChevronDown className={`h-3 w-3 sm:h-4 sm:w-4 text-gray-700 transition-transform flex-shrink-0 ${locationOpen ? 'rotate-180' : ''}`} />
 						</button>
 						{locationOpen && (
-							<div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border rounded-md shadow-lg min-w-[200px] z-50">
+							<div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border  shadow-lg min-w-[200px] z-50">
 								<div className="py-2">
 									<button
 										onClick={() => {
@@ -465,7 +465,7 @@ export default function Header() {
 					{/* Mobile Location Button - Only on mobile */}
 					<button
 						onClick={() => router.push(`/change-location?redirect=${encodeURIComponent(pathname)}`)}
-						className="md:hidden flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+						className="md:hidden flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50  transition-colors"
 						title={deliveryAddress ? `${deliveryAddress}${deliveryCity && !deliveryAddress.includes(deliveryCity) ? `, ${deliveryCity}` : ''}` : deliveryCity || 'Select your location'}
 					>
 						<MapPin className="h-4 w-4" />
@@ -483,14 +483,14 @@ export default function Header() {
 					{/* Categories Button */}
 					<Link 
 						href="/categories" 
-						className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-white flex-shrink-0"
+						className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300  hover:bg-gray-50 transition-colors bg-white flex-shrink-0"
 					>
 						<List className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent" strokeWidth={2} />
 						<span className="text-xs sm:text-sm font-medium text-gray-700 hidden xs:inline">Categories</span>
 					</Link>
 					
 					{/* Search Input */}
-					<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md bg-white min-w-0 relative">
+					<div className="flex-1 flex items-center border-2 border-brand-accent  bg-white min-w-0 relative">
 						<div className="flex-1 px-2 sm:px-4 min-w-0 relative z-10">
 							<SearchBox />
 						</div>
@@ -542,7 +542,7 @@ export default function Header() {
 									</div>
 									<button
 										aria-label="Close"
-										className="rounded-md p-2 hover:bg-gray-100"
+										className=" p-2 hover:bg-gray-100"
 										onClick={() => setMobileOpen(false)}
 									>
 								<X className="h-5 w-5" />
@@ -565,39 +565,39 @@ export default function Header() {
 								{/* Navigation Links */}
 								<nav className="space-y-1">
 									{status === 'authenticated' ? (
-									<Link href="/account" prefetch={true} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/account" prefetch={true} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<User className="h-5 w-5" />
 										<span>My Profile</span>
 									</Link>
 									) : null}
 									
-									<Link href="/account" prefetch={true} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/account" prefetch={true} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<ClipboardList className="h-5 w-5" />
 										<span>My Orders</span>
 							</Link>
 									
-									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<Monitor className="h-5 w-5" />
 										<span>Shop</span>
 							</Link>
 									
-									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors">
+									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors">
 										<Phone className="h-5 w-5" />
 										<span>Call Us</span>
 									</a>
 									
-									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<HelpCircle className="h-5 w-5" />
 										<span>FAQs</span>
 							</Link>
 									
-									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)} {...({} as any)}>
+									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)} {...({} as any)}>
 										<Carrot className="h-5 w-5" />
 										<span>About Us</span>
 									</Link>
 									
 									{isAdmin && (
-										<Link href="/admin" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+										<Link href="/admin" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 											<Settings className="h-5 w-5" />
 											<span>Admin Panel</span>
 										</Link>
@@ -605,7 +605,7 @@ export default function Header() {
 									
 									{status === 'authenticated' ? (
 									<button
-											className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors text-left"
+											className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors text-left"
 											onClick={() => {
 												setMobileOpen(false)
 												// Clear user-specific location data before signing out
@@ -620,7 +620,7 @@ export default function Header() {
 											<span>Sign Out</span>
 									</button>
 							) : (
-										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 											<Power className="h-5 w-5" />
 											<span>Sign In</span>
 								</Link>

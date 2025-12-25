@@ -107,7 +107,7 @@ export default function MobileBottomNav() {
 									</Link>
 									<button
 										aria-label="Close"
-										className="rounded-md p-2 hover:bg-gray-100"
+										className=" p-2 hover:bg-gray-100"
 										onClick={() => setMobileMenuOpen(false)}
 									>
 										<X className="h-5 w-5" />
@@ -128,16 +128,16 @@ export default function MobileBottomNav() {
 
 								<nav className="space-y-1">
 									{status === 'authenticated' && (
-										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileMenuOpen(false)}>
+										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 											<User className="h-5 w-5" />
 											<span>My Profile</span>
 										</Link>
 									)}
-									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileMenuOpen(false)}>
+									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<ClipboardList className="h-5 w-5" />
 										<span>My Orders</span>
 									</Link>
-									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileMenuOpen(false)}>
+									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<Monitor className="h-5 w-5" />
 										<span>Shop</span>
 									</Link>
@@ -146,26 +146,26 @@ export default function MobileBottomNav() {
 											setMobileMenuOpen(false)
 											router.push(`/change-location?redirect=${encodeURIComponent(pathname || '/')}`)
 										}}
-										className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors text-left"
+										className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors text-left"
 									>
 										<MapPin className="h-5 w-5" />
 										<span>Change Location</span>
 									</button>
-									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors">
+									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors">
 										<Phone className="h-5 w-5" />
 										<span>Call Us</span>
 									</a>
-									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileMenuOpen(false)}>
+									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<HelpCircle className="h-5 w-5" />
 										<span>FAQs</span>
 									</Link>
-									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileMenuOpen(false)}>
+									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<Carrot className="h-5 w-5" />
 										<span>About Us</span>
 									</Link>
 									{status === 'authenticated' ? (
 										<button
-											className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors text-left"
+											className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors text-left"
 											onClick={() => {
 												setMobileMenuOpen(false)
 												signOut()
@@ -175,7 +175,7 @@ export default function MobileBottomNav() {
 											<span>Sign Out</span>
 										</button>
 									) : (
-										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileMenuOpen(false)}>
+										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 											<Power className="h-5 w-5" />
 											<span>Sign In</span>
 										</Link>

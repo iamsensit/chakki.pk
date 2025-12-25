@@ -48,7 +48,7 @@ export default function CartPage() {
 		<div className="px-2 sm:px-4 md:container-pg py-1.5 sm:py-3 md:py-6 pb-20 md:pb-8">
 			<h1 className="text-sm sm:text-base md:text-2xl font-semibold mb-1.5 sm:mb-3 md:mb-6">Your Cart</h1>
 			<div className="grid gap-1.5 sm:gap-3 md:gap-6 lg:grid-cols-3">
-				<div className="lg:col-span-2 space-y-0 bg-white rounded-lg border border-gray-200 overflow-hidden">
+				<div className="lg:col-span-2 space-y-0 bg-white  border border-gray-200 overflow-hidden">
 					{items.length === 0 && <div className="p-2 sm:p-3 md:p-6 text-[10px] sm:text-xs md:text-base text-slate-600 text-center">Your cart is empty.</div>}
 					{items.map((i: any) => (
 						<div key={i.id} className="p-1.5 sm:p-2.5 md:p-4 flex items-center gap-1.5 sm:gap-2.5 md:gap-4 border-b border-gray-200 last:border-b-0">
@@ -96,12 +96,12 @@ export default function CartPage() {
 						</div>
 					))}
 				</div>
-				<div className="rounded-lg border border-gray-200 bg-white p-2 sm:p-3 md:p-6 h-fit lg:sticky lg:top-20">
+				<div className=" border border-gray-200 bg-white p-2 sm:p-3 md:p-6 h-fit lg:sticky lg:top-20">
 					<div className="flex items-center justify-between mb-1.5 sm:mb-3 md:mb-4">
 						<div className="text-[10px] sm:text-xs md:text-base font-medium text-slate-600">Subtotal</div>
 						<div className="font-semibold text-[10px] sm:text-sm md:text-lg text-slate-900">{formatCurrencyPKR(total)}</div>
 					</div>
-					<Link href="/checkout" className="block w-full mt-1.5 sm:mt-3 md:mt-4 bg-brand-accent hover:bg-orange-600 text-white font-medium text-center rounded-lg py-1.5 sm:py-2.5 md:py-3.5 text-[10px] sm:text-xs md:text-base transition-colors active:bg-orange-700 touch-manipulation">
+					<Link href="/checkout" className="block w-full mt-1.5 sm:mt-3 md:mt-4 bg-brand-accent hover:bg-orange-600 text-white font-medium text-center py-1.5 sm:py-2.5 md:py-3.5 text-[10px] sm:text-xs md:text-base transition-colors active:bg-orange-700 touch-manipulation">
 						Go to checkout
 					</Link>
 				</div>

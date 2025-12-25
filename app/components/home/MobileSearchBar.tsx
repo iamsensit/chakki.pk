@@ -107,7 +107,7 @@ export default function MobileSearchBar() {
 		<div className="md:hidden px-3 sm:px-4 py-2 sm:py-3">
 			<div className="relative w-full max-w-full" ref={ref}>
 				<form id="mobile-search-form" onSubmit={onSubmit} className="relative w-full">
-					<div className="flex items-center border-2 border-brand-accent rounded-lg bg-white shadow-sm focus-within:border-brand-accent focus-within:ring-0 transition-all overflow-hidden">
+					<div className="flex items-center border-2 border-brand-accent  bg-white shadow-sm focus-within:border-brand-accent focus-within:ring-0 transition-all overflow-hidden">
 						<div className="flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 min-w-0 pr-1 sm:pr-1.5">
 							<input 
 								value={q} 
@@ -132,7 +132,7 @@ export default function MobileSearchBar() {
 				</form>
 				{/* Search Suggestions Dropdown - No Images */}
 				{open && q.trim() && (
-					<div className="absolute top-full left-0 right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-xl max-h-72 sm:max-h-80 overflow-hidden">
+					<div className="absolute top-full left-0 right-0 z-[100] mt-1  border border-gray-200 bg-white shadow-xl max-h-72 sm:max-h-80 overflow-hidden">
 						{items.length > 0 ? (
 							<ul className="overflow-y-auto max-h-72 sm:max-h-80">
 								{items.map((it, idx) => (

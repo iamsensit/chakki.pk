@@ -456,11 +456,11 @@ export default function CheckoutPage() {
 
 			{step === 0 && (
 				<div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2 rounded-md border p-3 sm:p-4 space-y-4 max-w-2xl">
+					<div className="lg:col-span-2  border p-3 sm:p-4 space-y-4 max-w-2xl">
 						{locationLoading ? (
 							<div className="skeleton h-48" />
 						) : !userDeliveryLocation ? (
-							<div className="rounded-md border border-amber-200 bg-amber-50 p-4 sm:p-6 text-center">
+							<div className=" border border-amber-200 bg-amber-50 p-4 sm:p-6 text-center">
 								<p className="text-amber-900 font-medium mb-2 text-sm sm:text-base">Please select your delivery location first</p>
 								<p className="text-xs sm:text-sm text-amber-700 mb-4">You need to set your delivery address before proceeding with checkout.</p>
 								<Link
@@ -600,7 +600,7 @@ export default function CheckoutPage() {
 										<MapPin className="h-4 w-4 text-gray-600" />
 										Delivery Address
 									</label>
-									<div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-slate-700 max-w-2xl">
+									<div className=" border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-slate-700 max-w-2xl">
 										{userDeliveryLocation.address}
 										{userDeliveryLocation.city && `, ${userDeliveryLocation.city}`}
 									</div>
@@ -626,7 +626,7 @@ export default function CheckoutPage() {
 								<div className="flex flex-wrap gap-2">
 									<button 
 										onClick={() => setMethod('COD')} 
-										className={`p-2 rounded-md border-2 transition-all ${method === 'COD' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
+										className={`p-2  border-2 transition-all ${method === 'COD' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
 									>
 										<img 
 											src="/cod.png" 
@@ -647,7 +647,7 @@ export default function CheckoutPage() {
 											setMethod('JAZZCASH')
 											setShowPaymentMethodDialog(true)
 										}} 
-										className={`p-2 rounded-md border-2 transition-all ${method === 'JAZZCASH' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
+										className={`p-2  border-2 transition-all ${method === 'JAZZCASH' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
 									>
 										<img 
 											src="/jazzcash.png" 
@@ -668,7 +668,7 @@ export default function CheckoutPage() {
 											setMethod('EASYPAISA')
 											setShowPaymentMethodDialog(true)
 										}} 
-										className={`p-2 rounded-md border-2 transition-all ${method === 'EASYPAISA' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
+										className={`p-2  border-2 transition-all ${method === 'EASYPAISA' ? 'border-brand-accent bg-brand-accent/10' : 'border-gray-300 hover:border-gray-400'}`}
 									>
 										<img 
 											src="/easypaisa.png" 
@@ -687,7 +687,7 @@ export default function CheckoutPage() {
 								</div>
 							{/* Selected Payment Method Display */}
 							{method !== 'COD' && (
-								<div className="mt-3 rounded-md border p-3 text-sm">
+								<div className="mt-3  border p-3 text-sm">
 									<div className="flex items-center justify-between mb-3">
 										<div className="flex items-center gap-2">
 											{method === 'JAZZCASH' && (
@@ -747,7 +747,7 @@ export default function CheckoutPage() {
 									
 									{/* Account Details Display - User's account (sending from) */}
 									{selectedAccount && (
-										<div className="mt-4 space-y-2 p-3 bg-gray-50 rounded-md">
+										<div className="mt-4 space-y-2 p-3 bg-gray-50 ">
 											<div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
 												<CreditCard className="h-4 w-4 text-gray-600" />
 												Your account details <span className="text-xs text-gray-500 font-normal">(sending payment through {selectedAccount.bankName})</span>
@@ -789,7 +789,7 @@ export default function CheckoutPage() {
 									
 									{/* Payment Method Validation Errors */}
 									{formErrors.paymentMethod && (
-										<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+										<div className="mt-3 p-3 bg-red-50 border border-red-200 ">
 											<div className="text-sm font-medium text-red-800 mb-1">Please complete payment details:</div>
 											<div className="text-xs text-red-600">• {formErrors.paymentMethod}</div>
 										</div>
@@ -800,7 +800,7 @@ export default function CheckoutPage() {
 						</div>
 					)}
 					</div>
-					<div className="rounded-md border p-3 sm:p-4 h-fit">
+					<div className=" border p-3 sm:p-4 h-fit">
 						<div className="text-sm font-medium">Order summary</div>
 						<div className="mt-3 space-y-1 text-xs sm:text-sm">
 							{items.map(i => (
@@ -891,7 +891,7 @@ export default function CheckoutPage() {
 
 			{step === 1 && (
 				<div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2 rounded-md border p-4 sm:p-6">
+					<div className="lg:col-span-2  border p-4 sm:p-6">
 						<h2 className="text-lg font-semibold text-gray-900 mb-4">Review Your Order</h2>
 						
 						{/* Shipping Information */}
@@ -995,39 +995,20 @@ export default function CheckoutPage() {
 									{method === 'COD' ? 'Cash on Delivery' : method === 'JAZZCASH' ? 'JazzCash' : method === 'EASYPAISA' ? 'EasyPaisa' : otherBankName || 'Other Bank'}
 								</span>
 							</div>
-							{method === 'JAZZCASH' && (
+							{method !== 'COD' && selectedAccount && (
 								<div className="ml-9 space-y-1 text-sm">
 									<div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
 										<CreditCard className="h-3 w-3" />
-										Your account details <span className="text-gray-400">(sending payment through {jazzcashBankName || 'JazzCash'})</span>
+										Your account details <span className="text-gray-400">(sending payment through {selectedAccount.bankName || (selectedAccount.type === 'JAZZCASH' ? 'JazzCash' : selectedAccount.type === 'EASYPAISA' ? 'EasyPaisa' : selectedAccount.bankName)})</span>
 									</div>
-									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{jazzcashBankName || 'JazzCash'}</span></div>
-									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{jazzcashAccountName || '-'}</span></div>
-									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{jazzcashAccountNumber || '-'}</span></div>
-								</div>
-							)}
-							{method === 'EASYPAISA' && (
-								<div className="ml-9 space-y-1 text-sm">
-									<div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-										<CreditCard className="h-3 w-3" />
-										Your account details <span className="text-gray-400">(sending payment through {easypaisaBankName || 'EasyPaisa'})</span>
-									</div>
-									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{easypaisaBankName || 'EasyPaisa'}</span></div>
-									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{easypaisaAccountName || '-'}</span></div>
-									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{easypaisaAccountNumber || '-'}</span></div>
-								</div>
-							)}
-							{selectedAccount?.type === 'BANK' && (
-								<div className="ml-9 space-y-1 text-sm">
-									<div className="text-xs text-gray-500 mb-1">Your account (sending through {otherBankName}):</div>
-									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{otherBankName || '-'}</span></div>
-									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{otherAccountName || '-'}</span></div>
-									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{otherAccountNumber || '-'}</span></div>
+									<div><span className="text-slate-600">Bank Name:</span> <span className="font-medium text-gray-900">{selectedAccount.bankName || (selectedAccount.type === 'JAZZCASH' ? 'JazzCash' : selectedAccount.type === 'EASYPAISA' ? 'EasyPaisa' : '-')}</span></div>
+									<div><span className="text-slate-600">Account Name:</span> <span className="font-medium text-gray-900">{selectedAccount.accountName || '-'}</span></div>
+									<div><span className="text-slate-600">Account Number:</span> <span className="font-medium text-gray-900">{selectedAccount.accountNumber || '-'}</span></div>
 								</div>
 							)}
 						</div>
 					</div>
-					<div className="rounded-md border p-3 sm:p-4 h-fit">
+					<div className=" border p-3 sm:p-4 h-fit">
 						<div className="text-sm font-medium mb-3">Order Summary</div>
 						<div className="flex items-center justify-between text-xs sm:text-sm mb-2">
 							<div className="text-slate-600">Subtotal</div>
@@ -1041,7 +1022,7 @@ export default function CheckoutPage() {
 							<div className="font-semibold">Total</div>
 							<div className="font-bold text-lg text-brand-accent">{formatCurrencyPKR(total)}</div>
 						</div>
-						<button disabled={loading} className="mt-4 w-full rounded-md bg-brand-accent px-3 py-2 text-white text-sm sm:text-base" onClick={placeOrder}>
+						<button disabled={loading} className="mt-4 w-full  bg-brand-accent px-3 py-2 text-white text-sm sm:text-base" onClick={placeOrder}>
 							{loading ? 'Placing order...' : 'Place order'}
 						</button>
 						<button className="btn-secondary mt-2 w-full" onClick={() => setStep(0)}>Back</button>
@@ -1067,7 +1048,7 @@ export default function CheckoutPage() {
 			{showPaymentMethodDialog && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowPaymentMethodDialog(false)}>
 					<div 
-						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+						className="bg-white  shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="p-4 sm:p-6">
@@ -1094,15 +1075,20 @@ export default function CheckoutPage() {
 									<div className="space-y-2">
 										{/* JazzCash - User's saved JazzCash account */}
 										{userProfile?.paymentMethods?.jazzcash?.accountNumber && (
-											<div className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
+											<div className="w-full p-3 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
 												<button
 													onClick={() => {
-														setSelectedAccount({
-															type: 'JAZZCASH',
+														const account = {
+															type: 'JAZZCASH' as const,
 															accountName: userProfile.paymentMethods.jazzcash.accountName,
 															accountNumber: userProfile.paymentMethods.jazzcash.accountNumber,
 															bankName: userProfile.paymentMethods.jazzcash.bankName || 'JazzCash'
-														})
+														}
+														setSelectedAccount(account)
+														// Also update individual state variables for display
+														setJazzcashAccountName(account.accountName)
+														setJazzcashAccountNumber(account.accountNumber)
+														setJazzcashBankName(account.bankName)
 														setShowPaymentMethodDialog(false)
 													}}
 													className="flex-1 flex items-center gap-3 text-left"
@@ -1125,7 +1111,7 @@ export default function CheckoutPage() {
 															setShowPaymentMethodDialog(false)
 															setShowPaymentDetailsDialog(true)
 														}}
-														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
 														title="Edit"
 													>
 														<Edit2 className="h-4 w-4" />
@@ -1175,7 +1161,7 @@ export default function CheckoutPage() {
 																toast.error('Failed to delete account')
 															}
 														}}
-														className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+														className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50  transition-colors"
 														title="Delete"
 													>
 														<Trash2 className="h-4 w-4" />
@@ -1186,15 +1172,20 @@ export default function CheckoutPage() {
 										
 										{/* EasyPaisa - User's saved EasyPaisa account */}
 										{userProfile?.paymentMethods?.easypaisa?.accountNumber && (
-											<div className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
+											<div className="w-full p-3 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
 												<button
 													onClick={() => {
-														setSelectedAccount({
-															type: 'EASYPAISA',
+														const account = {
+															type: 'EASYPAISA' as const,
 															accountName: userProfile.paymentMethods.easypaisa.accountName,
 															accountNumber: userProfile.paymentMethods.easypaisa.accountNumber,
 															bankName: userProfile.paymentMethods.easypaisa.bankName || 'EasyPaisa'
-														})
+														}
+														setSelectedAccount(account)
+														// Also update individual state variables for display
+														setEasypaisaAccountName(account.accountName)
+														setEasypaisaAccountNumber(account.accountNumber)
+														setEasypaisaBankName(account.bankName)
 														setShowPaymentMethodDialog(false)
 													}}
 													className="flex-1 flex items-center gap-3 text-left"
@@ -1217,7 +1208,7 @@ export default function CheckoutPage() {
 															setShowPaymentMethodDialog(false)
 															setShowPaymentDetailsDialog(true)
 														}}
-														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
 														title="Edit"
 													>
 														<Edit2 className="h-4 w-4" />
@@ -1267,7 +1258,7 @@ export default function CheckoutPage() {
 																toast.error('Failed to delete account')
 															}
 														}}
-														className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+														className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50  transition-colors"
 														title="Delete"
 													>
 														<Trash2 className="h-4 w-4" />
@@ -1278,16 +1269,21 @@ export default function CheckoutPage() {
 										
 										{/* Other Banks - User's saved other bank accounts */}
 										{userProfile?.paymentMethods?.other && userProfile.paymentMethods.other.length > 0 && userProfile.paymentMethods.other.map((bank: any, index: number) => (
-											<div key={index} className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
+											<div key={index} className="w-full p-3 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3">
 												<button
 													onClick={() => {
-														setSelectedAccount({
-															type: 'BANK',
+														const account = {
+															type: 'BANK' as const,
 															accountName: bank.accountName,
 															accountNumber: bank.accountNumber,
 															bankName: bank.bankName,
 															index
-														})
+														}
+														setSelectedAccount(account)
+														// Also update individual state variables for display
+														setOtherBankName(account.bankName)
+														setOtherAccountName(account.accountName)
+														setOtherAccountNumber(account.accountNumber)
 														setShowPaymentMethodDialog(false)
 													}}
 													className="flex-1 flex items-center gap-3 text-left"
@@ -1326,7 +1322,7 @@ export default function CheckoutPage() {
 															setShowPaymentMethodDialog(false)
 															setShowPaymentDetailsDialog(true)
 														}}
-														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors"
+														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
 														title="Edit"
 													>
 														<Edit2 className="h-4 w-4" />
@@ -1381,7 +1377,7 @@ export default function CheckoutPage() {
 																toast.error('Failed to delete account')
 															}
 														}}
-														className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+														className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50  transition-colors"
 														title="Delete"
 													>
 														<Trash2 className="h-4 w-4" />
@@ -1418,7 +1414,7 @@ export default function CheckoutPage() {
 														setShowPaymentMethodDialog(false)
 														setShowPaymentDetailsDialog(true)
 													}}
-													className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
+													className="w-full p-3 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
 												>
 													<img src="/jazzcash.png" alt="JazzCash" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
 													<div className="flex-1">
@@ -1435,7 +1431,7 @@ export default function CheckoutPage() {
 														setShowPaymentMethodDialog(false)
 														setShowPaymentDetailsDialog(true)
 													}}
-													className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
+													className="w-full p-3 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
 												>
 													<img src="/easypaisa.png" alt="EasyPaisa" className="h-8 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
 													<div className="flex-1">
@@ -1452,7 +1448,7 @@ export default function CheckoutPage() {
 														setShowPaymentMethodDialog(false)
 														setShowPaymentDetailsDialog(true)
 													}}
-													className="w-full p-3 border-2 border-gray-300 rounded-md hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
+													className="w-full p-3 border-2 border-gray-300  hover:border-brand-accent hover:bg-brand-accent/5 transition-all flex items-center gap-3 text-left"
 												>
 													<img src="/bank.png" alt="Other Bank" className="h-8 w-auto object-contain" onError={(e) => {
 														const target = e.target as HTMLImageElement
@@ -1485,7 +1481,7 @@ export default function CheckoutPage() {
 			{showPaymentDetailsDialog && selectedPaymentType && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowPaymentDetailsDialog(false)}>
 					<div 
-						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+						className="bg-white  shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="p-4 sm:p-6">
@@ -1804,7 +1800,7 @@ export default function CheckoutPage() {
 			{showSavePrompt && method !== 'COD' && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowSavePrompt(false)}>
 					<div 
-						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto"
+						className="bg-white  shadow-xl w-full max-w-md mx-auto"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="p-4 sm:p-6">

@@ -91,7 +91,7 @@ export default function SearchBox() {
 				/>
 			</form>
 			{open && q.trim() && (
-				<div className="absolute top-full left-0 right-0 z-[100] mt-1 rounded-md border border-gray-200 bg-white text-slate-900 shadow-xl max-h-96 overflow-hidden">
+				<div className="absolute top-full left-0 right-0 z-[100] mt-1  border border-gray-200 bg-white text-slate-900 shadow-xl max-h-96 overflow-hidden">
 					{items.length > 0 ? (
 						<ul className="overflow-y-auto max-h-96">
 							{items.map((it, idx) => (

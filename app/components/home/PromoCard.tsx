@@ -22,7 +22,7 @@ export default function PromoCard({ title, subtitle, linkText, link, image, bgCo
 			<motion.div
 				whileHover={{ scale: 1.05 }}
 				transition={{ duration: 0.3 }}
-				className={`relative h-full min-h-[180px] rounded-lg overflow-hidden ${!image || imageError ? (bgColor || 'bg-blue-50') : ''}`}
+				className={`relative h-full min-h-[180px]  overflow-hidden ${!image || imageError ? (bgColor || 'bg-blue-50') : ''}`}
 			>
 				{/* Background Image */}
 				{image && !imageError && (

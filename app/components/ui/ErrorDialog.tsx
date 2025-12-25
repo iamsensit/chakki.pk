@@ -33,7 +33,7 @@ export default function ErrorDialog({ open, message, onClose, title = 'Error' }:
 			/>
 			
 			{/* Dialog */}
-			<div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+			<div className="relative bg-white  shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
 				{/* Close button */}
 				<button
 					onClick={(e) => {
@@ -73,7 +73,7 @@ export default function ErrorDialog({ open, message, onClose, title = 'Error' }:
 							e.stopPropagation()
 							onClose()
 						}}
-						className="px-4 py-2 bg-brand-accent hover:bg-orange-600 text-white text-sm font-medium rounded-md transition-colors"
+						className="px-4 py-2 bg-brand-accent hover:bg-orange-600 text-white text-sm font-medium  transition-colors"
 					>
 						OK
 					</button>

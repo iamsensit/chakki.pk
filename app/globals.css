@@ -137,7 +137,7 @@ body {
 }
 
 .skeleton {
-	@apply animate-pulse bg-gray-200 rounded;
+	@apply animate-pulse bg-gray-200;
 }
 
 @keyframes scroll {
@@ -160,7 +160,7 @@ body {
 	}
 	
 	.input-enhanced {
-		@apply w-full max-w-sm rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm transition-all duration-300;
+		@apply w-full max-w-sm border border-slate-200 bg-white px-3.5 py-2 text-sm transition-all duration-300;
 		@apply focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 focus:outline-none focus:shadow-sm;
 		@apply placeholder:text-slate-400 hover:border-slate-300;
 	}
@@ -170,13 +170,13 @@ body {
 	}
 	
 	.input-large {
-		@apply w-full max-w-lg rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm transition-all duration-300;
+		@apply w-full max-w-lg border border-slate-200 bg-white px-4 py-2.5 text-sm transition-all duration-300;
 		@apply focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 focus:outline-none focus:shadow-sm;
 		@apply placeholder:text-slate-400 hover:border-slate-300;
 	}
 	
 	.btn-primary {
-		@apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-accent px-4 py-2 text-sm font-medium text-white;
+		@apply inline-flex items-center justify-center gap-2 bg-brand-accent px-4 py-2 text-sm font-medium text-white;
 		@apply transition-all duration-300 hover:bg-orange-600 hover:shadow-md active:scale-[0.97] transform;
 		@apply focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:ring-offset-2;
 		@apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
@@ -184,21 +184,21 @@ body {
 	}
 	
 	.btn-secondary {
-		@apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700;
+		@apply inline-flex items-center justify-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700;
 		@apply transition-all duration-300 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm active:scale-[0.97] transform;
 		@apply focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2;
 		@apply whitespace-nowrap;
 	}
 	
 	.btn-large {
-		@apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-accent px-5 py-2.5 text-sm font-medium text-white;
+		@apply inline-flex items-center justify-center gap-2 bg-brand-accent px-5 py-2.5 text-sm font-medium text-white;
 		@apply transition-all duration-300 hover:bg-orange-600 hover:shadow-lg active:scale-[0.97] transform;
 		@apply focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:ring-offset-2;
 		@apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
 	}
 	
 	.card-enhanced {
-		@apply rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200;
+		@apply border border-slate-200 bg-white shadow-sm transition-all duration-200;
 		@apply hover:shadow-md hover:border-slate-300;
 	}
 	

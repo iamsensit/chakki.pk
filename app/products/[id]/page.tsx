@@ -221,7 +221,7 @@ export default function ProductDetailPage() {
 							{canScrollLeft && (
 								<button 
 									onClick={() => setThumbnailStartIndex(Math.max(0, thumbnailStartIndex - 1))}
-									className="absolute left-0 z-10 p-1 bg-white border rounded-md shadow-sm hover:bg-gray-50"
+									className="absolute left-0 z-10 p-1 bg-white border  shadow-sm hover:bg-gray-50"
 								>
 									<ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
 								</button>
@@ -231,7 +231,7 @@ export default function ProductDetailPage() {
 									<button 
 										key={i} 
 										onClick={() => setActiveImg(src)} 
-										className={`h-16 w-16 sm:h-20 sm:w-20 rounded-md border-2 overflow-hidden transition-all ${
+										className={`h-16 w-16 sm:h-20 sm:w-20  border-2 overflow-hidden transition-all ${
 											activeImg === src ? 'border-brand-accent ring-2 ring-brand-accent/20' : 'border-gray-200'
 										}`}
 									>
@@ -242,7 +242,7 @@ export default function ProductDetailPage() {
 							{canScrollRight && (
 								<button 
 									onClick={() => setThumbnailStartIndex(thumbnailStartIndex + 1)}
-									className="absolute right-0 z-10 p-1 bg-white border rounded-md shadow-sm hover:bg-gray-50"
+									className="absolute right-0 z-10 p-1 bg-white border  shadow-sm hover:bg-gray-50"
 								>
 									<ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
 								</button>
@@ -375,7 +375,7 @@ export default function ProductDetailPage() {
 						<div className="flex items-center gap-1.5 sm:gap-2">
 							<button 
 								onClick={() => setQty(Math.max(1, qty - 1))}
-								className="h-9 w-9 sm:h-10 sm:w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+								className="h-9 w-9 sm:h-10 sm:w-10  border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
 							>
 								<Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 							</button>
@@ -388,7 +388,7 @@ export default function ProductDetailPage() {
 							/>
 							<button 
 								onClick={() => setQty(qty + 1)}
-								className="h-9 w-9 sm:h-10 sm:w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+								className="h-9 w-9 sm:h-10 sm:w-10  border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
 							>
 								<Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 							</button>
@@ -406,7 +406,7 @@ export default function ProductDetailPage() {
 						</button>
 						<button 
 							onClick={toggleWishlist}
-							className={`h-11 w-11 sm:h-12 sm:w-12 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+							className={`h-11 w-11 sm:h-12 sm:w-12  border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
 								wishlisted ? 'bg-red-50 border-red-300 text-red-600' : 'border-gray-300 text-gray-400 hover:border-gray-400'
 							}`}
 						>
@@ -462,7 +462,7 @@ export default function ProductDetailPage() {
 								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
 								window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400')
 							}}
-							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share on Facebook"
 						>
 							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1877F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -475,7 +475,7 @@ export default function ProductDetailPage() {
 								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
 								window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400')
 							}}
-							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share on Twitter"
 						>
 							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1DA1F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -488,7 +488,7 @@ export default function ProductDetailPage() {
 								const text = `Check out ${data.title} - ${formatCurrencyPKR(unitPrice)}`
 								window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400')
 							}}
-							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share on WhatsApp"
 						>
 							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#25D366" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -517,7 +517,7 @@ export default function ProductDetailPage() {
 									alert('Link copied to clipboard!')
 								}
 							}}
-							className="p-1.5 sm:p-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
 							title="Share"
 						>
 							<Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-600" />
@@ -703,7 +703,7 @@ export default function ProductDetailPage() {
 			{showShippingDialog && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowShippingDialog(false)}>
 					<div 
-						className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+						className="bg-white  shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="p-4 sm:p-6">

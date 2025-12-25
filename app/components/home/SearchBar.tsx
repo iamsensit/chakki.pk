@@ -11,14 +11,14 @@ export default function SearchBar() {
 				{/* Categories Button */}
 				<Link 
 					href="/products" 
-					className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-white"
+					className="flex items-center gap-2 px-4 py-2.5 border border-gray-300  hover:bg-gray-50 transition-colors bg-white"
 				>
 					<List className="h-5 w-5 text-brand-accent" strokeWidth={2} />
 					<span className="text-sm font-medium text-gray-700">Categories</span>
 				</Link>
 				
 				{/* Search Input */}
-				<div className="flex-1 flex items-center border-2 border-brand-accent rounded-md bg-white relative">
+				<div className="flex-1 flex items-center border-2 border-brand-accent  bg-white relative">
 					<div className="flex-1 px-4 relative z-10">
 						<SearchBox />
 					</div>

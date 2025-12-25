@@ -149,7 +149,7 @@ export default function ProductCard({
 	}
 	
 	return (
-		<div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+		<div className="bg-white border border-gray-200  overflow-hidden hover:shadow-md transition-shadow">
 			{/* Product Image */}
 			<Link href={productHref as any} prefetch={true}>
 				<div 
@@ -243,7 +243,7 @@ export default function ProductCard({
 				<button
 					onClick={handleAddToCart}
 					disabled={typeof lowStock === 'number' && lowStock <= 0}
-					className="w-full bg-brand-accent hover:bg-orange-600 text-white text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+					className="w-full bg-brand-accent hover:bg-orange-600 text-white text-sm font-medium py-2 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					<ShoppingCart className="h-4 w-4" />
 					ADD TO CART

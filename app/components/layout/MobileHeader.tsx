@@ -24,7 +24,7 @@ export default function MobileHeader() {
 					{/* Left: Menu + Logo */}
 					<div className="flex items-center gap-2 min-w-0 flex-shrink-0">
 						<button
-							className="p-1.5 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0"
+							className="p-1.5 hover:bg-gray-100  transition-colors flex-shrink-0"
 							aria-label="Menu"
 							onClick={() => setMobileOpen(true)}
 						>
@@ -42,7 +42,7 @@ export default function MobileHeader() {
 					<div className="flex items-center gap-2">
 						<button
 							onClick={() => router.push(`/change-location?redirect=${encodeURIComponent(pathname || '/')}`)}
-							className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+							className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50  transition-colors"
 						>
 							<MapPin className="h-3.5 w-3.5" />
 							<span className="truncate max-w-[60px]">Location</span>
@@ -81,7 +81,7 @@ export default function MobileHeader() {
 									</Link>
 									<button
 										aria-label="Close"
-										className="rounded-md p-2 hover:bg-gray-100"
+										className=" p-2 hover:bg-gray-100"
 										onClick={() => setMobileOpen(false)}
 									>
 										<X className="h-5 w-5" />
@@ -102,34 +102,34 @@ export default function MobileHeader() {
 
 								<nav className="space-y-1">
 									{status === 'authenticated' && (
-										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 											<User className="h-5 w-5" />
 											<span>My Profile</span>
 										</Link>
 									)}
-									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<ClipboardList className="h-5 w-5" />
 										<span>My Orders</span>
 									</Link>
-									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<Monitor className="h-5 w-5" />
 										<span>Shop</span>
 									</Link>
-									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors">
+									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors">
 										<Phone className="h-5 w-5" />
 										<span>Call Us</span>
 									</a>
-									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<HelpCircle className="h-5 w-5" />
 										<span>FAQs</span>
 									</Link>
-									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<Carrot className="h-5 w-5" />
 										<span>About Us</span>
 									</Link>
 									{status === 'authenticated' ? (
 										<button
-											className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors text-left"
+											className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors text-left"
 											onClick={() => {
 												setMobileOpen(false)
 												signOut()
@@ -139,7 +139,7 @@ export default function MobileHeader() {
 											<span>Sign Out</span>
 										</button>
 									) : (
-										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" onClick={() => setMobileOpen(false)}>
+										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 											<Power className="h-5 w-5" />
 											<span>Sign In</span>
 										</Link>

@@ -126,7 +126,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 	
 	return (
 		<div 
-			className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow min-w-[160px] sm:min-w-[200px] flex-shrink-0"
+			className="bg-white border border-gray-200  overflow-hidden hover:shadow-md transition-shadow min-w-[160px] sm:min-w-[200px] flex-shrink-0"
 			data-product-id={product._id || product.id}
 		>
 			{/* Product Image */}
@@ -228,7 +228,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 				{/* Add to Cart Button */}
 				<button
 					onClick={handleAddToCart}
-					className="w-full bg-brand-accent hover:bg-orange-600 text-white text-xs sm:text-sm font-medium py-1.5 sm:py-2 rounded-md transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
+					className="w-full bg-brand-accent hover:bg-orange-600 text-white text-xs sm:text-sm font-medium py-1.5 sm:py-2 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
 				>
 					<ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 					<span className="hidden xs:inline">ADD TO CART</span>

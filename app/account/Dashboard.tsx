@@ -98,7 +98,7 @@ function CartPanel() {
 			<div className="divide-y divide-slate-200">
 				{items.map((i, idx) => (
 					<div key={idx} className="p-4 sm:p-6 flex items-center gap-4">
-						<div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
+						<div className="h-16 w-16 sm:h-20 sm:w-20  bg-slate-100 overflow-hidden flex-shrink-0">
 							{i.image ? (
 								<img src={i.image} className="h-full w-full object-cover" alt={i.title} />
 							) : (
@@ -112,7 +112,7 @@ function CartPanel() {
 						<div className="flex items-center gap-2 flex-shrink-0">
 							<button 
 								aria-label="Decrease" 
-								className="h-8 w-8 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center font-medium" 
+								className="h-8 w-8  border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center font-medium" 
 								onClick={() => updateQuantity(i.productId, i.variantId ?? null, Math.max(0, i.quantity - 1))}
 							>
 								-
@@ -120,7 +120,7 @@ function CartPanel() {
 							<div className="w-10 text-center text-sm font-medium text-slate-900">{i.quantity}</div>
 							<button 
 								aria-label="Increase" 
-								className="h-8 w-8 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center font-medium" 
+								className="h-8 w-8  border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center font-medium" 
 								onClick={() => updateQuantity(i.productId, i.variantId ?? null, i.quantity + 1)}
 							>
 								+
@@ -139,7 +139,7 @@ function CartPanel() {
 			<div className="p-4 sm:p-6">
 				<a 
 					href="/checkout" 
-					className="block w-full text-center rounded-lg bg-brand-accent px-6 py-3.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+					className="block w-full text-center  bg-brand-accent px-6 py-3.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
 				>
 					Go to checkout
 				</a>
@@ -169,7 +169,7 @@ export default function Dashboard() {
 						<button 
 							key={id}
 							onClick={() => setTab(id)} 
-							className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors rounded-lg ${
+							className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors  ${
 								tab === id 
 									? 'bg-brand-accent text-white hover:bg-orange-600' 
 									: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
@@ -210,7 +210,7 @@ export default function Dashboard() {
 
 			{/* Content */}
 			<section className="lg:col-span-9">
-				<Suspense fallback={<div className="skeleton h-64 rounded-md" />}>
+				<Suspense fallback={<div className="skeleton h-64 " />}>
 					{tab === 'profile' && <AccountClient />}
 					{tab === 'orders' && <OrderHistoryClient />}
 					{tab === 'reviews' && <ReviewsClient />}

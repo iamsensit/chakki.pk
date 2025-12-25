@@ -199,7 +199,7 @@ export default function AccountClient() {
 							value={name} 
 							onChange={e => setName(e.target.value)} 
 							disabled={!editingName && name !== ''}
-							className={`w-full h-[50px] rounded-lg border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
+							className={`w-full h-[50px]  border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
 								!editingName && name ? 'bg-slate-50 cursor-not-allowed' : ''
 							}`}
 							placeholder="Enter display name"
@@ -225,7 +225,7 @@ export default function AccountClient() {
 										}
 									}}
 									disabled={submitting.profile}
-									className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-accent px-6 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px] disabled:opacity-50"
+									className="inline-flex items-center justify-center gap-2  bg-brand-accent px-6 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px] disabled:opacity-50"
 								>
 									<Save className="h-4 w-4" /> 
 									{submitting.profile ? 'Saving...' : 'Save'}
@@ -244,7 +244,7 @@ export default function AccountClient() {
 											.catch(() => {})
 									}}
 									disabled={submitting.profile}
-									className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors h-[50px] disabled:opacity-50"
+									className="inline-flex items-center justify-center gap-2  border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors h-[50px] disabled:opacity-50"
 								>
 									Cancel
 								</button>
@@ -256,7 +256,7 @@ export default function AccountClient() {
 						<input 
 							value={email} 
 							disabled 
-							className="w-full h-[50px] rounded-lg border border-[#e5e5e5] bg-slate-50 px-4 py-3 text-sm text-slate-600 cursor-not-allowed" 
+							className="w-full h-[50px]  border border-[#e5e5e5] bg-slate-50 px-4 py-3 text-sm text-slate-600 cursor-not-allowed" 
 						/>
 					</div>
 					{!emailVerified && (
@@ -266,7 +266,7 @@ export default function AccountClient() {
 								<button 
 									disabled={submitting.verify} 
 									onClick={onSendVerify} 
-									className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors h-[50px]"
+									className="inline-flex items-center justify-center gap-2  border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors h-[50px]"
 								>
 									<MailCheck className="h-4 w-4" /> 
 									{submitting.verify ? 'Sending...' : 'Send verification'}
@@ -275,12 +275,12 @@ export default function AccountClient() {
 									value={token} 
 									onChange={e => setToken(e.target.value)} 
 									placeholder="Enter token" 
-									className="flex-1 h-[50px] rounded-lg border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
+									className="flex-1 h-[50px]  border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
 								/>
 								<button 
 									disabled={submitting.verifyConfirm} 
 									onClick={onVerify} 
-									className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-accent px-4 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px]"
+									className="inline-flex items-center justify-center gap-2  bg-brand-accent px-4 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px]"
 								>
 									<ShieldCheck className="h-4 w-4" /> 
 									{submitting.verifyConfirm ? 'Verifying...' : 'Verify'}
@@ -289,7 +289,7 @@ export default function AccountClient() {
 						</div>
 					)}
 					{emailVerified && (
-						<div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+						<div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200  px-4 py-3">
 							<CheckCircle className="h-4 w-4" />
 							<span>Your email is verified.</span>
 						</div>
@@ -310,7 +310,7 @@ export default function AccountClient() {
 						<input 
 							name="currentPassword" 
 							type="password" 
-							className={`w-full h-[50px] rounded-lg border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
+							className={`w-full h-[50px]  border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
 								passwordErrors.currentPassword ? 'border-red-500' : 'border-[#e5e5e5]'
 							}`}
 							placeholder="Enter current password"
@@ -325,7 +325,7 @@ export default function AccountClient() {
 						<input 
 							name="newPassword" 
 							type="password" 
-							className={`w-full h-[50px] rounded-lg border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
+							className={`w-full h-[50px]  border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
 								passwordErrors.newPassword ? 'border-red-500' : 'border-[#e5e5e5]'
 							}`}
 							placeholder="Enter new password"
@@ -345,13 +345,13 @@ export default function AccountClient() {
 						<input 
 							name="confirmPassword" 
 							type="password" 
-							className="w-full h-[50px] rounded-lg border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
+							className="w-full h-[50px]  border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
 							placeholder="Confirm new password"
 						/>
 					</div>
 					<button 
 						disabled={submitting.password} 
-						className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-accent px-6 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px]"
+						className="inline-flex items-center justify-center gap-2  bg-brand-accent px-6 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px]"
 					>
 						<Save className="h-4 w-4" /> 
 						{submitting.password ? 'Updating...' : 'Save Change'}
@@ -387,7 +387,7 @@ export default function AccountClient() {
 							setPhoneError('')
 						}} 
 						disabled={!editingPhone && phone !== ''}
-						className={`w-full h-[50px] rounded-lg border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
+						className={`w-full h-[50px]  border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
 							phoneError ? 'border-red-500' : 'border-[#e5e5e5]'
 						} ${!editingPhone && phone ? 'bg-slate-50 cursor-not-allowed' : ''}`}
 						placeholder="e.g., 03001234567"
@@ -429,7 +429,7 @@ export default function AccountClient() {
 									}
 								}}
 								disabled={submitting.phone}
-								className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-accent px-6 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px] disabled:opacity-50"
+								className="inline-flex items-center justify-center gap-2  bg-brand-accent px-6 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity h-[50px] disabled:opacity-50"
 							>
 								<Save className="h-4 w-4" /> 
 								{submitting.phone ? 'Saving...' : 'Save'}
@@ -448,7 +448,7 @@ export default function AccountClient() {
 										.catch(() => {})
 								}}
 								disabled={submitting.phone}
-								className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors h-[50px] disabled:opacity-50"
+								className="inline-flex items-center justify-center gap-2  border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors h-[50px] disabled:opacity-50"
 							>
 								Cancel
 							</button>
@@ -463,7 +463,7 @@ export default function AccountClient() {
 					<Trash2 className="h-4 w-4" /> 
 					Delete account
 				</div>
-				<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+				<div className="bg-red-50 border border-red-200  p-4 mb-4">
 					<p className="text-sm font-medium text-red-900 mb-2">⚠️ This action cannot be undone</p>
 					<p className="text-sm text-red-800 mb-2">Deleting your account will permanently remove:</p>
 					<ul className="text-xs text-red-700 list-disc list-inside space-y-1 mb-2">
@@ -479,7 +479,7 @@ export default function AccountClient() {
 				<button
 					disabled={deleting}
 					onClick={onDeleteAccount}
-					className="inline-flex items-center gap-2 rounded-lg border border-red-300 px-4 py-3 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
+					className="inline-flex items-center gap-2  border border-red-300 px-4 py-3 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
 				>
 					<Trash2 className="h-4 w-4" /> 
 					Delete my account
@@ -502,7 +502,7 @@ export default function AccountClient() {
 							</div>
 							<div className="flex-1">
 								<h3 className="text-lg font-semibold text-gray-900 mb-1">Delete Account</h3>
-								<div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+								<div className="bg-red-50 border border-red-200  p-3 mb-4">
 									<p className="text-sm font-medium text-red-900 mb-2">⚠️ This action cannot be undone</p>
 									<p className="text-xs text-red-800 mb-1">The following will be permanently deleted:</p>
 									<ul className="text-xs text-red-700 list-disc list-inside space-y-0.5 mb-2">
@@ -525,7 +525,7 @@ export default function AccountClient() {
 											}}
 											placeholder="Current password"
 											disabled={deleting}
-											className={`w-full h-[50px] rounded-lg border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
+											className={`w-full h-[50px]  border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
 												deletePasswordError ? 'border-red-500' : 'border-[#e5e5e5]'
 											}`}
 											autoFocus
@@ -551,14 +551,14 @@ export default function AccountClient() {
 							<button
 								onClick={() => setShowDeleteDialog(false)}
 								disabled={deleting}
-								className="px-6 py-3 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 h-[50px]"
+								className="px-6 py-3 text-sm font-medium text-slate-700 bg-white border border-slate-300  hover:bg-slate-50 transition-colors disabled:opacity-50 h-[50px]"
 							>
 								Cancel
 							</button>
 							<button
 								onClick={confirmDeleteAccount}
 								disabled={deleting || !deletePassword.trim()}
-								className="px-6 py-3 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-[50px]"
+								className="px-6 py-3 text-sm font-medium text-white bg-red-600  hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-[50px]"
 							>
 								{deleting ? (
 									<>

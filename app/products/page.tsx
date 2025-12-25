@@ -53,7 +53,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
 							<div className="text-xs sm:text-sm text-slate-600">{total} results</div>
 						</div>
 					{items.length === 0 ? (
-						<div className="mt-6 sm:mt-10 rounded-md border p-6 sm:p-8 text-center text-sm sm:text-base text-slate-600">No products found. Try adjusting filters or keywords.</div>
+						<div className="mt-6 sm:mt-10  border p-6 sm:p-8 text-center text-sm sm:text-base text-slate-600">No products found. Try adjusting filters or keywords.</div>
 					) : (
 						<div className="mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
 							{items.map((p: any, i: number) => (
