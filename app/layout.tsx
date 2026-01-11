@@ -11,6 +11,7 @@ import CartSync from '@/app/components/cart/CartSync'
 import LocationSync from '@/app/components/layout/LocationSync'
 import RouteLoader from '@/app/components/layout/RouteLoader'
 import { ErrorDialogProvider } from '@/app/contexts/ErrorDialogContext'
+import FontPreload from '@/app/components/layout/FontPreload'
 
 export const metadata: Metadata = {
 	metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	return (
 		<html lang="en" className="h-full">
 			<body className="min-h-full antialiased bg-white text-slate-900">
+				<FontPreload />
 				<StructuredData />
 				<Providers>
 					<ErrorDialogProvider>
