@@ -2,11 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Wildchill Font - For Bold Text */
+@font-face {
+	font-family: 'Wildchill';
+	src: url('/fonts/Wildchill.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+
 /* Modern font family */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 body {
 	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Apply Wildchill font to all bold text with letter-spacing */
+.font-bold,
+.font-semibold,
+.font-extrabold,
+[class*="font-bold"],
+[class*="font-semibold"],
+[class*="font-extrabold"],
+h1, h2, h3, h4, h5, h6,
+strong,
+b,
+button:not([class*="font-normal"]),
+.btn-primary,
+.btn-secondary,
+.btn-large,
+a:not([class*="font-normal"]):not([class*="text-"]),
+nav a,
+nav button,
+Link {
+	font-family: 'Wildchill', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+	letter-spacing: 0.1em;
+}
+
+/* Discount badges - use Inter font for better symbol readability (Wildchill might not render % well) */
+.discount-badge {
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+	letter-spacing: 0.03em !important;
 }
 
 /* Smooth scrolling */

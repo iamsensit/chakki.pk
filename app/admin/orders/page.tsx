@@ -2,7 +2,7 @@
 
 import useSWR from 'swr'
 import { useState, useMemo, useRef } from 'react'
-import { CheckCircle2, Truck, BadgeCheck, Search, X, Eye, ChevronDown, ChevronUp, Package, User, Phone, MapPin, Calendar, DollarSign, Mail, Send, Clock, RotateCcw, ArrowLeftRight } from 'lucide-react'
+import { CheckCircle2, Truck, BadgeCheck, Search, X, Eye, ChevronDown, ChevronUp, Package, User, Phone, MapPin, Calendar, DollarSign, Mail, Send, Clock, RotateCcw, ArrowLeftRight, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrencyPKR } from '@/app/lib/price'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,6 +10,37 @@ import { motion, AnimatePresence } from 'framer-motion'
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
 type OrderTab = 'all' | 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
+
+// Helper function to render payment method with account details
+function PaymentMethodDisplay({ order }: { order: any }) {
+	if (order.paymentMethod === 'COD') {
+		return (
+			<div className="flex items-center gap-1.5">
+				<CreditCard className="h-4 w-4" />
+				<span className="font-medium">{order.paymentMethod}</span>
+			</div>
+		)
+	}
+	
+	const accountName = order.jazzcashAccountName || order.easypaisaAccountName || ''
+	const accountNumber = order.jazzcashAccountNumber || order.easypaisaAccountNumber || ''
+	
+	return (
+		<div className="flex flex-col gap-0.5">
+			<div className="flex items-center gap-1.5">
+				<CreditCard className="h-4 w-4" />
+				<span className="font-medium text-xs sm:text-sm">{order.paymentMethod}</span>
+			</div>
+			{(accountName || accountNumber) && (
+				<div className="text-[10px] sm:text-xs text-gray-600 ml-5 truncate max-w-[200px]" title={`${accountName} • ${accountNumber}`}>
+					{accountName && <span>{accountName}</span>}
+					{accountName && accountNumber && <span> • </span>}
+					{accountNumber && <span>{accountNumber}</span>}
+				</div>
+			)}
+		</div>
+	)
+}
 
 const CANCELLATION_REASONS = [
 	{ value: 'not_paid', label: 'Payment Not Received', emailSubject: 'Order Cancelled - Payment Not Received' },
@@ -456,9 +487,7 @@ export default function AdminOrdersPage() {
 											<DollarSign className="h-4 w-4" />
 											{formatCurrencyPKR(o.totalAmount)}
 										</div>
-										<div className="flex items-center gap-1.5">
-											<span className="font-medium">{o.paymentMethod}</span>
-										</div>
+										<PaymentMethodDisplay order={o} />
 									</div>
 								</div>
 								<button
@@ -576,9 +605,7 @@ export default function AdminOrdersPage() {
 											<DollarSign className="h-4 w-4" />
 											{formatCurrencyPKR(o.totalAmount)}
 										</div>
-										<div className="flex items-center gap-1.5">
-											<span className="font-medium">{o.paymentMethod}</span>
-										</div>
+										<PaymentMethodDisplay order={o} />
 									</div>
 								</div>
 								<button
@@ -670,9 +697,7 @@ export default function AdminOrdersPage() {
 											<DollarSign className="h-4 w-4" />
 											{formatCurrencyPKR(o.totalAmount)}
 										</div>
-										<div className="flex items-center gap-1.5">
-											<span className="font-medium">{o.paymentMethod}</span>
-										</div>
+										<PaymentMethodDisplay order={o} />
 									</div>
 								</div>
 								<button
@@ -763,9 +788,7 @@ export default function AdminOrdersPage() {
 											<DollarSign className="h-4 w-4" />
 											{formatCurrencyPKR(o.totalAmount)}
 										</div>
-										<div className="flex items-center gap-1.5">
-											<span className="font-medium">{o.paymentMethod}</span>
-										</div>
+										<PaymentMethodDisplay order={o} />
 									</div>
 								</div>
 								<button
@@ -839,9 +862,7 @@ export default function AdminOrdersPage() {
 													<DollarSign className="h-4 w-4" />
 													{formatCurrencyPKR(o.totalAmount)}
 												</div>
-												<div className="flex items-center gap-1.5">
-													<span className="font-medium">{o.paymentMethod}</span>
-												</div>
+												<PaymentMethodDisplay order={o} />
 												{o.cancellationReason && (
 													<div className="flex items-center gap-1.5 text-red-600">
 														<span className="text-xs">Reason: {o.cancellationReason}</span>
@@ -1086,14 +1107,30 @@ export default function AdminOrdersPage() {
 											{orderDetails.easypaisaAccountNumber && (
 												<p><span className="font-medium">Account Number:</span> {orderDetails.easypaisaAccountNumber}</p>
 											)}
+											{orderDetails.paymentMethod === 'JAZZCASH' && orderDetails.jazzcashAccountName && (
+												<p><span className="font-medium">Bank Name:</span> JazzCash</p>
+											)}
+											{orderDetails.paymentMethod === 'EASYPAISA' && orderDetails.easypaisaAccountName && (
+												<p><span className="font-medium">Bank Name:</span> EasyPaisa</p>
+											)}
 											{orderDetails.paymentProofDataUrl && (
 												<button
 													onClick={() => setPreview(orderDetails.paymentProofDataUrl)}
-													className="mt-2 text-sm text-blue-600 hover:underline"
+													className="mt-2 flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors"
 												>
-													View payment proof
+													<Eye className="h-4 w-4" />
+													<span>View payment proof</span>
 												</button>
 											)}
+										</div>
+									</div>
+								)}
+								{orderDetails.paymentMethod === 'COD' && (
+									<div className="p-4 bg-gray-50 border border-gray-200">
+										<h4 className="font-semibold text-gray-900 mb-3">Payment Information</h4>
+										<div className="text-sm space-y-2 text-gray-700">
+											<p><span className="font-medium">Payment Method:</span> COD (Cash on Delivery)</p>
+											<p className="text-xs text-gray-500">Payment will be collected upon delivery</p>
 										</div>
 									</div>
 								)}

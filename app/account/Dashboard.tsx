@@ -176,7 +176,7 @@ export default function Dashboard() {
 							}`}
 						>
 							<Icon className="h-5 w-5" /> 
-							<span>{label}</span>
+							<span className="font-semibold">{label}</span>
 						</button>
 					))}
 				</nav>
@@ -197,7 +197,7 @@ export default function Dashboard() {
 								className={`h-5 w-5 transition-colors ${tab === id ? 'text-brand-accent' : 'text-gray-600'}`} 
 								strokeWidth={tab === id ? 2.5 : 2}
 							/>
-							<span className={`text-[10px] font-medium transition-colors ${tab === id ? 'text-brand-accent' : 'text-gray-600'}`}>
+							<span className={`text-[10px] font-semibold transition-colors ${tab === id ? 'text-brand-accent' : 'text-gray-600'}`}>
 								{mobileLabel}
 							</span>
 							{tab === id && (

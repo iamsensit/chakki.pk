@@ -498,25 +498,22 @@ export default function CheckoutPage() {
 										<Phone className="h-4 w-4 text-gray-600" />
 										Phone
 									</label>
-									{userProfile?.phone ? (
-										<div className="max-w-sm">
-											<input 
-												type="tel"
-												className="input-enhanced bg-gray-50" 
-												value={userProfile.phone} 
-												readOnly
-												disabled
-											/>
+									{userProfile?.phone && !form.phone ? (
+										<div>
+											<div className="border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-slate-700">
+												{userProfile.phone}
+											</div>
 											<p className="mt-1 text-xs text-slate-500">From your profile</p>
 											<button
 												type="button"
 												onClick={() => {
-													setForm({ ...form, phone: '' })
+													setForm({ ...form, phone: userProfile.phone || '' })
 													setPhoneSaved(false)
 												}}
-												className="mt-1 text-xs text-brand-accent hover:underline"
+												className="mt-1 flex items-center gap-1 text-brand-accent hover:text-orange-600 transition-colors"
+												title="Edit phone number"
 											>
-												Edit phone number
+												<Edit2 className="h-3.5 w-3.5" />
 											</button>
 										</div>
 									) : (
@@ -532,7 +529,13 @@ export default function CheckoutPage() {
 													setForm({ ...form, phone: cleanedValue }); 
 													setFormErrors({ ...formErrors, phone: undefined });
 													setPhoneSaved(false);
-												}} 
+												}}
+												onKeyDown={(e) => {
+													if (e.key === 'Enter') {
+														e.preventDefault();
+														handleContinue();
+													}
+												}}
 												placeholder="Enter your phone number"
 											/>
 										{form.phone.trim().length >= 7 && !phoneSaved && (
@@ -578,14 +581,12 @@ export default function CheckoutPage() {
 												type="button"
 												onClick={() => {
 													setPhoneSaved(false)
-													setForm({ ...form, phone: '' })
+													setForm({ ...form, phone: form.phone })
 												}}
 												className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-700 transition-colors"
 												title="Edit phone number"
 											>
-												<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-												</svg>
+												<Edit2 className="h-5 w-5" />
 											</button>
 										)}
 											{form.phone.trim().length >= 7 && !phoneSaved && (
@@ -607,9 +608,10 @@ export default function CheckoutPage() {
 									<div className="mt-2 flex items-center gap-2">
 										<Link
 											href="/change-location?redirect=/checkout"
-											className="text-sm text-brand-accent hover:underline"
+											className="flex items-center gap-1.5 text-sm text-brand-accent hover:text-orange-600 transition-colors"
 										>
-											Update location
+											<MapPin className="h-4 w-4" />
+											<span>Update location</span>
 										</Link>
 										<span className="text-xs text-slate-500">• Location can be updated from the location page</span>
 									</div>
@@ -710,10 +712,12 @@ export default function CheckoutPage() {
 											// Clear selected account when switching to COD
 											setSelectedAccount(null)
 										}}
-											className="text-xs text-red-600 hover:underline"
-										>
-											Remove
-										</button>
+										className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 transition-colors"
+										title="Remove selected account"
+									>
+										<Trash2 className="h-3.5 w-3.5" />
+										<span>Remove</span>
+									</button>
 									</div>
 									
 									{/* Payment Instructions */}
@@ -765,12 +769,14 @@ export default function CheckoutPage() {
 												<span className="text-sm text-gray-900">{selectedAccount.accountNumber}</span>
 											</div>
 											<button 
+												type="button"
 												onClick={() => {
 													setShowPaymentMethodDialog(true)
 												}}
-												className="text-xs text-brand-accent hover:underline mt-2"
+												className="flex items-center gap-1.5 text-xs text-brand-accent hover:text-orange-600 transition-colors mt-2"
 											>
-												Change payment method
+												<CreditCard className="h-3.5 w-3.5" />
+												<span>Change payment method</span>
 											</button>
 										</div>
 									)}
@@ -1531,7 +1537,16 @@ export default function CheckoutPage() {
 							</div>
 
 							{/* Account Details Form */}
-							<div className="mt-6 space-y-4">
+							<form 
+								id="payment-details-form"
+								onSubmit={(e) => {
+									e.preventDefault();
+									// Trigger the save button click
+									const saveButton = document.querySelector('[data-payment-save-button]') as HTMLButtonElement;
+									if (saveButton) saveButton.click();
+								}} 
+								className="mt-6 space-y-4"
+							>
 								{selectedPaymentType === 'OTHER' && (
 									<div>
 										<label className="text-sm font-medium text-gray-700 mb-1.5 block">Bank Name *</label>
@@ -1540,7 +1555,14 @@ export default function CheckoutPage() {
 											onChange={(e) => {
 												setOtherBankName(e.target.value)
 												setFormErrors({ ...formErrors, otherBankName: undefined })
-											}} 
+											}}
+											onKeyDown={(e) => {
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													const saveButton = document.querySelector('[data-payment-save-button]') as HTMLButtonElement;
+													if (saveButton) saveButton.click();
+												}
+											}}
 											className={`input-enhanced w-full ${formErrors.otherBankName ? 'border-red-500 focus:ring-red-500' : ''}`} 
 											placeholder="e.g., HBL, UBL, Meezan Bank"
 										/>
@@ -1568,7 +1590,14 @@ export default function CheckoutPage() {
 												setOtherAccountName(cleanedValue)
 												setFormErrors({ ...formErrors, otherAccountName: undefined })
 											}
-										}} 
+										}}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter') {
+												e.preventDefault();
+												const saveButton = document.querySelector('[data-payment-save-button]') as HTMLButtonElement;
+												if (saveButton) saveButton.click();
+											}
+										}}
 										className={`input-enhanced w-full ${(selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountName : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountName : formErrors.otherAccountName) ? 'border-red-500 focus:ring-red-500' : ''}`} 
 										placeholder="Enter your account name"
 									/>
@@ -1598,7 +1627,14 @@ export default function CheckoutPage() {
 												setOtherAccountNumber(cleanedValue)
 												setFormErrors({ ...formErrors, otherAccountNumber: undefined })
 											}
-										}} 
+										}}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter') {
+												e.preventDefault();
+												const saveButton = document.querySelector('[data-payment-save-button]') as HTMLButtonElement;
+												if (saveButton) saveButton.click();
+											}
+										}}
 										className={`input-enhanced w-full ${(selectedPaymentType === 'JAZZCASH' ? formErrors.jazzcashAccountNumber : selectedPaymentType === 'EASYPAISA' ? formErrors.easypaisaAccountNumber : formErrors.otherAccountNumber) ? 'border-red-500 focus:ring-red-500' : ''}`} 
 										placeholder="e.g., 03001234567"
 									/>
@@ -1608,11 +1644,12 @@ export default function CheckoutPage() {
 										</div>
 									)}
 								</div>
-							</div>
+							</form>
 
 							{/* Action Buttons */}
 							<div className="mt-6 flex gap-3">
 								<button 
+									type="button"
 									onClick={() => {
 										setShowPaymentDetailsDialog(false)
 										setSelectedPaymentType(null)
@@ -1625,7 +1662,11 @@ export default function CheckoutPage() {
 									Cancel
 								</button>
 								<button 
-									onClick={async () => {
+									type="submit"
+									form="payment-details-form"
+									data-payment-save-button
+									onClick={async (e) => {
+										e.preventDefault();
 										let accountName = ''
 										let accountNumber = ''
 										

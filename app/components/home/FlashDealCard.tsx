@@ -150,7 +150,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 					)}
 					{/* Discount Badge */}
 					{discountPercent > 0 && (
-						<span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-red-500 text-white text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
+						<span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-red-500 text-white text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded discount-badge">
 							{discountPercent}% OFF
 						</span>
 					)}

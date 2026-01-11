@@ -188,16 +188,24 @@ export default function AccountClient() {
 							{!editingName && name && (
 								<button
 									onClick={() => setEditingName(true)}
-									className="text-sm text-brand-accent hover:text-orange-600 flex items-center gap-1.5 font-medium"
+									className="text-sm text-brand-accent hover:text-orange-600 flex items-center gap-1.5 font-medium transition-colors"
+									title="Edit name"
 								>
 									<Edit2 className="h-4 w-4" />
-									Edit
 								</button>
 							)}
 						</div>
 						<input 
 							value={name} 
-							onChange={e => setName(e.target.value)} 
+							onChange={e => setName(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter' && editingName) {
+									e.preventDefault();
+									// Trigger save button
+									const saveButton = document.querySelector('[data-save-name-button]') as HTMLButtonElement;
+									if (saveButton) saveButton.click();
+								}
+							}}
 							disabled={!editingName && name !== ''}
 							className={`w-full h-[50px]  border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
 								!editingName && name ? 'bg-slate-50 cursor-not-allowed' : ''
@@ -207,6 +215,7 @@ export default function AccountClient() {
 						{editingName && (
 							<div className="mt-3 flex gap-3">
 								<button
+									data-save-name-button
 									onClick={async () => {
 										setSubmitting(s => ({ ...s, profile: true }))
 										try {
@@ -273,7 +282,13 @@ export default function AccountClient() {
 								</button>
 								<input 
 									value={token} 
-									onChange={e => setToken(e.target.value)} 
+									onChange={e => setToken(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											onVerify();
+										}
+									}}
 									placeholder="Enter token" 
 									className="flex-1 h-[50px]  border border-[#e5e5e5] px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all" 
 								/>
@@ -366,12 +381,10 @@ export default function AccountClient() {
 					{!editingPhone && phone && (
 						<button
 							onClick={() => setEditingPhone(true)}
-							className="text-sm text-brand-accent hover:underline flex items-center gap-1.5 font-medium"
+							className="text-sm text-brand-accent hover:text-orange-600 flex items-center gap-1.5 font-medium transition-colors"
+							title="Edit phone number"
 						>
-							<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-							</svg>
-							Edit
+							<Edit2 className="h-4 w-4" />
 						</button>
 					)}
 				</div>
@@ -385,7 +398,15 @@ export default function AccountClient() {
 							const cleanedValue = value.replace(/[^0-9]/g, '')
 							setPhone(cleanedValue)
 							setPhoneError('')
-						}} 
+						}}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' && editingPhone) {
+								e.preventDefault();
+								// Trigger save button
+								const saveButton = document.querySelector('[data-save-phone-button]') as HTMLButtonElement;
+								if (saveButton) saveButton.click();
+							}
+						}}
 						disabled={!editingPhone && phone !== ''}
 						className={`w-full h-[50px]  border px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all ${
 							phoneError ? 'border-red-500' : 'border-[#e5e5e5]'
@@ -397,6 +418,7 @@ export default function AccountClient() {
 					{editingPhone && (
 						<div className="mt-4 flex gap-3">
 							<button
+								data-save-phone-button
 								onClick={async () => {
 									if (!phone.trim()) {
 										setPhoneError('Phone number is required')

@@ -16,6 +16,14 @@ const config: Config = {
           light: '#F2EAD3',
           accent: '#F4991A',
         }
+      },
+      fontFamily: {
+        wildchill: ['Wildchill', 'Inter', 'sans-serif'],
+      },
+      fontWeight: {
+        bold: '700',
+        semibold: '600',
+        extrabold: '800',
       }
     },
   },

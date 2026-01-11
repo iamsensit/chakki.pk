@@ -104,28 +104,28 @@ export default function MobileHeader() {
 									{status === 'authenticated' && (
 										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 											<User className="h-5 w-5" />
-											<span>My Profile</span>
+											<span className="font-semibold">My Profile</span>
 										</Link>
 									)}
 									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<ClipboardList className="h-5 w-5" />
-										<span>My Orders</span>
+										<span className="font-semibold">My Orders</span>
 									</Link>
 									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<Monitor className="h-5 w-5" />
-										<span>Shop</span>
+										<span className="font-semibold">Shop</span>
 									</Link>
 									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors">
 										<Phone className="h-5 w-5" />
-										<span>Call Us</span>
+										<span className="font-semibold">Call Us</span>
 									</a>
 									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<HelpCircle className="h-5 w-5" />
-										<span>FAQs</span>
+										<span className="font-semibold">FAQs</span>
 									</Link>
 									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 										<Carrot className="h-5 w-5" />
-										<span>About Us</span>
+										<span className="font-semibold">About Us</span>
 									</Link>
 									{status === 'authenticated' ? (
 										<button
@@ -136,12 +136,12 @@ export default function MobileHeader() {
 											}}
 										>
 											<Power className="h-5 w-5" />
-											<span>Sign Out</span>
+											<span className="font-semibold">Sign Out</span>
 										</button>
 									) : (
-										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
+										<Link href={`/auth/login?callbackUrl=${encodeURIComponent(pathname || '/')}`} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 											<Power className="h-5 w-5" />
-											<span>Sign In</span>
+											<span className="font-semibold">Sign In</span>
 										</Link>
 									)}
 								</nav>

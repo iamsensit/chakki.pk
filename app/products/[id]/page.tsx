@@ -285,7 +285,7 @@ export default function ProductDetailPage() {
 						{discount > 0 && (
 							<>
 								<span className="text-base sm:text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
-								<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-medium rounded">
+								<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-semibold rounded discount-badge">
 									-{discount}%
 								</span>
 							</>

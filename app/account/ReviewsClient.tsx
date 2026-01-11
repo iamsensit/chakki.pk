@@ -180,7 +180,7 @@ export default function ReviewsClient() {
 								<div className="flex items-start gap-4">
 									{/* Product Image */}
 									{product.productImage && (
-										<Link href={`/products/${product.productSlug || product.productId}`}>
+										<Link href={`/products/${product.productSlug || product.productId}` as any}>
 											<div className="h-20 w-20 rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
 												<img 
 													src={product.productImage} 
@@ -326,7 +326,7 @@ export default function ReviewsClient() {
 									<div className="flex items-start gap-4">
 										{/* Product Image */}
 										{productDetails?.images?.[0] && (
-											<Link href={`/products/${productDetails.slug || review.productId}`}>
+											<Link href={`/products/${productDetails.slug || review.productId}` as any}>
 												<div className="h-16 w-16 rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
 													<img 
 														src={productDetails.images[0]} 

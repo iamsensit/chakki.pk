@@ -22,11 +22,13 @@ export default function MobileBottomNav() {
 		return null
 	}
 	
+	const cartCount = cartItems.length > 0 ? cartItems.length : undefined
+	
 	const navItems = [
 		{ href: '/' as const, icon: Home, label: 'Home' },
 		{ href: '/products' as const, icon: Search, label: 'Search' },
-		{ href: '/cart' as const, icon: ShoppingCart, label: 'Cart', badge: cartItems.length },
-		{ href: (isAuthenticated ? '/account' : '/auth/login') as string, icon: User, label: 'Account' },
+		{ href: '/cart' as const, icon: ShoppingCart, label: 'Cart', badge: cartCount },
+		{ href: (isAuthenticated ? '/account' : `/auth/login?callbackUrl=${encodeURIComponent(pathname || '/')}`) as string, icon: User, label: 'Account' },
 	]
 	
 	return (
@@ -51,17 +53,17 @@ export default function MobileBottomNav() {
 										className={`h-5 w-5 transition-colors ${isActive ? 'text-brand-accent' : 'text-gray-600'}`} 
 										strokeWidth={isActive ? 2.5 : 2}
 									/>
-									{item.badge && item.badge > 0 && (
+									{item.badge !== undefined && item.badge > 0 && (
 										<motion.span
 											initial={{ scale: 0 }}
 											animate={{ scale: 1 }}
-											className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-brand-accent text-white text-[10px] font-bold flex items-center justify-center"
+											className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-brand-accent text-white text-[10px] font-bold flex items-center justify-center min-w-[16px]"
 										>
 											{item.badge > 9 ? '9+' : item.badge}
 										</motion.span>
 									)}
 								</div>
-								<span className={`text-[10px] font-medium transition-colors ${isActive ? 'text-brand-accent' : 'text-gray-600'}`}>
+								<span className={`text-[10px] font-semibold transition-colors ${isActive ? 'text-brand-accent' : 'text-gray-600'}`}>
 									{item.label}
 								</span>
 							</Link>
@@ -73,7 +75,7 @@ export default function MobileBottomNav() {
 						className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full relative"
 					>
 						<Menu className="h-5 w-5 text-gray-600 transition-colors" strokeWidth={2} />
-						<span className="text-[10px] font-medium text-gray-600">Menu</span>
+						<span className="text-[10px] font-semibold text-gray-600">Menu</span>
 					</button>
 				</div>
 			</nav>
@@ -130,16 +132,16 @@ export default function MobileBottomNav() {
 									{status === 'authenticated' && (
 										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 											<User className="h-5 w-5" />
-											<span>My Profile</span>
+											<span className="font-semibold">My Profile</span>
 										</Link>
 									)}
 									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<ClipboardList className="h-5 w-5" />
-										<span>My Orders</span>
+										<span className="font-semibold">My Orders</span>
 									</Link>
 									<Link href="/products" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<Monitor className="h-5 w-5" />
-										<span>Shop</span>
+										<span className="font-semibold">Shop</span>
 									</Link>
 									<button
 										onClick={() => {
@@ -149,19 +151,19 @@ export default function MobileBottomNav() {
 										className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors text-left"
 									>
 										<MapPin className="h-5 w-5" />
-										<span>Change Location</span>
+										<span className="font-semibold">Change Location</span>
 									</button>
 									<a href="tel:03393399393" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors">
 										<Phone className="h-5 w-5" />
-										<span>Call Us</span>
+										<span className="font-semibold">Call Us</span>
 									</a>
 									<Link href="/help" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<HelpCircle className="h-5 w-5" />
-										<span>FAQs</span>
+										<span className="font-semibold">FAQs</span>
 									</Link>
 									<Link href="/about" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 										<Carrot className="h-5 w-5" />
-										<span>About Us</span>
+										<span className="font-semibold">About Us</span>
 									</Link>
 									{status === 'authenticated' ? (
 										<button
@@ -172,12 +174,12 @@ export default function MobileBottomNav() {
 											}}
 										>
 											<Power className="h-5 w-5" />
-											<span>Sign Out</span>
+											<span className="font-semibold">Sign Out</span>
 										</button>
 									) : (
-										<Link href="/auth/login" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
+										<Link href={`/auth/login?callbackUrl=${encodeURIComponent(pathname || '/')}`} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 											<Power className="h-5 w-5" />
-											<span>Sign In</span>
+											<span className="font-semibold">Sign In</span>
 										</Link>
 									)}
 								</nav>

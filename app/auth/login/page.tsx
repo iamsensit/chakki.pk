@@ -24,7 +24,7 @@ function LoginForm() {
 	// Redirect if already authenticated
 	useEffect(() => {
 		if (status === 'authenticated') {
-			const callbackUrl = searchParams.get('callbackUrl') || '/account'
+			const callbackUrl = searchParams.get('callbackUrl') || '/'
 			router.push(callbackUrl as any)
 		}
 	}, [status, searchParams, router])
@@ -123,7 +123,10 @@ function LoginForm() {
 
 				{/* Login Card */}
 				<div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8">
-					<form onSubmit={handleSubmit} className="space-y-6">
+					<form onSubmit={(e) => {
+						e.preventDefault();
+						handleSubmit(e);
+					}} className="space-y-6">
 						{/* Email Input */}
 						<div>
 							<label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -134,7 +137,17 @@ function LoginForm() {
 								<input 
 									id="email"
 									value={email} 
-									onChange={e => { setEmail(e.target.value); setErrors({ ...errors, email: undefined }) }} 
+									onChange={e => { setEmail(e.target.value); setErrors({ ...errors, email: undefined }) }}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											// Move focus to password field
+											const passwordInput = document.getElementById('password') as HTMLInputElement;
+											if (passwordInput) {
+												passwordInput.focus();
+											}
+										}
+									}}
 									placeholder="you@example.com" 
 									type="email"
 									className={`input-enhanced pl-10 max-w-md ${
@@ -161,7 +174,14 @@ function LoginForm() {
 									id="password"
 									type="password" 
 									value={password} 
-									onChange={e => { setPassword(e.target.value); setErrors({ ...errors, password: undefined }) }} 
+									onChange={e => { setPassword(e.target.value); setErrors({ ...errors, password: undefined }) }}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											// Trigger form submission
+											handleSubmit(e as any);
+										}
+									}}
 									placeholder="Enter your password" 
 									className={`input-enhanced pl-10 max-w-md ${
 										errors.password ? 'border-red-500 focus:ring-red-500' : ''
@@ -268,7 +288,7 @@ function LoginForm() {
 					<div className="mt-6 text-center">
 						<p className="text-sm text-gray-600">
 							Don't have an account?{' '}
-							<Link href="/auth/signup" className="font-medium text-brand-accent hover:text-orange-600 transition-colors">
+							<Link href={`/auth/signup${searchParams.get('callbackUrl') ? `?callbackUrl=${encodeURIComponent(searchParams.get('callbackUrl')!)}` : ''}` as any} className="font-medium text-brand-accent hover:text-orange-600 transition-colors">
 								Sign up
 							</Link>
 						</p>
