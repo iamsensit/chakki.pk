@@ -23,7 +23,7 @@ export default function ServiceMarquee() {
 						return (
 							<div key={`first-${index}`} className="flex items-center gap-2 sm:gap-3 whitespace-nowrap">
 								<Icon className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent flex-shrink-0" />
-								<span className="text-xs sm:text-sm text-gray-700 font-semibold">{service.text}</span>
+								<span className="text-xs sm:text-sm text-gray-700 font-medium">{service.text}</span>
 							</div>
 						)
 					})}
@@ -35,7 +35,7 @@ export default function ServiceMarquee() {
 						return (
 							<div key={`second-${index}`} className="flex items-center gap-2 sm:gap-3 whitespace-nowrap">
 								<Icon className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent flex-shrink-0" />
-								<span className="text-xs sm:text-sm text-gray-700 font-semibold">{service.text}</span>
+								<span className="text-xs sm:text-sm text-gray-700 font-medium">{service.text}</span>
 							</div>
 						)
 					})}

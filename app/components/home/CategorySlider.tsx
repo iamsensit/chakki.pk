@@ -27,7 +27,7 @@ export default function CategorySlider({ categories, categoryImages }: { categor
 									<div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image</div>
 								)}
 							</div>
-							<span className="text-[11px] sm:text-xs text-center text-gray-700 font-semibold group-hover:text-brand-accent transition-colors line-clamp-2 px-1">
+							<span className="text-[11px] sm:text-xs text-center text-gray-700 font-medium group-hover:text-brand-accent transition-colors line-clamp-2 px-1">
 								{cat.name}
 							</span>
 						</Link>
