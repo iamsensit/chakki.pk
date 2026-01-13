@@ -242,6 +242,16 @@ export async function POST(req: NextRequest) {
 		cart.items = []
 		await cart.save()
 
+		// Update product analytics (best-effort; don't block order creation if it fails)
+		;(async () => {
+			try {
+				const { updateProductAnalyticsFromOrder } = await import('@/app/lib/productAnalytics')
+				await updateProductAnalyticsFromOrder(orderItems)
+			} catch (err) {
+				console.error('Product analytics update failed', err)
+			}
+		})()
+
 		// Send order confirmation email (best-effort; don't block order creation if it fails)
 		;(async () => {
 			try {

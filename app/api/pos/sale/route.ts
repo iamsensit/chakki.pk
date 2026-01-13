@@ -96,6 +96,16 @@ export async function POST(req: NextRequest) {
       console.error('POS journal post failed', e)
     }
 
+    // Update product analytics (best-effort; don't block sale if it fails)
+    ;(async () => {
+      try {
+        const { updateProductAnalyticsFromPOSale } = await import('@/app/lib/productAnalytics')
+        await updateProductAnalyticsFromPOSale(items)
+      } catch (err) {
+        console.error('Product analytics update failed', err)
+      }
+    })()
+
     return json(true, 'POS sale recorded', { sale })
   } catch (err) {
     console.error('POST /api/pos/sale error', err)

@@ -64,6 +64,15 @@ export default function ProductDetailPage() {
 				setVariantId(d?.variants?.[0]?.id ?? d?.variants?.[0]?._id ?? null)
 				setActiveImg(d?.images?.[0] || '')
 				setLoading(false)
+				
+				// Track product view (best-effort, don't block page load)
+				if (d?.id || d?._id) {
+					fetch('/api/products/track-view', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ productId: d.id || d._id })
+					}).catch(() => {}) // Silently fail if tracking fails
+				}
 			} catch (error) {
 				if (!cancelled && mounted) {
 					console.error('Error loading product:', error)

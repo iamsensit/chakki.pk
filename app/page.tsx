@@ -48,11 +48,29 @@ async function fetchCategories() {
 async function fetchFlashDeals() {
 	try {
 		await connectToDatabase()
-		// Fetch products with discounts or best sellers
-		const items = await Product.find({})
-			.sort({ popularity: -1, createdAt: -1 })
+		// Fetch products with discount badges (badges containing % OFF or similar)
+		let items = await Product.find({
+			badges: { $exists: true, $ne: [] },
+			$or: [
+				{ 'badges': { $regex: /% OFF/i } },
+				{ 'badges': { $regex: /discount/i } },
+				{ 'badges': { $regex: /sale/i } }
+			]
+		})
+			.sort({ recentSales: -1, trendingScore: -1, totalSales: -1, createdAt: -1 })
 			.limit(20)
 			.lean()
+		
+		// Fallback: If no products with discount badges, show products with any badges
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				badges: { $exists: true, $ne: [] }
+			})
+				.sort({ createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		console.error('Error fetching flash deals:', err)
@@ -63,16 +81,39 @@ async function fetchFlashDeals() {
 async function fetchFeaturedProducts() {
 	try {
 		await connectToDatabase()
-		// Fetch featured products (products with badges or high popularity)
-		const items = await Product.find({
+		// Fetch featured products (high total sales or high view count)
+		let items = await Product.find({
 			$or: [
-				{ badges: { $exists: true, $ne: [] } },
-				{ popularity: { $gte: 50 } }
+				{ totalSales: { $gte: 10 } },
+				{ viewCount: { $gte: 50 } },
+				{ badges: { $exists: true, $ne: [] } }
 			]
 		})
-			.sort({ popularity: -1, createdAt: -1 })
+			.sort({ totalSales: -1, viewCount: -1, createdAt: -1 })
 			.limit(20)
 			.lean()
+		
+		// Fallback: If no products meet criteria, show products with any sales or views
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				$or: [
+					{ totalSales: { $gt: 0 } },
+					{ viewCount: { $gt: 0 } }
+				]
+			})
+				.sort({ totalSales: -1, viewCount: -1, createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
+		// Final fallback: Show any products sorted by popularity or creation date
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({})
+				.sort({ popularity: -1, createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		console.error('Error fetching featured products:', err)
@@ -83,11 +124,22 @@ async function fetchFeaturedProducts() {
 async function fetchBestSellers() {
 	try {
 		await connectToDatabase()
-		// Fetch best sellers (high popularity products)
-		const items = await Product.find({})
-			.sort({ popularity: -1 })
+		// Fetch best sellers (highest total sales)
+		let items = await Product.find({
+			totalSales: { $gt: 0 }
+		})
+			.sort({ totalSales: -1, totalRevenue: -1 })
 			.limit(20)
 			.lean()
+		
+		// Fallback: If no products have sales yet, show products sorted by popularity
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({})
+				.sort({ popularity: -1, createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		console.error('Error fetching best sellers:', err)
@@ -113,11 +165,33 @@ async function fetchNewArrivals() {
 async function fetchTrendingProducts() {
 	try {
 		await connectToDatabase()
-		// Fetch trending products (recently popular)
-		const items = await Product.find({})
-			.sort({ popularity: -1, updatedAt: -1 })
+		// Fetch trending products (high recent sales velocity)
+		let items = await Product.find({
+			recentSales: { $gt: 0 },
+			lastSoldAt: { $exists: true, $ne: null }
+		})
+			.sort({ trendingScore: -1, recentSales: -1, lastSoldAt: -1 })
 			.limit(20)
 			.lean()
+		
+		// Fallback: If no products have recent sales, show products with any sales
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				totalSales: { $gt: 0 }
+			})
+				.sort({ totalSales: -1, updatedAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
+		// Final fallback: Show recently updated products
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({})
+				.sort({ updatedAt: -1, createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		console.error('Error fetching trending products:', err)
@@ -128,13 +202,24 @@ async function fetchTrendingProducts() {
 async function fetchSpecialOffers() {
 	try {
 		await connectToDatabase()
-		// Fetch products with special offers (badges/discounts)
-		const items = await Product.find({
+		// Fetch products with special offers (badges/discounts) - prioritize by sales
+		let items = await Product.find({
 			badges: { $exists: true, $ne: [] }
 		})
-			.sort({ createdAt: -1 })
+			.sort({ recentSales: -1, totalSales: -1, createdAt: -1 })
 			.limit(20)
 			.lean()
+		
+		// Fallback: If no products with badges, show products with high popularity
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				popularity: { $gt: 0 }
+			})
+				.sort({ popularity: -1, createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		console.error('Error fetching special offers:', err)
@@ -163,12 +248,62 @@ export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
 	const categories = await fetchCategories()
-	const flashDeals = await fetchFlashDeals()
-	const featuredProducts = await fetchFeaturedProducts()
-	const bestSellers = await fetchBestSellers()
-	const newArrivals = await fetchNewArrivals()
-	const trendingProducts = await fetchTrendingProducts()
-	const specialOffers = await fetchSpecialOffers()
+	
+	// Fetch all product lists
+	const [flashDeals, featuredProducts, bestSellers, newArrivals, trendingProducts, specialOffers] = await Promise.all([
+		fetchFlashDeals(),
+		fetchFeaturedProducts(),
+		fetchBestSellers(),
+		fetchNewArrivals(),
+		fetchTrendingProducts(),
+		fetchSpecialOffers()
+	])
+	
+	// Ensure products don't appear in multiple sections
+	// Priority: Flash Deals > Trending > Best Sellers > Featured > Special Offers > New Arrivals
+	const usedProductIds = new Set<string>()
+	
+	const deduplicatedFlashDeals = flashDeals.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
+	
+	const deduplicatedTrending = trendingProducts.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
+	
+	const deduplicatedBestSellers = bestSellers.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
+	
+	const deduplicatedFeatured = featuredProducts.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
+	
+	const deduplicatedSpecialOffers = specialOffers.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
+	
+	const deduplicatedNewArrivals = newArrivals.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
 	
 	return (
 		<main className="bg-white pb-16 md:pb-0">
@@ -186,56 +321,56 @@ export default async function HomePage() {
 			</section>
 
 			{/* Flash Deals Section */}
-			{flashDeals.length > 0 && (
+			{deduplicatedFlashDeals.length > 0 && (
 				<ProductSection 
 					title="Flash Deals" 
-					products={flashDeals} 
+					products={deduplicatedFlashDeals} 
 					sliderId="flash-deals-slider" 
 				/>
 			)}
 
-			{/* Featured Products Section */}
-			{featuredProducts.length > 0 && (
-				<ProductSection 
-					title="Featured Products" 
-					products={featuredProducts} 
-					sliderId="featured-products-slider" 
-				/>
-			)}
-
-			{/* Best Sellers Section */}
-			{bestSellers.length > 0 && (
-				<ProductSection 
-					title="Best Sellers" 
-					products={bestSellers} 
-					sliderId="best-sellers-slider" 
-				/>
-			)}
-
-			{/* New Arrivals Section */}
-			{newArrivals.length > 0 && (
-				<ProductSection 
-					title="New Arrivals" 
-					products={newArrivals} 
-					sliderId="new-arrivals-slider" 
-				/>
-			)}
-
 			{/* Trending Products Section */}
-			{trendingProducts.length > 0 && (
+			{deduplicatedTrending.length > 0 && (
 				<ProductSection 
 					title="Trending Now" 
-					products={trendingProducts} 
+					products={deduplicatedTrending} 
 					sliderId="trending-products-slider" 
 				/>
 			)}
 
+			{/* Best Sellers Section */}
+			{deduplicatedBestSellers.length > 0 && (
+				<ProductSection 
+					title="Best Sellers" 
+					products={deduplicatedBestSellers} 
+					sliderId="best-sellers-slider" 
+				/>
+			)}
+
+			{/* Featured Products Section */}
+			{deduplicatedFeatured.length > 0 && (
+				<ProductSection 
+					title="Featured Products" 
+					products={deduplicatedFeatured} 
+					sliderId="featured-products-slider" 
+				/>
+			)}
+
 			{/* Special Offers Section */}
-			{specialOffers.length > 0 && (
+			{deduplicatedSpecialOffers.length > 0 && (
 				<ProductSection 
 					title="Special Offers" 
-					products={specialOffers} 
+					products={deduplicatedSpecialOffers} 
 					sliderId="special-offers-slider" 
+				/>
+			)}
+
+			{/* New Arrivals Section */}
+			{deduplicatedNewArrivals.length > 0 && (
+				<ProductSection 
+					title="New Arrivals" 
+					products={deduplicatedNewArrivals} 
+					sliderId="new-arrivals-slider" 
 				/>
 			)}
 		</main>

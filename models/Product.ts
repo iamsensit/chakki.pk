@@ -32,6 +32,14 @@ const ProductSchema = new Schema({
 	popularity: { type: Number, default: 0 },
 	mainPrice: { type: Number, default: null }, // Main display price for product detail page
 	mainPriceUnit: { type: String, default: null }, // Unit for main price (e.g., 'kg', 'half kg', 'unit', 'pcs')
+	// Analytics fields for real-time tracking
+	totalSales: { type: Number, default: 0 }, // Total quantity sold (all time)
+	totalRevenue: { type: Number, default: 0 }, // Total revenue generated (all time)
+	recentSales: { type: Number, default: 0 }, // Sales in last 7 days
+	recentRevenue: { type: Number, default: 0 }, // Revenue in last 7 days
+	viewCount: { type: Number, default: 0 }, // Number of times product page was viewed
+	lastSoldAt: { type: Date, default: null }, // Last time product was sold
+	trendingScore: { type: Number, default: 0 }, // Calculated score for trending (based on recent sales velocity)
 	variants: { type: [VariantSchema], default: [] },
 	tiers: { type: [TierSchema], default: [] },
 	relatedProducts: { 
