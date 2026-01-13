@@ -9,6 +9,7 @@ import { formatCurrencyPKR } from '@/app/lib/price'
 import { useSession } from 'next-auth/react'
 import FlashDealCard from '@/app/components/home/FlashDealCard'
 import { Star, Heart, Share2, Facebook, Twitter, Minus, Plus, Check, ChevronLeft, ChevronRight, HelpCircle, Truck, Ruler, MessageCircle } from 'lucide-react'
+import OutOfStockRequestButton from '@/app/components/requests/OutOfStockRequestButton'
 
 async function getProduct(id: string) {
 	try {
@@ -130,6 +131,10 @@ export default function ProductDetailPage() {
 		displayUnitWeight = (selectedVariant.unitWeight || 0) * 1000
 	} else if (selectedVariant?.unit === 'ml') {
 		displayUnitWeight = (selectedVariant.unitWeight || 0) * 1000
+	} else if (selectedVariant?.unit === 'half_kg') {
+		displayUnitWeight = (selectedVariant.unitWeight || 0) * 2
+	} else if (selectedVariant?.unit === 'quarter_kg') {
+		displayUnitWeight = (selectedVariant.unitWeight || 0) * 4
 	}
 	
 	const unitPrice = selectedVariant ? Math.round(effectivePricePerKg * selectedVariant.unitWeight) : 0
@@ -280,16 +285,40 @@ export default function ProductDetailPage() {
 					</div>
 
 					{/* Pricing */}
-					<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-						<span className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrencyPKR(unitPrice)}</span>
-						{discount > 0 && (
-							<>
-								<span className="text-base sm:text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
-								<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-semibold rounded discount-badge">
-									-{discount}%
+					<div className="space-y-2">
+						{/* Main Price - Show if available */}
+						{data.mainPrice && (
+							<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+								<span className="text-2xl sm:text-3xl font-bold text-green-600">
+									{formatCurrencyPKR(data.mainPrice)}
+									{data.mainPriceUnit && (
+										<span className="text-base sm:text-lg font-normal text-gray-600 ml-1">
+											/ {data.mainPriceUnit}
+										</span>
+									)}
 								</span>
-							</>
+							</div>
 						)}
+						{/* Variant Price - Show if no main price or as secondary */}
+						<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+							{data.mainPrice ? (
+								<span className="text-base sm:text-lg text-gray-600">
+									Variant price: {formatCurrencyPKR(unitPrice)}
+								</span>
+							) : (
+								<>
+									<span className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrencyPKR(unitPrice)}</span>
+									{discount > 0 && (
+										<>
+											<span className="text-base sm:text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
+											<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-semibold rounded discount-badge">
+												-{discount}%
+											</span>
+										</>
+									)}
+								</>
+							)}
+						</div>
 					</div>
 
 					{/* Short Description */}
@@ -413,6 +442,16 @@ export default function ProductDetailPage() {
 							<Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${wishlisted ? 'fill-current' : ''}`} />
 						</button>
 					</div>
+					
+					{/* Out of Stock Request */}
+					{!inStock && (
+						<OutOfStockRequestButton
+							productId={data.id || String(data._id)}
+							productTitle={data.title}
+							variantId={selectedVariant?.id || String(selectedVariant?._id)}
+							variantLabel={selectedVariant?.label}
+						/>
+					)}
 
 					{/* Guaranteed Safe Checkout */}
 					<div className="pt-3 sm:pt-4 border-t">
@@ -564,11 +603,24 @@ export default function ProductDetailPage() {
 									<ul className="space-y-2">
 										<li className="flex items-start gap-2">
 											<Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-											<span className="text-gray-700">Price per {selectedVariant.unit === 'g' || selectedVariant.unit === 'kg' ? 'kg' : selectedVariant.unit === 'ml' || selectedVariant.unit === 'l' ? 'liter' : 'unit'}: {formatCurrencyPKR(effectivePricePerKg)}</span>
+											<span className="text-gray-700">
+												Price per {
+													selectedVariant.unit === 'g' || selectedVariant.unit === 'kg' || selectedVariant.unit === 'half_kg' || selectedVariant.unit === 'quarter_kg' 
+														? 'kg' 
+														: selectedVariant.unit === 'ml' || selectedVariant.unit === 'l' 
+															? 'liter' 
+															: 'unit'
+												}: {formatCurrencyPKR(effectivePricePerKg)}
+											</span>
 										</li>
 										<li className="flex items-start gap-2">
 											<Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-											<span className="text-gray-700">Unit Weight: {displayUnitWeight}{selectedVariant.unit || 'kg'}</span>
+											<span className="text-gray-700">
+												Unit Weight: {displayUnitWeight}
+												{selectedVariant.unit === 'half_kg' ? 'half kg' : 
+												 selectedVariant.unit === 'quarter_kg' ? 'quarter kg' : 
+												 selectedVariant.unit || 'kg'}
+											</span>
 										</li>
 										{data.brand && (
 											<li className="flex items-start gap-2">

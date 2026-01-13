@@ -59,7 +59,7 @@ export default function Footer() {
 	}
 
 	return (
-		<footer className="border-t bg-white mt-auto">
+		<footer className="border-t bg-white mt-12 sm:mt-16">
 			<div className="container-pg py-8">
 				{/* Main Footer Content */}
 				<div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 mb-8">

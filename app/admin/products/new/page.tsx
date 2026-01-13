@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import ImageUpload from '@/app/components/admin/ImageUpload'
 
 export default function NewProductPage() {
 	const [title, setTitle] = useState('')
@@ -14,11 +15,10 @@ export default function NewProductPage() {
 	const [images, setImages] = useState<string[]>([])
 	const [availableCategories, setAvailableCategories] = useState<Array<{ name: string; _id?: string; level?: number; subCategories?: any[] }>>([])
 	const [hierarchicalCategories, setHierarchicalCategories] = useState<any[]>([])
-	const [variants, setVariants] = useState<Array<{ label: string; unitWeight: number; unit: 'kg' | 'g' | 'l' | 'ml' | 'pcs' | 'pack'; sku: string; pricePerKg: number; costPerKg: number; stockQty: number }>>([{ label: '', unitWeight: 1, unit: 'kg', sku: '', pricePerKg: 0, costPerKg: 0, stockQty: 0 }])
+	const [variants, setVariants] = useState<Array<{ label: string; unitWeight: number; unit: 'kg' | 'g' | 'half_kg' | 'quarter_kg' | 'l' | 'ml' | 'pcs' | 'pack' | 'unit'; sku: string; pricePerKg: number; costPerKg: number; stockQty: number }>>([{ label: '', unitWeight: 1, unit: 'kg', sku: '', pricePerKg: 0, costPerKg: 0, stockQty: 0 }])
 	const [saving, setSaving] = useState(false)
-const [uploading, setUploading] = useState(false)
-const [imageUrl, setImageUrl] = useState('')
-const [imageSource, setImageSource] = useState<'public' | 'external'>('public')
+	const [isDiscounted, setIsDiscounted] = useState(false)
+	const [discountPercent, setDiscountPercent] = useState<number>(0)
 const [relatedProducts, setRelatedProducts] = useState<string[]>([])
 const [relatedProductsSearch, setRelatedProductsSearch] = useState('')
 const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any[]>([])
@@ -28,70 +28,6 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 		if (!slug) setSlug(t.toLowerCase().replace(/\s+/g, '-'))
 	}
 
-	function loadImage(file: File): Promise<HTMLImageElement> {
-		return new Promise((resolve, reject) => {
-			const img = new Image()
-			img.onload = () => resolve(img)
-			img.onerror = reject
-			const reader = new FileReader()
-			reader.onload = () => { img.src = String(reader.result) }
-			reader.onerror = reject
-			reader.readAsDataURL(file)
-		})
-	}
-
-	async function compressToDataUrl(file: File) {
-		const img = await loadImage(file)
-		const maxW = 1200, maxH = 1200
-		let { width, height } = img
-		const ratio = Math.min(maxW / width, maxH / height, 1)
-		width = Math.round(width * ratio)
-		height = Math.round(height * ratio)
-		const canvas = document.createElement('canvas')
-		canvas.width = width
-		canvas.height = height
-		const ctx = canvas.getContext('2d')!
-		ctx.drawImage(img, 0, 0, width, height)
-		return canvas.toDataURL('image/jpeg', 0.8)
-	}
-
-	async function uploadImage(file: File) {
-		const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-		const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET
-		const dataUrl = await compressToDataUrl(file)
-		// If Cloudinary is configured, upload there; otherwise, store data URL directly in DB
-		if (!cloudName || !preset) {
-			return dataUrl
-		}
-		const blob = await (await fetch(dataUrl)).blob()
-		const form = new FormData()
-		form.append('file', blob, file.name.replace(/\.[^.]+$/, '.jpg'))
-		form.append('upload_preset', preset)
-		const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: form })
-		if (!res.ok) throw new Error('Upload failed')
-		const json = await res.json()
-		return json.secure_url as string
-	}
-
-	async function onSelectFiles(e: React.ChangeEvent<HTMLInputElement>) {
-		const files = Array.from(e.target.files || [])
-		if (files.length === 0) return
-		setUploading(true)
-		try {
-			const urls: string[] = []
-			for (const f of files) {
-				const url = await uploadImage(f)
-				urls.push(url)
-			}
-			setImages(prev => [...prev, ...urls])
-			toast.success('Images added')
-		} catch (e: any) {
-			toast.error(e.message || 'Image upload failed')
-		} finally {
-			setUploading(false)
-			e.target.value = ''
-		}
-	}
 
 	function addVariant() {
 		const defaultPrice = variants.length > 0 && variants[0].pricePerKg && variants[0].pricePerKg > 0 ? variants[0].pricePerKg : 0
@@ -105,8 +41,103 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 		}
 	}
 
+	// Convert unit to base unit (kg for weight, l for volume, or as-is for pcs/pack/unit)
+	function getBaseUnitWeight(unitWeight: number, unit: string): number {
+		if (unit === 'g') return unitWeight / 1000
+		if (unit === 'ml') return unitWeight / 1000
+		if (unit === 'half_kg') return unitWeight / 2
+		if (unit === 'quarter_kg') return unitWeight / 4
+		return unitWeight // kg, l, pcs, pack, unit stay as-is
+	}
+
+	// Check if units are compatible for proportional pricing (same category)
+	function areUnitsCompatible(unit1: string, unit2: string): boolean {
+		const weightUnits = ['kg', 'g', 'half_kg', 'quarter_kg']
+		const volumeUnits = ['l', 'ml']
+		const countUnits = ['pcs', 'pack', 'unit']
+		
+		const isWeight1 = weightUnits.includes(unit1)
+		const isWeight2 = weightUnits.includes(unit2)
+		const isVolume1 = volumeUnits.includes(unit1)
+		const isVolume2 = volumeUnits.includes(unit2)
+		const isCount1 = countUnits.includes(unit1)
+		const isCount2 = countUnits.includes(unit2)
+		
+		return (isWeight1 && isWeight2) || (isVolume1 && isVolume2) || (isCount1 && isCount2)
+	}
+
 	function updateVariant(index: number, field: string, value: any) {
-		setVariants(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v))
+		setVariants(prev => {
+			const updated = prev.map((v, i) => {
+				if (i === index) {
+					const newVariant = { ...v, [field]: value }
+					
+					
+					// If unit or unitWeight changed, recalculate price/cost based on main variant
+					if (index > 0 && (field === 'unit' || field === 'unitWeight')) {
+						const mainVariant = prev[0]
+						if (mainVariant && mainVariant.pricePerKg > 0 && areUnitsCompatible(mainVariant.unit, newVariant.unit)) {
+							const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight, mainVariant.unit)
+							const newBaseWeight = getBaseUnitWeight(newVariant.unitWeight, newVariant.unit)
+							
+							if (mainBaseWeight > 0) {
+								const ratio = newBaseWeight / mainBaseWeight
+								newVariant.pricePerKg = Math.round(mainVariant.pricePerKg * ratio)
+								if (mainVariant.costPerKg > 0) {
+									newVariant.costPerKg = Math.round(mainVariant.costPerKg * ratio)
+								}
+							}
+						}
+					}
+					
+					return newVariant
+				}
+				
+				// If main variant price/cost changed, update this variant proportionally
+				if (index === 0 && (field === 'pricePerKg' || field === 'costPerKg') && i > 0) {
+					const mainVariant = { ...prev[0], [field]: value }
+					if (areUnitsCompatible(mainVariant.unit, v.unit)) {
+						const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight, mainVariant.unit)
+						const variantBaseWeight = getBaseUnitWeight(v.unitWeight, v.unit)
+						
+						if (mainBaseWeight > 0) {
+							const ratio = variantBaseWeight / mainBaseWeight
+							if (field === 'pricePerKg') {
+								return { ...v, pricePerKg: Math.round(mainVariant.pricePerKg * ratio) }
+							} else if (field === 'costPerKg') {
+								return { ...v, costPerKg: Math.round(mainVariant.costPerKg * ratio) }
+							}
+						}
+					}
+				}
+				
+				return v
+			})
+			
+			// After updating main variant price/cost, update all other variants
+			if (index === 0 && (field === 'pricePerKg' || field === 'costPerKg')) {
+				const mainVariant = updated[0]
+				return updated.map((v, i) => {
+					if (i === 0) return v
+					if (areUnitsCompatible(mainVariant.unit, v.unit)) {
+						const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight, mainVariant.unit)
+						const variantBaseWeight = getBaseUnitWeight(v.unitWeight, v.unit)
+						
+						if (mainBaseWeight > 0) {
+							const ratio = variantBaseWeight / mainBaseWeight
+							if (field === 'pricePerKg') {
+								return { ...v, pricePerKg: Math.round(mainVariant.pricePerKg * ratio) }
+							} else if (field === 'costPerKg') {
+								return { ...v, costPerKg: Math.round(mainVariant.costPerKg * ratio) }
+							}
+						}
+					}
+					return v
+				})
+			}
+			
+			return updated
+		})
 	}
 
 	async function onSave() {
@@ -114,7 +145,10 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 		try {
 			// Process variants - derive labels and handle unit conversion
 			const processedVariants = variants.map(v => {
-				const unitLabels: Record<string, string> = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
+				const unitLabels: Record<string, string> = { 
+					kg: 'kg', g: 'g', half_kg: 'half kg', quarter_kg: 'quarter kg',
+					l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack', unit: 'unit' 
+				}
 				const unitLabel = unitLabels[v.unit] || v.unit
 				const derivedLabel = (v.label && v.label.trim().length > 0)
 					? v.label
@@ -123,24 +157,45 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 				// Convert unitWeight to base unit for storage:
 				// - g -> kg (divide by 1000)
 				// - ml -> l (divide by 1000)
-				// - kg, l, pcs, pack -> keep as is
+				// - half_kg -> kg (divide by 2)
+				// - quarter_kg -> kg (divide by 4)
+				// - kg, l, pcs, pack, unit -> keep as is
 				let unitWeightInBase = v.unitWeight
 				if (v.unit === 'g') {
 					unitWeightInBase = v.unitWeight / 1000 // Convert grams to kg
 				} else if (v.unit === 'ml') {
 					unitWeightInBase = v.unitWeight / 1000 // Convert ml to liters
+				} else if (v.unit === 'half_kg') {
+					unitWeightInBase = v.unitWeight / 2 // Convert half kg to kg
+				} else if (v.unit === 'quarter_kg') {
+					unitWeightInBase = v.unitWeight / 4 // Convert quarter kg to kg
 				}
 				
 				return {
 					label: derivedLabel,
-					unitWeight: unitWeightInBase, // Store in base unit (kg for weight, l for volume, or as-is for pcs/pack)
+					unitWeight: unitWeightInBase, // Store in base unit (kg for weight, l for volume, or as-is for pcs/pack/unit)
 					unit: v.unit, // Keep original unit for display purposes
 					sku: v.sku,
-					pricePerKg: v.pricePerKg, // Price per base unit (per kg for weight, per liter for volume, per unit for pcs/pack)
+					pricePerKg: v.pricePerKg, // Price per base unit (per kg for weight, per liter for volume, per unit for pcs/pack/unit)
 					costPerKg: v.costPerKg || 0, // Cost per base unit (for inventory investment calculation)
 					stockQty: v.stockQty
 				}
 			})
+
+			// Derive main price from first variant automatically
+			const firstVariant = processedVariants[0]
+			const unitLabels: Record<string, string> = {
+				kg: 'kg', g: 'g', half_kg: 'half kg', quarter_kg: 'quarter kg',
+				l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack', unit: 'unit'
+			}
+			const derivedMainPrice = firstVariant?.pricePerKg || null
+			const derivedMainPriceUnit = firstVariant?.unit ? (unitLabels[firstVariant.unit] || firstVariant.unit) : null
+
+			// Build badges array
+			const badges = ['Wholesale']
+			if (isDiscounted && discountPercent > 0) {
+				badges.push(`${discountPercent}% OFF`)
+			}
 
 			const body = {
 				slug,
@@ -150,10 +205,12 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 				category: category || undefined,
 				subCategory: subCategory || undefined,
 				subSubCategory: subSubCategory || undefined,
-				badges: ['Wholesale'],
+				badges,
 				images,
 				moq: 1,
 				inStock: true,
+				mainPrice: derivedMainPrice || undefined,
+				mainPriceUnit: derivedMainPriceUnit || undefined,
 				variants: processedVariants,
 				tiers: [],
 				relatedProducts: relatedProducts.filter(Boolean),
@@ -162,7 +219,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 			const json = await res.json()
 			if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to create product')
 			toast.success('Product created')
-			setTitle(''); setSlug(''); setDescription(''); setBrand(''); setCategory(''); setSubCategory(''); setSubSubCategory(''); setImages([]); setVariants([{ label: '', unitWeight: 1, unit: 'kg', sku: '', pricePerKg: 0, costPerKg: 0, stockQty: 0 }]); setRelatedProducts([])
+			setTitle(''); setSlug(''); setDescription(''); setBrand(''); setCategory(''); setSubCategory(''); setSubSubCategory(''); setImages([]); setVariants([{ label: '', unitWeight: 1, unit: 'kg', sku: '', pricePerKg: 0, costPerKg: 0, stockQty: 0 }]); setRelatedProducts([]); setIsDiscounted(false); setDiscountPercent(0)
 		} catch (e: any) {
 			toast.error(e.message || 'Could not create product')
 		} finally {
@@ -227,6 +284,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 	useEffect(() => {
 		setSubSubCategory('')
 	}, [subCategory])
+
 
 	// Search for related products
 	useEffect(() => {
@@ -368,54 +426,49 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 						)}
 					</div>
 
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Images (add by URL or /public path)</label>
-						<div className="flex items-center gap-2">
-							<select
-								className="rounded-md border px-2 py-2 text-sm"
-								value={imageSource}
-								onChange={e => setImageSource(e.target.value as any)}
-							>
-								<option value="public">Public folder (/path)</option>
-								<option value="external">External URL (https://…)</option>
-							</select>
+          <ImageUpload
+						images={images}
+						onImagesChange={setImages}
+						label="Images"
+						multiple={true}
+					/>
+				</div>
+
+				{/* Discount Settings */}
+				<div className="rounded-md border p-4 grid gap-3">
+					<div className="text-sm font-medium text-gray-700 mb-2">Discount Settings</div>
+					<div className="flex items-center gap-4">
+						<label className="flex items-center gap-2 cursor-pointer">
 							<input
-								value={imageUrl}
-								onChange={e => setImageUrl(e.target.value)}
-								placeholder={imageSource === 'public' ? '/images/photo.jpg' : 'https://site.com/image.jpg'}
-								className="input-enhanced flex-1"
-							/>
-							<button
-								type="button"
-								className="btn-primary"
-								onClick={() => {
-									const raw = imageUrl.trim()
-									if (!raw) return
-									const url = imageSource === 'public' ? (raw.startsWith('/') ? raw : `/${raw}`) : raw
-									setImages(prev => [...prev, url])
-									setImageUrl('')
+								type="checkbox"
+								checked={isDiscounted}
+								onChange={e => {
+									setIsDiscounted(e.target.checked)
+									if (!e.target.checked) setDiscountPercent(0)
 								}}
-							>
-								Add URL
-							</button>
-						</div>
-						{images.length > 0 && (
-							<div className="mt-2 grid grid-cols-3 gap-2">
-								{images.map((src, idx) => (
-									<div key={src + idx} className="relative">
-										<img src={src} className="h-24 w-full object-cover rounded border" />
-										<button
-											type="button"
-											className="absolute top-1 right-1 bg-white/80 rounded px-1 text-xs"
-											onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
-										>
-											remove
-										</button>
-									</div>
-								))}
+								className="w-4 h-4"
+							/>
+							<span className="text-sm text-gray-700">Display as discounted product</span>
+						</label>
+						{isDiscounted && (
+							<div className="flex items-center gap-2">
+								<label className="text-sm text-gray-700">Discount:</label>
+								<input
+									type="number"
+									min="0"
+									max="100"
+									value={discountPercent}
+									onChange={e => setDiscountPercent(Number(e.target.value))}
+									className="input-enhanced w-24"
+									placeholder="%"
+								/>
+								<span className="text-sm text-gray-700">%</span>
 							</div>
 						)}
 					</div>
+					{isDiscounted && discountPercent > 0 && (
+						<p className="text-xs text-gray-500">Product will show "{discountPercent}% OFF" badge</p>
+					)}
 				</div>
 
 				<div className="rounded-md border p-4 grid gap-4">
@@ -428,7 +481,9 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 					{variants.map((variant, idx) => (
 						<div key={idx} className="rounded-md border p-3 bg-gray-50">
 							<div className="flex items-center justify-between mb-3">
-								<div className="text-xs font-medium text-slate-600">Variant {idx + 1}</div>
+								<div className="text-xs font-medium text-slate-600">
+									{idx === 0 ? 'Main Variant' : `Variant ${idx + 1}${idx > 0 ? ' (auto-calculated)' : ''}`}
+								</div>
 								{variants.length > 1 && (
 									<button type="button" onClick={() => removeVariant(idx)} className="text-xs text-red-600 hover:underline">
 										Remove
@@ -436,6 +491,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 								)}
 							</div>
 							<div className="grid gap-2 sm:grid-cols-2">
+								{/* 1. SKU */}
 								<div>
 									<label className="text-sm font-medium text-gray-700 mb-1.5 block">SKU</label>
 									<input 
@@ -445,53 +501,57 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 										placeholder="e.g. DAALMASH-10KG" 
 									/>
 								</div>
-								<div className="grid grid-cols-2 gap-2">
-									<div>
-										<label className="text-sm font-medium text-gray-700 mb-1.5 block">Unit Weight</label>
-										<input 
-											type="number" 
-											value={variant.unitWeight} 
-											onChange={e => updateVariant(idx, 'unitWeight', Number(e.target.value))} 
-											className="input-enhanced" 
-											placeholder="e.g. 10" 
-										/>
-									</div>
-									<div>
-										<label className="text-sm font-medium text-gray-700 mb-1.5 block">Unit</label>
-										<select 
-											value={variant.unit} 
-											onChange={e => updateVariant(idx, 'unit', e.target.value as any)} 
-											className="input-enhanced"
-										>
-											<option value="kg">kg (Kilogram)</option>
-											<option value="g">g (Gram)</option>
-											<option value="l">l (Liter)</option>
-											<option value="ml">ml (Milliliter)</option>
-											<option value="pcs">pcs (Pieces)</option>
-											<option value="pack">pack (Pack)</option>
-										</select>
-									</div>
-								</div>
+								
+								{/* 2. Unit */}
 								<div>
-									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Price per kg (Rs)</label>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Unit</label>
+									<select 
+										value={variant.unit} 
+										onChange={e => updateVariant(idx, 'unit', e.target.value as any)} 
+										className="input-enhanced"
+									>
+										<option value="kg">kg (Kilogram)</option>
+										<option value="half_kg">half kg</option>
+										<option value="quarter_kg">quarter kg</option>
+										<option value="g">g (Gram)</option>
+										<option value="l">l (Liter)</option>
+										<option value="ml">ml (Milliliter)</option>
+										<option value="pcs">pcs (Pieces)</option>
+										<option value="pack">pack</option>
+										<option value="unit">unit</option>
+									</select>
+								</div>
+								
+								{/* 3. Quantity (how many of that unit) */}
+								<div>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">
+										Quantity {variant.unit === 'kg' || variant.unit === 'half_kg' || variant.unit === 'quarter_kg' || variant.unit === 'g' ? '(kg)' : variant.unit === 'l' || variant.unit === 'ml' ? '(liter)' : variant.unit === 'pcs' || variant.unit === 'pack' || variant.unit === 'unit' ? '(pieces)' : ''}
+									</label>
+									<input 
+										type="number" 
+										value={variant.unitWeight} 
+										onChange={e => updateVariant(idx, 'unitWeight', Number(e.target.value))} 
+										className="input-enhanced" 
+										placeholder={`e.g. ${variant.unit === 'kg' ? '1' : variant.unit === 'g' ? '1000' : variant.unit === 'l' ? '1' : variant.unit === 'ml' ? '1000' : '1'}`}
+									/>
+								</div>
+								
+								{/* 4. Price per selected unit */}
+								<div>
+									<label className="text-sm font-medium text-gray-700 mb-1.5 block">
+										Price per {variant.unit === 'kg' || variant.unit === 'half_kg' || variant.unit === 'quarter_kg' || variant.unit === 'g' ? 'kg' : variant.unit === 'l' || variant.unit === 'ml' ? 'liter' : variant.unit === 'pcs' || variant.unit === 'pack' || variant.unit === 'unit' ? 'unit' : 'unit'} (Rs)
+										{idx > 0 && <span className="text-xs text-gray-500 ml-1">(auto, editable)</span>}
+									</label>
 									<input 
 										type="number" 
 										value={variant.pricePerKg} 
 										onChange={e => updateVariant(idx, 'pricePerKg', Number(e.target.value))} 
 										className="input-enhanced" 
-										placeholder="e.g. 150" 
+										placeholder="e.g. 5000" 
 									/>
 								</div>
-								<div>
-									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Cost per kg (Rs)</label>
-									<input 
-										type="number" 
-										value={variant.costPerKg || 0} 
-										onChange={e => updateVariant(idx, 'costPerKg', Number(e.target.value))} 
-										className="input-enhanced" 
-										placeholder="e.g. 100 (for inventory investment)" 
-									/>
-								</div>
+								
+								{/* 5. Stock */}
 								<div>
 									<label className="text-sm font-medium text-gray-700 mb-1.5 block">Stock qty</label>
 									<input 
@@ -501,6 +561,23 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 										className="input-enhanced" 
 										placeholder="e.g. 100" 
 									/>
+								</div>
+								
+								{/* Cost (hidden by default, can be shown if needed) */}
+								<div className="sm:col-span-2">
+									<details className="text-xs text-gray-500">
+										<summary className="cursor-pointer hover:text-gray-700">Advanced: Cost (Rs) - for internal profit tracking</summary>
+										<div className="mt-2">
+											<input 
+												type="number" 
+												value={variant.costPerKg || 0} 
+												onChange={e => updateVariant(idx, 'costPerKg', Number(e.target.value))} 
+												className="input-enhanced" 
+												placeholder="e.g. 4000 (optional)" 
+											/>
+											{idx > 0 && <span className="text-xs text-gray-500 ml-1">(auto, editable)</span>}
+										</div>
+									</details>
 								</div>
 							</div>
 						</div>

@@ -55,6 +55,13 @@ export default function AdminHome() {
           </div>
           <div className="mt-1 text-sm text-slate-600">Manage delivery cities, shop locations, and delivery radius.</div>
         </Link>
+        <Link href="/admin/requests" className="group rounded-md border p-4 hover:bg-brand-light/50 transition-colors">
+          <div className="flex items-center gap-2 font-medium">
+            <Package className="h-4 w-4 text-brand-accent group-hover:scale-110 transition-transform" />
+            Requested Areas & Products
+          </div>
+          <div className="mt-1 text-sm text-slate-600">View and manage delivery area requests and out of stock product requests.</div>
+        </Link>
 				<Link href="/admin/transactions" className="group rounded-md border p-4 hover:bg-brand-light/50 transition-colors">
 					<div className="flex items-center gap-2 font-medium">
 						<BarChart3 className="h-4 w-4 text-brand-accent group-hover:scale-110 transition-transform" />

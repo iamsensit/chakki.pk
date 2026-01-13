@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, Save, Trash2, PencilLine, X } from 'lucide-react'
+import ImageUpload from '@/app/components/admin/ImageUpload'
 
 type Cat = { 
   _id?: string
@@ -288,19 +289,18 @@ export default function CategoriesAdminPage() {
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Image URL</label>
-                    <input
-                      className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                      placeholder="/images/category.jpg or https://…"
-                      value={cat.image || ''}
-                      onChange={e => {
+                    <ImageUpload
+                      images={cat.image ? [cat.image] : []}
+                      onImagesChange={(images) => {
                         const flat = getAllCategoriesFlat(rows)
                         const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
                         if (flatIdx >= 0) {
-                          flat[flatIdx].image = e.target.value
+                          flat[flatIdx].image = images[0] || ''
                           setRows([...rows])
                         }
                       }}
+                      label="Category Image"
+                      multiple={false}
                     />
                   </div>
                   <div>
@@ -459,12 +459,11 @@ export default function CategoriesAdminPage() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Image URL</label>
-                <input
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                  placeholder="/images/category.jpg or https://…"
-                  value={newCategory.image || ''}
-                  onChange={e => setNewCategory(prev => ({ ...prev, image: e.target.value }))}
+                <ImageUpload
+                  images={newCategory.image ? [newCategory.image] : []}
+                  onImagesChange={(images) => setNewCategory(prev => ({ ...prev, image: images[0] || '' }))}
+                  label="Category Image"
+                  multiple={false}
                 />
               </div>
               <div>

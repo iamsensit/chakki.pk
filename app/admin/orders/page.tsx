@@ -1092,26 +1092,30 @@ export default function AdminOrdersPage() {
 										<h4 className="font-semibold text-blue-900 mb-3">Payment Information</h4>
 										<div className="text-sm space-y-2 text-blue-700">
 											<p><span className="font-medium">Payment Method:</span> {orderDetails.paymentMethod}</p>
+											{orderDetails.paymentMethod === 'JAZZCASH' && (
+												<>
+													{orderDetails.jazzcashAccountName && (
+														<p><span className="font-medium">Account Name:</span> {orderDetails.jazzcashAccountName}</p>
+													)}
+													{orderDetails.jazzcashAccountNumber && (
+														<p><span className="font-medium">Account Number:</span> {orderDetails.jazzcashAccountNumber}</p>
+													)}
+													<p><span className="font-medium">Bank Name:</span> JazzCash</p>
+												</>
+											)}
+											{orderDetails.paymentMethod === 'EASYPAISA' && (
+												<>
+													{orderDetails.easypaisaAccountName && (
+														<p><span className="font-medium">Account Name:</span> {orderDetails.easypaisaAccountName}</p>
+													)}
+													{orderDetails.easypaisaAccountNumber && (
+														<p><span className="font-medium">Account Number:</span> {orderDetails.easypaisaAccountNumber}</p>
+													)}
+													<p><span className="font-medium">Bank Name:</span> EasyPaisa</p>
+												</>
+											)}
 											{orderDetails.paymentReference && (
 												<p><span className="font-medium">Payment Reference:</span> {orderDetails.paymentReference}</p>
-											)}
-											{orderDetails.jazzcashAccountName && (
-												<p><span className="font-medium">Account Name:</span> {orderDetails.jazzcashAccountName}</p>
-											)}
-											{orderDetails.jazzcashAccountNumber && (
-												<p><span className="font-medium">Account Number:</span> {orderDetails.jazzcashAccountNumber}</p>
-											)}
-											{orderDetails.easypaisaAccountName && (
-												<p><span className="font-medium">Account Name:</span> {orderDetails.easypaisaAccountName}</p>
-											)}
-											{orderDetails.easypaisaAccountNumber && (
-												<p><span className="font-medium">Account Number:</span> {orderDetails.easypaisaAccountNumber}</p>
-											)}
-											{orderDetails.paymentMethod === 'JAZZCASH' && orderDetails.jazzcashAccountName && (
-												<p><span className="font-medium">Bank Name:</span> JazzCash</p>
-											)}
-											{orderDetails.paymentMethod === 'EASYPAISA' && orderDetails.easypaisaAccountName && (
-												<p><span className="font-medium">Bank Name:</span> EasyPaisa</p>
 											)}
 											{orderDetails.paymentProofDataUrl && (
 												<button
@@ -1165,6 +1169,23 @@ export default function AdminOrdersPage() {
 										<Send className="h-4 w-4" />
 										Send Order Details Email
 									</button>
+									{!orderDetails.refunded && (orderDetails.paymentMethod === 'JAZZCASH' || orderDetails.paymentMethod === 'EASYPAISA') && (
+										<button
+											onClick={() => {
+												setRefundOrderId(orderDetails._id)
+												setRefundMethod(orderDetails.paymentMethod)
+												setRefundAccountNumber(
+													orderDetails.paymentMethod === 'JAZZCASH' ? (orderDetails.jazzcashAccountNumber || '') :
+													orderDetails.paymentMethod === 'EASYPAISA' ? (orderDetails.easypaisaAccountNumber || '') : ''
+												)
+											}}
+											disabled={busy === orderDetails._id}
+											className="btn-primary flex items-center gap-2 bg-green-600 hover:bg-green-700"
+										>
+											<RotateCcw className="h-4 w-4" />
+											Process Refund
+										</button>
+									)}
 								</div>
 							</div>
 						)}

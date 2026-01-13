@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { MapPin, Navigation, Check, X, Loader2 } from 'lucide-react'
 import { reverseGeocode, searchPlaces, getPlaceDetails, extractSocietyData, type GooglePlace } from '@/app/lib/google-maps'
 import { useErrorDialog } from '@/app/contexts/ErrorDialogContext'
+import DeliveryAreaRequestButton from '@/app/components/requests/DeliveryAreaRequestButton'
 
 interface DeliveryArea {
 	_id: string
@@ -1430,6 +1431,22 @@ function ChangeLocationContent() {
 						
 						console.log('✅ Navigating map to:', { lat, lng, address: place.formatted_address })
 						
+						// Update address from the selected place
+						if (place.formatted_address) {
+							setUserAddress(place.formatted_address)
+							setSearchQuery(place.formatted_address)
+						}
+						
+						// Extract city from address components
+						if (place.address_components) {
+							const cityComponent = place.address_components.find((comp: any) => 
+								comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+							)
+							if (cityComponent) {
+								setUserCity(cityComponent.long_name)
+							}
+						}
+						
 						// Verify map instance still exists before using it
 						if (!mapInstanceRef.current) {
 							console.error('❌ Map instance disappeared!')
@@ -2063,6 +2080,12 @@ function ChangeLocationContent() {
 												))}
 											</div>
 										)}
+										<DeliveryAreaRequestButton 
+											address={userAddress || ''}
+											city={selectedCity || userCity || ''}
+											latitude={userLocation?.lat}
+											longitude={userLocation?.lng}
+										/>
 									</div>
 								</div>
 							</div>

@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Trash2 } from 'lucide-react'
+import ImageUpload from '@/app/components/admin/ImageUpload'
 
-type Variant = { _id?: string; id?: string; label?: string; unitWeight?: number; unit?: 'kg' | 'g' | 'l' | 'ml' | 'pcs' | 'pack'; sku?: string; pricePerKg?: number; costPerKg?: number; stockQty?: number }
+type Variant = { _id?: string; id?: string; label?: string; unitWeight?: number; unit?: 'kg' | 'g' | 'half_kg' | 'quarter_kg' | 'l' | 'ml' | 'pcs' | 'pack' | 'unit'; sku?: string; pricePerKg?: number; costPerKg?: number; stockQty?: number }
 
 export default function EditProductPage() {
   const [query, setQuery] = useState('')
@@ -23,10 +24,9 @@ export default function EditProductPage() {
   const [images, setImages] = useState<string[]>([])
   const [variants, setVariants] = useState<Variant[]>([])
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false) // no longer used; kept to avoid large refactor
+  const [isDiscounted, setIsDiscounted] = useState(false)
+  const [discountPercent, setDiscountPercent] = useState<number>(0)
   const [open, setOpen] = useState(false)
-  const [imageUrl, setImageUrl] = useState('')
-  const [imageSource, setImageSource] = useState<'public' | 'external'>('public')
   const [availableCategories, setAvailableCategories] = useState<Array<{ name: string; _id?: string; level?: number }>>([])
   const [hierarchicalCategories, setHierarchicalCategories] = useState<any[]>([])
   const [relatedProducts, setRelatedProducts] = useState<string[]>([])
@@ -149,14 +149,32 @@ export default function EditProductPage() {
       setSubCategory(p.subCategory || '')
       setSubSubCategory(p.subSubCategory || '')
       setImages(Array.isArray(p.images) ? p.images : [])
+      
+      // Load discount settings from badges
+      const discountBadge = Array.isArray(p.badges) ? p.badges.find((b: string) => typeof b === 'string' && b.includes('% OFF')) : null
+      if (discountBadge) {
+        const match = String(discountBadge).match(/(\d+)% OFF/)
+        if (match) {
+          setIsDiscounted(true)
+          setDiscountPercent(parseInt(match[1]))
+        }
+      } else {
+        setIsDiscounted(false)
+        setDiscountPercent(0)
+      }
+      
       const loadedVariants = Array.isArray(p.variants) ? p.variants : []
       setVariants(loadedVariants.map((v: any) => {
-        // Convert back to display unit: kg->kg, g->g (multiply by 1000), l->l, ml->ml (multiply by 1000), pcs/pack->as is
+        // Convert back to display unit: kg->kg, g->g (multiply by 1000), l->l, ml->ml (multiply by 1000), half_kg->half_kg (multiply by 2), quarter_kg->quarter_kg (multiply by 4), pcs/pack/unit->as is
         let displayWeight = v.unitWeight || 0
         if (v.unit === 'g') {
           displayWeight = (v.unitWeight || 0) * 1000 // Convert kg back to grams
         } else if (v.unit === 'ml') {
           displayWeight = (v.unitWeight || 0) * 1000 // Convert liters back to ml
+        } else if (v.unit === 'half_kg') {
+          displayWeight = (v.unitWeight || 0) * 2 // Convert kg back to half kg
+        } else if (v.unit === 'quarter_kg') {
+          displayWeight = (v.unitWeight || 0) * 4 // Convert kg back to quarter kg
         }
         return {
           _id: v._id || v.id,
@@ -207,8 +225,105 @@ export default function EditProductPage() {
     }
   }
 
+  // Convert unit to base unit (kg for weight, l for volume, or as-is for pcs/pack/unit)
+  function getBaseUnitWeight(unitWeight: number, unit: string): number {
+    if (unit === 'g') return unitWeight / 1000
+    if (unit === 'ml') return unitWeight / 1000
+    if (unit === 'half_kg') return unitWeight / 2
+    if (unit === 'quarter_kg') return unitWeight / 4
+    return unitWeight // kg, l, pcs, pack, unit stay as-is
+  }
+
+  // Check if units are compatible for proportional pricing (same category)
+  function areUnitsCompatible(unit1: string, unit2: string): boolean {
+    const weightUnits = ['kg', 'g', 'half_kg', 'quarter_kg']
+    const volumeUnits = ['l', 'ml']
+    const countUnits = ['pcs', 'pack', 'unit']
+    
+    const isWeight1 = weightUnits.includes(unit1)
+    const isWeight2 = weightUnits.includes(unit2)
+    const isVolume1 = volumeUnits.includes(unit1)
+    const isVolume2 = volumeUnits.includes(unit2)
+    const isCount1 = countUnits.includes(unit1)
+    const isCount2 = countUnits.includes(unit2)
+    
+    return (isWeight1 && isWeight2) || (isVolume1 && isVolume2) || (isCount1 && isCount2)
+  }
+
   function updateVariant(index: number, field: string, value: any) {
-    setVariants(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v))
+    setVariants(prev => {
+      const updated = prev.map((v, i) => {
+        if (i === index) {
+          const newVariant = { ...v, [field]: value }
+          
+          
+          // If unit or unitWeight changed, recalculate price/cost based on main variant
+          if (index > 0 && (field === 'unit' || field === 'unitWeight')) {
+            const mainVariant = prev[0]
+            if (mainVariant && mainVariant.pricePerKg !== undefined && mainVariant.pricePerKg !== null && mainVariant.pricePerKg > 0 && areUnitsCompatible(mainVariant.unit || 'kg', newVariant.unit || 'kg')) {
+              const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight || 1, mainVariant.unit || 'kg')
+              const newBaseWeight = getBaseUnitWeight(newVariant.unitWeight || 1, newVariant.unit || 'kg')
+              
+              if (mainBaseWeight > 0) {
+                const ratio = newBaseWeight / mainBaseWeight
+                newVariant.pricePerKg = Math.round((mainVariant.pricePerKg || 0) * ratio)
+                if (mainVariant.costPerKg && mainVariant.costPerKg > 0) {
+                  newVariant.costPerKg = Math.round(mainVariant.costPerKg * ratio)
+                }
+              }
+            }
+          }
+          
+          return newVariant
+        }
+        
+        // If main variant price/cost changed, update this variant proportionally
+        if (index === 0 && (field === 'pricePerKg' || field === 'costPerKg') && i > 0) {
+          const mainVariant = { ...prev[0], [field]: value }
+          if (mainVariant.pricePerKg !== undefined && areUnitsCompatible(mainVariant.unit || 'kg', v.unit || 'kg')) {
+            const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight || 1, mainVariant.unit || 'kg')
+            const variantBaseWeight = getBaseUnitWeight(v.unitWeight || 1, v.unit || 'kg')
+            
+            if (mainBaseWeight > 0) {
+              const ratio = variantBaseWeight / mainBaseWeight
+              if (field === 'pricePerKg' && mainVariant.pricePerKg !== undefined) {
+                return { ...v, pricePerKg: Math.round(mainVariant.pricePerKg * ratio) }
+              } else if (field === 'costPerKg' && mainVariant.costPerKg !== undefined) {
+                return { ...v, costPerKg: Math.round(mainVariant.costPerKg * ratio) }
+              }
+            }
+          }
+        }
+        
+        return v
+      })
+      
+      // After updating main variant price/cost, update all other variants
+      if (index === 0 && (field === 'pricePerKg' || field === 'costPerKg')) {
+        const mainVariant = updated[0]
+        if (mainVariant && mainVariant.pricePerKg !== undefined) {
+          return updated.map((v, i) => {
+            if (i === 0) return v
+            if (areUnitsCompatible(mainVariant.unit || 'kg', v.unit || 'kg')) {
+              const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight || 1, mainVariant.unit || 'kg')
+              const variantBaseWeight = getBaseUnitWeight(v.unitWeight || 1, v.unit || 'kg')
+              
+              if (mainBaseWeight > 0) {
+                const ratio = variantBaseWeight / mainBaseWeight
+                if (field === 'pricePerKg' && mainVariant.pricePerKg !== undefined) {
+                  return { ...v, pricePerKg: Math.round(mainVariant.pricePerKg * ratio) }
+                } else if (field === 'costPerKg' && mainVariant.costPerKg !== undefined) {
+                  return { ...v, costPerKg: Math.round((mainVariant.costPerKg || 0) * ratio) }
+                }
+              }
+            }
+            return v
+          })
+        }
+      }
+      
+      return updated
+    })
   }
 
   async function onSave() {
@@ -225,12 +340,18 @@ export default function EditProductPage() {
         // Convert unitWeight to base unit for storage:
         // - g -> kg (divide by 1000)
         // - ml -> l (divide by 1000)
-        // - kg, l, pcs, pack -> keep as is
+        // - half_kg -> kg (divide by 2)
+        // - quarter_kg -> kg (divide by 4)
+        // - kg, l, pcs, pack, unit -> keep as is
         let unitWeightInBaseUnit = v.unitWeight || 0
         if (v.unit === 'g') {
           unitWeightInBaseUnit = (v.unitWeight || 0) / 1000 // Convert grams to kg
         } else if (v.unit === 'ml') {
           unitWeightInBaseUnit = (v.unitWeight || 0) / 1000 // Convert ml to liters
+        } else if (v.unit === 'half_kg') {
+          unitWeightInBaseUnit = (v.unitWeight || 0) / 2 // Convert half kg to kg
+        } else if (v.unit === 'quarter_kg') {
+          unitWeightInBaseUnit = (v.unitWeight || 0) / 4 // Convert quarter kg to kg
         }
         
         return {
@@ -246,11 +367,29 @@ export default function EditProductPage() {
         }
       })
 
+      // Derive main price from first variant automatically
+      const firstVariant = processedVariants[0]
+      const unitLabels: Record<string, string> = {
+        kg: 'kg', g: 'g', half_kg: 'half kg', quarter_kg: 'quarter kg',
+        l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack', unit: 'unit'
+      }
+      const derivedMainPrice = firstVariant?.pricePerKg || null
+      const derivedMainPriceUnit = firstVariant?.unit ? (unitLabels[firstVariant.unit] || firstVariant.unit) : null
+
+      // Build badges array
+      const badges = ['Wholesale']
+      if (isDiscounted && discountPercent > 0) {
+        badges.push(`${discountPercent}% OFF`)
+      }
+
       const body: any = {
         title, slug, description, brand, category, 
         subCategory: subCategory || undefined,
         subSubCategory: subSubCategory || undefined,
         images,
+        badges,
+        mainPrice: derivedMainPrice || undefined,
+        mainPriceUnit: derivedMainPriceUnit || undefined,
         variants: processedVariants,
         relatedProducts: relatedProducts.filter(Boolean).map(id => String(id).trim()),
       }
@@ -453,54 +592,49 @@ export default function EditProductPage() {
               )}
             </div>
 
-            <div className="grid gap-2">
-              <label className="text-sm">Images (add by URL or /public path)</label>
-              <div className="flex items-center gap-2">
-                <select
-                  className="rounded-md border px-2 py-2 text-sm"
-                  value={imageSource}
-                  onChange={e => setImageSource(e.target.value as any)}
-                >
-                  <option value="public">Public folder (/path)</option>
-                  <option value="external">External URL (https://…)</option>
-                </select>
+            <ImageUpload
+              images={images}
+              onImagesChange={setImages}
+              label="Images"
+              multiple={true}
+            />
+          </div>
+
+          {/* Discount Settings */}
+          <div className="rounded-md border p-4 grid gap-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">Discount Settings</div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
-                  value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
-                  placeholder={imageSource === 'public' ? '/images/photo.jpg' : 'https://site.com/image.jpg'}
-                  className="flex-1 rounded-md border px-3 py-2 text-sm"
-                />
-                <button
-                  type="button"
-                  className="rounded-md bg-brand px-3 py-2 text-white text-sm"
-                  onClick={() => {
-                    const raw = imageUrl.trim()
-                    if (!raw) return
-                    const url = imageSource === 'public' ? (raw.startsWith('/') ? raw : `/${raw}`) : raw
-                    setImages(prev => [...prev, url])
-                    setImageUrl('')
+                  type="checkbox"
+                  checked={isDiscounted}
+                  onChange={e => {
+                    setIsDiscounted(e.target.checked)
+                    if (!e.target.checked) setDiscountPercent(0)
                   }}
-                >
-                  Add URL
-                </button>
-              </div>
-              {images.length > 0 && (
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {images.map((src, idx) => (
-                    <div key={src + idx} className="relative">
-                      <img src={src} className="h-24 w-full object-cover rounded border" />
-                      <button
-                        type="button"
-                        className="absolute top-1 right-1 bg-white/80 rounded px-1 text-xs"
-                        onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
-                      >
-                        remove
-                      </button>
-                    </div>
-                  ))}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm text-gray-700">Display as discounted product</span>
+              </label>
+              {isDiscounted && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-700">Discount:</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={discountPercent}
+                    onChange={e => setDiscountPercent(Number(e.target.value))}
+                    className="w-full rounded-md border px-3 py-2 text-sm w-24"
+                    placeholder="%"
+                  />
+                  <span className="text-sm text-gray-700">%</span>
                 </div>
               )}
             </div>
+            {isDiscounted && discountPercent > 0 && (
+              <p className="text-xs text-gray-500">Product will show "{discountPercent}% OFF" badge</p>
+            )}
           </div>
 
           <div className="rounded-md border p-4 grid gap-4">
@@ -514,7 +648,9 @@ export default function EditProductPage() {
             {variants.map((variant, idx) => (
               <div key={idx} className="rounded-md border p-3 bg-gray-50">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-xs font-medium text-slate-600">Variant {idx + 1}</div>
+                  <div className="text-xs font-medium text-slate-600">
+                    {idx === 0 ? 'Main Variant' : `Variant ${idx + 1}${idx > 0 ? ' (auto-calculated)' : ''}`}
+                  </div>
                   {variants.length > 1 && (
                     <button 
                       type="button" 
@@ -527,8 +663,9 @@ export default function EditProductPage() {
                   )}
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
+                  {/* 1. SKU */}
                   <div>
-                    <label className="text-sm">SKU</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">SKU</label>
                     <input 
                       value={variant.sku || ''} 
                       onChange={e => updateVariant(idx, 'sku', e.target.value)} 
@@ -536,55 +673,59 @@ export default function EditProductPage() {
                       placeholder="e.g. DAALMASH-10KG"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-sm">Unit Weight</label>
-                      <input 
-                        type="number" 
-                        value={variant.unitWeight || 0} 
-                        onChange={e => updateVariant(idx, 'unitWeight', Number(e.target.value))} 
-                        className="w-full rounded-md border px-3 py-2 text-sm" 
-                        placeholder="e.g. 10"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm">Unit</label>
-                      <select 
-                        value={variant.unit || 'kg'} 
-                        onChange={e => updateVariant(idx, 'unit', e.target.value as any)} 
-                        className="w-full rounded-md border px-3 py-2 text-sm"
-                      >
-                        <option value="kg">kg (Kilogram)</option>
-                        <option value="g">g (Gram)</option>
-                        <option value="l">l (Liter)</option>
-                        <option value="ml">ml (Milliliter)</option>
-                        <option value="pcs">pcs (Pieces)</option>
-                        <option value="pack">pack (Pack)</option>
-                      </select>
-                    </div>
-                  </div>
+                  
+                  {/* 2. Unit */}
                   <div>
-                    <label className="text-sm">Price per kg (Rs)</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">Unit</label>
+                    <select 
+                      value={variant.unit || 'kg'} 
+                      onChange={e => updateVariant(idx, 'unit', e.target.value as any)} 
+                      className="w-full rounded-md border px-3 py-2 text-sm"
+                    >
+                      <option value="kg">kg (Kilogram)</option>
+                      <option value="half_kg">half kg</option>
+                      <option value="quarter_kg">quarter kg</option>
+                      <option value="g">g (Gram)</option>
+                      <option value="l">l (Liter)</option>
+                      <option value="ml">ml (Milliliter)</option>
+                      <option value="pcs">pcs (Pieces)</option>
+                      <option value="pack">pack</option>
+                      <option value="unit">unit</option>
+                    </select>
+                  </div>
+                  
+                  {/* 3. Quantity (how many of that unit) */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                      Quantity {variant.unit === 'kg' || variant.unit === 'half_kg' || variant.unit === 'quarter_kg' || variant.unit === 'g' ? '(kg)' : variant.unit === 'l' || variant.unit === 'ml' ? '(liter)' : variant.unit === 'pcs' || variant.unit === 'pack' || variant.unit === 'unit' ? '(pieces)' : ''}
+                    </label>
+                    <input 
+                      type="number" 
+                      value={variant.unitWeight || 0} 
+                      onChange={e => updateVariant(idx, 'unitWeight', Number(e.target.value))} 
+                      className="w-full rounded-md border px-3 py-2 text-sm" 
+                      placeholder={`e.g. ${variant.unit === 'kg' ? '1' : variant.unit === 'g' ? '1000' : variant.unit === 'l' ? '1' : variant.unit === 'ml' ? '1000' : '1'}`}
+                    />
+                  </div>
+                  
+                  {/* 4. Price per selected unit */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                      Price per {variant.unit === 'kg' || variant.unit === 'half_kg' || variant.unit === 'quarter_kg' || variant.unit === 'g' ? 'kg' : variant.unit === 'l' || variant.unit === 'ml' ? 'liter' : variant.unit === 'pcs' || variant.unit === 'pack' || variant.unit === 'unit' ? 'unit' : 'unit'} (Rs)
+                      {idx > 0 && <span className="text-xs text-gray-500 ml-1">(auto, editable)</span>}
+                    </label>
                     <input 
                       type="number" 
                       value={variant.pricePerKg || 0} 
                       onChange={e => updateVariant(idx, 'pricePerKg', Number(e.target.value))} 
                       className="w-full rounded-md border px-3 py-2 text-sm" 
-                      placeholder="e.g. 150"
+                      placeholder="e.g. 5000"
                     />
                   </div>
+                  
+                  {/* 5. Stock */}
                   <div>
-                    <label className="text-sm">Cost per kg (Rs)</label>
-                    <input 
-                      type="number" 
-                      value={variant.costPerKg || 0} 
-                      onChange={e => updateVariant(idx, 'costPerKg', Number(e.target.value))} 
-                      className="w-full rounded-md border px-3 py-2 text-sm" 
-                      placeholder="e.g. 100 (for inventory investment)"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm">Stock qty</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">Stock qty</label>
                     <input 
                       type="number" 
                       value={variant.stockQty ?? 0} 
@@ -592,6 +733,23 @@ export default function EditProductPage() {
                       className="w-full rounded-md border px-3 py-2 text-sm" 
                       placeholder="e.g. 100"
                     />
+                  </div>
+                  
+                  {/* Cost (hidden by default, can be shown if needed) */}
+                  <div className="sm:col-span-2">
+                    <details className="text-xs text-gray-500">
+                      <summary className="cursor-pointer hover:text-gray-700">Advanced: Cost (Rs) - for internal profit tracking</summary>
+                      <div className="mt-2">
+                        <input 
+                          type="number" 
+                          value={variant.costPerKg || 0} 
+                          onChange={e => updateVariant(idx, 'costPerKg', Number(e.target.value))} 
+                          className="w-full rounded-md border px-3 py-2 text-sm" 
+                          placeholder="e.g. 4000 (optional)" 
+                        />
+                        {idx > 0 && <span className="text-xs text-gray-500 ml-1">(auto, editable)</span>}
+                      </div>
+                    </details>
                   </div>
                 </div>
               </div>

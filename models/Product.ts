@@ -3,7 +3,7 @@ import mongoose, { Schema, models, model } from 'mongoose'
 const VariantSchema = new Schema({
 	label: { type: String, required: true },
 	unitWeight: { type: Number, required: true },
-	unit: { type: String, enum: ['kg', 'g', 'l', 'ml', 'pcs', 'pack'], default: 'kg' }, // Unit types: kg, g, l, ml, pcs (pieces), pack
+	unit: { type: String, enum: ['kg', 'g', 'half_kg', 'quarter_kg', 'l', 'ml', 'pcs', 'pack', 'unit'], default: 'kg' }, // Unit types: kg, g, half_kg, quarter_kg, l, ml, pcs (pieces), pack, unit
 	sku: { type: String, required: true, unique: true },
 	pricePerKg: { type: Number, required: true }, // Base price per kg (for weight) or per liter (for volume) or per unit (for pcs/pack)
 	costPerKg: { type: Number, default: 0 }, // Cost per kg (for weight) or per liter (for volume) or per unit (for pcs/pack) - for inventory investment calculation
@@ -30,6 +30,8 @@ const ProductSchema = new Schema({
 	isWholesale: { type: Boolean, default: true },
 	inStock: { type: Boolean, default: true },
 	popularity: { type: Number, default: 0 },
+	mainPrice: { type: Number, default: null }, // Main display price for product detail page
+	mainPriceUnit: { type: String, default: null }, // Unit for main price (e.g., 'kg', 'half kg', 'unit', 'pcs')
 	variants: { type: [VariantSchema], default: [] },
 	tiers: { type: [TierSchema], default: [] },
 	relatedProducts: { 
