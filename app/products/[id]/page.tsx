@@ -44,6 +44,7 @@ export default function ProductDetailPage() {
 	const [reviews, setReviews] = useState<any>(null)
 	const [reviewsLoading, setReviewsLoading] = useState(false)
 	const [showShippingDialog, setShowShippingDialog] = useState(false)
+	const [stockError, setStockError] = useState<string>('')
 	const { add } = useCartStore()
 	const { status } = useSession()
 
@@ -115,8 +116,26 @@ export default function ProductDetailPage() {
 	}, [data, status])
 
 	const selectedVariant = useMemo(() => data?.variants?.find((v: any) => v.id === variantId || String(v._id) === variantId) ?? data?.variants?.[0], [data, variantId])
+	
+	// Reset quantity and clear error when variant changes
+	useEffect(() => {
+		if (selectedVariant) {
+			const variantStockQty = typeof (selectedVariant as any)?.stockQty === 'number' ? (selectedVariant as any).stockQty : undefined
+			const variantIsLowStock = variantStockQty !== undefined && variantStockQty > 0 && variantStockQty <= 10
+			if (variantIsLowStock && variantStockQty !== undefined) {
+				setQty(prevQty => {
+					if (prevQty > variantStockQty) {
+						return variantStockQty
+					}
+					return prevQty
+				})
+			}
+			setStockError('')
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedVariant?.id || selectedVariant?._id])
 
-	// Determine effective price/kg based on qty and tiers
+	// Determine effective price/kg based on qty and tiers - recalculates when variant changes
 	const effectivePricePerKg = useMemo(() => {
 		const base = selectedVariant?.pricePerKg ?? 0
 		const tiers = Array.isArray(data?.tiers) ? data.tiers : []
@@ -125,31 +144,58 @@ export default function ProductDetailPage() {
 		return tier?.pricePerKg ?? base
 	}, [data?.tiers, qty, selectedVariant])
 
-	// Calculate unit price
-	let displayUnitWeight = selectedVariant?.unitWeight || 0
-	if (selectedVariant?.unit === 'g') {
-		displayUnitWeight = (selectedVariant.unitWeight || 0) * 1000
-	} else if (selectedVariant?.unit === 'ml') {
-		displayUnitWeight = (selectedVariant.unitWeight || 0) * 1000
-	} else if (selectedVariant?.unit === 'half_kg') {
-		displayUnitWeight = (selectedVariant.unitWeight || 0) * 2
-	} else if (selectedVariant?.unit === 'quarter_kg') {
-		displayUnitWeight = (selectedVariant.unitWeight || 0) * 4
-	}
+	// Calculate unit price - recalculates when variant or qty changes
+	const unitPrice = useMemo(() => {
+		if (!selectedVariant) return 0
+		return Math.round(effectivePricePerKg * selectedVariant.unitWeight)
+	}, [effectivePricePerKg, selectedVariant])
 	
-	const unitPrice = selectedVariant ? Math.round(effectivePricePerKg * selectedVariant.unitWeight) : 0
+	// Calculate display unit weight for showing in product details
+	const displayUnitWeight = useMemo(() => {
+		if (!selectedVariant?.unitWeight) return 0
+		if (selectedVariant.unit === 'g') {
+			return (selectedVariant.unitWeight || 0) * 1000
+		} else if (selectedVariant.unit === 'ml') {
+			return (selectedVariant.unitWeight || 0) * 1000
+		} else if (selectedVariant.unit === 'half_kg') {
+			return (selectedVariant.unitWeight || 0) * 2
+		} else if (selectedVariant.unit === 'quarter_kg') {
+			return (selectedVariant.unitWeight || 0) * 4
+		}
+		return selectedVariant.unitWeight || 0
+	}, [selectedVariant])
+	
 	const stockQty = typeof (selectedVariant as any)?.stockQty === 'number' ? (selectedVariant as any).stockQty : undefined
 	const inStock = stockQty === undefined || stockQty > 0
+	const isLowStock = stockQty !== undefined && stockQty > 0 && stockQty <= 10
+	const maxQuantity = isLowStock ? stockQty : undefined
 
-	// Calculate discount if we have original price (for now, we'll use a placeholder)
-	const originalPrice = unitPrice * 1.3 // Placeholder - you can add originalPrice to your variant schema
-	const discount = originalPrice > unitPrice ? Math.round(((originalPrice - unitPrice) / originalPrice) * 100) : 0
+	// Check if product has discount badge (e.g., "23% OFF")
+	const discountBadge = Array.isArray(data?.badges) ? data.badges.find((b: string) => typeof b === 'string' && b.includes('% OFF')) : null
+	const discountPercent = discountBadge ? (() => {
+		const match = String(discountBadge).match(/(\d+)% OFF/)
+		return match ? parseInt(match[1]) : 0
+	})() : 0
+	
+	// Only calculate original price if discount badge exists - recalculates when unitPrice changes
+	const originalPrice = useMemo(() => {
+		return discountPercent > 0 ? Math.round(unitPrice / (1 - discountPercent / 100)) : unitPrice
+	}, [discountPercent, unitPrice])
 
 	const visibleThumbnails = data?.images?.slice(thumbnailStartIndex, thumbnailStartIndex + 3) || []
 	const canScrollLeft = thumbnailStartIndex > 0
 	const canScrollRight = data?.images && thumbnailStartIndex + 3 < data.images.length
 
 	async function onAdd() {
+		// Clear any previous error
+		setStockError('')
+		
+		// Check if stock is low and quantity exceeds available stock
+		if (isLowStock && stockQty !== undefined && qty > stockQty) {
+			setStockError(`Low stock! Only ${stockQty} ${stockQty === 1 ? 'item' : 'items'} available.`)
+			return
+		}
+		
 		try {
 			add({ productId: data.id || String(data._id), variantId: selectedVariant?.id || String(selectedVariant?._id), title: data.title, variantLabel: selectedVariant?.label, image: activeImg || data.images?.[0] || '', quantity: qty, unitPrice })
 			if (status === 'authenticated') {
@@ -287,7 +333,7 @@ export default function ProductDetailPage() {
 					{/* Pricing */}
 					<div className="space-y-2">
 						{/* Main Price - Show if available */}
-						{data.mainPrice && (
+						{data.mainPrice ? (
 							<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
 								<span className="text-2xl sm:text-3xl font-bold text-green-600">
 									{formatCurrencyPKR(data.mainPrice)}
@@ -297,28 +343,42 @@ export default function ProductDetailPage() {
 										</span>
 									)}
 								</span>
+								{discountPercent > 0 && originalPrice > unitPrice && (
+									<>
+										<span className="text-base sm:text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
+										<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-semibold rounded discount-badge">
+											-{discountPercent}%
+										</span>
+									</>
+								)}
+							</div>
+						) : (
+							/* Show selected variant price with price per unit info */
+							<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+								<div className="flex flex-col">
+									<span className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrencyPKR(unitPrice)}</span>
+									{selectedVariant && (
+										<span className="text-sm text-gray-600">
+											Price per {
+												selectedVariant.unit === 'kg' || selectedVariant.unit === 'half_kg' || selectedVariant.unit === 'quarter_kg' || selectedVariant.unit === 'g' 
+													? 'kg' 
+													: selectedVariant.unit === 'l' || selectedVariant.unit === 'ml' 
+														? 'liter' 
+														: 'unit'
+											}: {formatCurrencyPKR(effectivePricePerKg)}
+										</span>
+									)}
+								</div>
+								{discountPercent > 0 && originalPrice > unitPrice && (
+									<>
+										<span className="text-base sm:text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
+										<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-semibold rounded discount-badge">
+											-{discountPercent}%
+										</span>
+									</>
+								)}
 							</div>
 						)}
-						{/* Variant Price - Show if no main price or as secondary */}
-						<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-							{data.mainPrice ? (
-								<span className="text-base sm:text-lg text-gray-600">
-									Variant price: {formatCurrencyPKR(unitPrice)}
-								</span>
-							) : (
-								<>
-									<span className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrencyPKR(unitPrice)}</span>
-									{discount > 0 && (
-										<>
-											<span className="text-base sm:text-lg text-gray-400 line-through">{formatCurrencyPKR(originalPrice)}</span>
-											<span className="px-2 py-1 bg-green-100 text-green-700 text-xs sm:text-sm font-semibold rounded discount-badge">
-												-{discount}%
-											</span>
-										</>
-									)}
-								</>
-							)}
-						</div>
 					</div>
 
 					{/* Short Description */}
@@ -327,13 +387,23 @@ export default function ProductDetailPage() {
 						{data.description && data.description.length > 200 && '...'}
 					</div>
 
-					{/* Stock Status */}
-					<div className="flex items-center gap-2">
-						<Check className="h-5 w-5 text-green-600" />
-						<span className="text-sm font-medium text-gray-700">
-							{stockQty !== undefined ? `${stockQty} IN STOCK` : 'IN STOCK'}
-						</span>
-					</div>
+					{/* Stock Status - Only show if in stock, no numbers */}
+					{inStock && (
+						<div className="space-y-2">
+							<div className="flex items-center gap-2">
+								<Check className="h-5 w-5 text-green-600" />
+								<span className="text-sm font-medium text-gray-700">IN STOCK</span>
+							</div>
+							{/* Low Stock Warning - Only show if stock <= 10 */}
+							{stockQty !== undefined && stockQty > 0 && stockQty <= 10 && (
+								<div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200">
+									<span className="text-xs sm:text-sm font-medium text-yellow-800">
+										⚠️ Low stock! Only {stockQty} {stockQty === 1 ? 'item' : 'items'} remaining.
+									</span>
+								</div>
+							)}
+						</div>
+					)}
 
 					{/* Action Links */}
 					<div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm">
@@ -403,7 +473,10 @@ export default function ProductDetailPage() {
 						<label className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5 block">Quantity</label>
 						<div className="flex items-center gap-1.5 sm:gap-2">
 							<button 
-								onClick={() => setQty(Math.max(1, qty - 1))}
+								onClick={() => {
+									setQty(Math.max(1, qty - 1))
+									setStockError('')
+								}}
 								className="h-9 w-9 sm:h-10 sm:w-10  border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
 							>
 								<Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -411,17 +484,41 @@ export default function ProductDetailPage() {
 							<input 
 								type="number" 
 								min={1} 
+								max={maxQuantity}
 								value={qty} 
-								onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} 
+								onChange={(e) => {
+									const newQty = Math.max(1, Number(e.target.value))
+									if (maxQuantity && newQty > maxQuantity) {
+										setStockError(`Low stock! Only ${maxQuantity} ${maxQuantity === 1 ? 'item' : 'items'} available.`)
+										setQty(maxQuantity)
+									} else {
+										setQty(newQty)
+										setStockError('')
+									}
+								}} 
 								className="input-enhanced w-16 sm:w-20 text-center text-sm sm:text-base"
 							/>
 							<button 
-								onClick={() => setQty(qty + 1)}
-								className="h-9 w-9 sm:h-10 sm:w-10  border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+								onClick={() => {
+									if (maxQuantity && qty >= maxQuantity) {
+										setStockError(`Low stock! Only ${maxQuantity} ${maxQuantity === 1 ? 'item' : 'items'} available.`)
+									} else {
+										setQty(qty + 1)
+										setStockError('')
+									}
+								}}
+								disabled={maxQuantity !== undefined && qty >= maxQuantity}
+								className="h-9 w-9 sm:h-10 sm:w-10  border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 							</button>
 						</div>
+						{/* Stock Error Message */}
+						{stockError && (
+							<div className="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded">
+								<span className="text-xs sm:text-sm font-medium text-red-800">{stockError}</span>
+							</div>
+						)}
 					</div>
 
 					{/* Add to Cart and Wishlist */}
