@@ -3,7 +3,7 @@ import { productsQuerySchema, productCreateSchema } from '@/app/lib/validators'
 import { connectToDatabase } from '@/app/lib/mongodb'
 import Product from '@/models/Product'
 import { auth } from '@/app/lib/auth'
-import { isAdmin } from '@/app/lib/roles'
+import { isAdminAsync } from '@/app/lib/roles'
 
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
 	try {
 		await connectToDatabase()
 		const session = await auth()
-		if (!isAdmin(session)) return json(false, 'Unauthorized', undefined, undefined, 401)
+		if (!(await isAdminAsync(session))) return json(false, 'Unauthorized', undefined, undefined, 401)
 		const body = await req.json()
 		const parsed = productCreateSchema.safeParse(body)
 		if (!parsed.success) {

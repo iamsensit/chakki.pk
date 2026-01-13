@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { idParamSchema, productUpdateSchema } from '@/app/lib/validators'
 import { connectToDatabase } from '@/app/lib/mongodb'
 import Product from '@/models/Product'
+import { auth } from '@/app/lib/auth'
+import { isAdminAsync } from '@/app/lib/roles'
 
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
@@ -44,6 +46,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
 	try {
 		await connectToDatabase()
+		const session = await auth()
+		if (!(await isAdminAsync(session))) return json(false, 'Unauthorized', undefined, undefined, 401)
+		
 		const idParsed = idParamSchema.safeParse({ id: params.id })
 		if (!idParsed.success) return json(false, 'Invalid id', undefined, idParsed.error.flatten(), 400)
 		const body = await req.json()
@@ -93,6 +98,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
 	try {
 		await connectToDatabase()
+		const session = await auth()
+		if (!(await isAdminAsync(session))) return json(false, 'Unauthorized', undefined, undefined, 401)
+		
 		const parsed = idParamSchema.safeParse({ id: params.id })
 		if (!parsed.success) return json(false, 'Invalid id', undefined, parsed.error.flatten(), 400)
 		await Product.findByIdAndDelete(parsed.data.id)
