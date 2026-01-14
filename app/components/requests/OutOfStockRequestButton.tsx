@@ -54,7 +54,7 @@ export default function OutOfStockRequestButton({
 		<button
 			onClick={handleRequest}
 			disabled={requesting}
-			className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-medium transition-colors"
+			className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-brand-accent hover:bg-brand disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-medium transition-colors"
 		>
 			<Package className="h-3 w-3 sm:h-4 sm:w-4" />
 			{requesting ? 'Submitting...' : 'Request This Product to Be Restocked'}

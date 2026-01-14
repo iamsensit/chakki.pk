@@ -122,7 +122,7 @@ function ResetPasswordContent() {
 						</p>
 						<Link
 							href="/auth/forgot-password"
-							className="inline-flex items-center gap-2 text-sm font-medium text-brand-accent hover:text-orange-600 transition-colors"
+							className="inline-flex items-center gap-2 text-sm font-medium text-brand-accent hover:text-brand transition-colors"
 						>
 							Request New Reset Link
 						</Link>
@@ -195,7 +195,7 @@ function ResetPasswordContent() {
 						<button 
 							type="submit"
 							disabled={loading}
-							className="w-full bg-brand-accent hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+							className="w-full bg-brand-accent hover:bg-brand text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
 						>
 							{loading ? (
 								<>

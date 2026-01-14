@@ -1488,7 +1488,7 @@ export default function DeliveryManagementPage() {
 							<button
 								onClick={saveArea}
 								disabled={!selectedCity || selectedSocieties.length === 0}
-								className="flex items-center gap-2 rounded-lg bg-brand-accent px-6 py-3 text-white font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+								className="flex items-center gap-2 rounded-lg bg-brand-accent px-6 py-3 text-white font-medium hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
 							>
 								<Save className="h-4 w-4" />
 								Save Delivery Area

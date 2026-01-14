@@ -188,7 +188,7 @@ export default function AccountClient() {
 							{!editingName && name && (
 								<button
 									onClick={() => setEditingName(true)}
-									className="text-sm text-brand-accent hover:text-orange-600 flex items-center gap-1.5 font-medium transition-colors"
+									className="text-sm text-brand-accent hover:text-brand flex items-center gap-1.5 font-medium transition-colors"
 									title="Edit name"
 								>
 									<Edit2 className="h-4 w-4" />

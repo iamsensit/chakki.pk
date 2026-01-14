@@ -128,7 +128,7 @@ function VerifyEmailForm() {
 						<button
 							type="submit"
 							disabled={loading}
-							className="w-full bg-brand-accent hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+							className="w-full bg-brand-accent hover:bg-brand text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
 						>
 							{loading ? (
 								<>

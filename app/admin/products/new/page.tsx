@@ -326,8 +326,28 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 						<input value={slug} onChange={e => setSlug(e.target.value)} className="input-enhanced" placeholder="auto-generated-from-title or enter manually" />
 					</div>
 					<div className="grid gap-2">
-						<label className="text-sm font-medium text-gray-700 mb-1.5 block">Description</label>
-						<textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="input-enhanced resize-none" placeholder="Short product description" />
+						<label className="text-sm font-medium text-gray-700 mb-1.5 block">
+							Description
+							<span className="text-xs text-gray-500 font-normal ml-2">(Press Enter for new lines)</span>
+						</label>
+						<textarea 
+							value={description} 
+							onChange={e => setDescription(e.target.value)}
+							onKeyDown={e => {
+								// Allow Enter key to create new lines
+								if (e.key === 'Enter' && !e.shiftKey) {
+									// Shift+Enter for new line, Enter alone also works in textarea
+									// This is default behavior, but we ensure it works
+								}
+							}}
+							rows={8} 
+							className="input-enhanced resize-y min-h-[120px] font-mono text-sm" 
+							placeholder="Enter product description here...&#10;Press Enter for new lines.&#10;You can format with line breaks."
+							style={{ whiteSpace: 'pre-wrap' }}
+						/>
+						<div className="text-xs text-gray-500 mt-1">
+							{description.length} characters
+						</div>
 					</div>
 					<div className="grid gap-2">
 						<div>

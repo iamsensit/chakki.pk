@@ -228,7 +228,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 				{/* Add to Cart Button */}
 				<button
 					onClick={handleAddToCart}
-					className="w-full bg-brand-accent hover:bg-orange-600 text-white text-xs sm:text-sm font-medium py-1.5 sm:py-2 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
+					className="w-full bg-brand-accent hover:bg-brand text-white text-xs sm:text-sm font-medium py-1.5 sm:py-2 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
 				>
 					<ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 					<span className="hidden xs:inline">ADD TO CART</span>

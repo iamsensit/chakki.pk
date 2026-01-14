@@ -391,7 +391,7 @@ export default function ProductDetailPage() {
 					</div>
 
 					{/* Short Description */}
-					<div className="text-gray-600 leading-relaxed">
+					<div className="text-gray-600 leading-relaxed whitespace-pre-line">
 						{data.description?.substring(0, 200) || 'No description available.'}
 						{data.description && data.description.length > 200 && '...'}
 					</div>
@@ -701,7 +701,14 @@ export default function ProductDetailPage() {
 				<div className="mt-4 sm:mt-6">
 					{activeTab === 'description' && (
 						<div className="prose max-w-none">
-							<p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-line">{data.description || 'No description available.'}</p>
+							<div className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-line">
+								{data.description?.split('\n').map((line: string, idx: number) => (
+									<span key={idx}>
+										{line}
+										{idx < data.description.split('\n').length - 1 && <br />}
+									</span>
+								)) || 'No description available.'}
+							</div>
 							{/* Product Highlights */}
 							{selectedVariant && (
 								<div className="mt-6">

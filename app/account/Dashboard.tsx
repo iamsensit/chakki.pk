@@ -139,7 +139,7 @@ function CartPanel() {
 			<div className="p-4 sm:p-6">
 				<a 
 					href="/checkout" 
-					className="block w-full text-center  bg-brand-accent px-6 py-3.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+					className="block w-full text-center  bg-brand-accent px-6 py-3.5 text-sm font-medium text-white hover:bg-brand transition-colors"
 				>
 					Go to checkout
 				</a>
@@ -171,8 +171,8 @@ export default function Dashboard() {
 							onClick={() => setTab(id)} 
 							className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors  ${
 								tab === id 
-									? 'bg-brand-accent text-white hover:bg-orange-600' 
-									: 'text-slate-700 hover:bg-orange-50 hover:text-brand-accent'
+									? 'bg-brand-accent text-white hover:bg-brand' 
+									: 'text-slate-700 hover:bg-brand-light hover:text-brand-accent'
 							}`}
 						>
 							<Icon className="h-5 w-5" /> 

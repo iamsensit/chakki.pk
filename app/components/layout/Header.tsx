@@ -497,7 +497,7 @@ export default function Header() {
 						<button 
 							type="submit"
 							form="search-form"
-							className="px-3 sm:px-4 py-2 sm:py-2.5 bg-brand-accent hover:bg-orange-600 transition-colors flex-shrink-0 relative z-10"
+							className="px-3 sm:px-4 py-2 sm:py-2.5 bg-brand-accent hover:bg-brand transition-colors flex-shrink-0 relative z-10"
 						>
 							<Search className="h-4 w-4 sm:h-5 sm:w-5 text-white" strokeWidth={2} />
 						</button>

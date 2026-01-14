@@ -510,7 +510,7 @@ export default function CheckoutPage() {
 													setForm({ ...form, phone: userProfile.phone || '' })
 													setPhoneSaved(false)
 												}}
-												className="mt-1 flex items-center gap-1 text-brand-accent hover:text-orange-600 transition-colors"
+												className="mt-1 flex items-center gap-1 text-brand-accent hover:text-brand transition-colors"
 												title="Edit phone number"
 											>
 												<Edit2 className="h-3.5 w-3.5" />
@@ -608,7 +608,7 @@ export default function CheckoutPage() {
 									<div className="mt-2 flex items-center gap-2">
 										<Link
 											href="/change-location?redirect=/checkout"
-											className="flex items-center gap-1.5 text-sm text-brand-accent hover:text-orange-600 transition-colors"
+											className="flex items-center gap-1.5 text-sm text-brand-accent hover:text-brand transition-colors"
 										>
 											<MapPin className="h-4 w-4" />
 											<span>Update location</span>
@@ -773,7 +773,7 @@ export default function CheckoutPage() {
 												onClick={() => {
 													setShowPaymentMethodDialog(true)
 												}}
-												className="flex items-center gap-1.5 text-xs text-brand-accent hover:text-orange-600 transition-colors mt-2"
+												className="flex items-center gap-1.5 text-xs text-brand-accent hover:text-brand transition-colors mt-2"
 											>
 												<CreditCard className="h-3.5 w-3.5" />
 												<span>Change payment method</span>
@@ -1117,7 +1117,7 @@ export default function CheckoutPage() {
 															setShowPaymentMethodDialog(false)
 															setShowPaymentDetailsDialog(true)
 														}}
-														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
+														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-brand-light  transition-colors"
 														title="Edit"
 													>
 														<Edit2 className="h-4 w-4" />
@@ -1214,7 +1214,7 @@ export default function CheckoutPage() {
 															setShowPaymentMethodDialog(false)
 															setShowPaymentDetailsDialog(true)
 														}}
-														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
+														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-brand-light  transition-colors"
 														title="Edit"
 													>
 														<Edit2 className="h-4 w-4" />
@@ -1328,7 +1328,7 @@ export default function CheckoutPage() {
 															setShowPaymentMethodDialog(false)
 															setShowPaymentDetailsDialog(true)
 														}}
-														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
+														className="p-2 text-gray-600 hover:text-brand-accent hover:bg-brand-light  transition-colors"
 														title="Edit"
 													>
 														<Edit2 className="h-4 w-4" />

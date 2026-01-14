@@ -171,7 +171,7 @@ export default function PaymentMethodsClient() {
 						setNewPaymentData({ bankName: '', accountName: '', accountNumber: '' })
 						setShowAddPaymentDialog(true)
 					}}
-					className="inline-flex items-center justify-center gap-2  bg-brand-accent px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+					className="inline-flex items-center justify-center gap-2  bg-brand-accent px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white hover:bg-brand transition-colors"
 				>
 					<Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 					<span className="hidden sm:inline">Add new payment method</span>
@@ -204,7 +204,7 @@ export default function PaymentMethodsClient() {
 										})
 										setShowAddPaymentDialog(true)
 									}}
-									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
+									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-brand-light  transition-colors"
 									title="Edit"
 								>
 									<Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -250,7 +250,7 @@ export default function PaymentMethodsClient() {
 										})
 										setShowAddPaymentDialog(true)
 									}}
-									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
+									className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-brand-light  transition-colors"
 									title="Edit"
 								>
 									<Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -306,7 +306,7 @@ export default function PaymentMethodsClient() {
 												})
 												setShowAddPaymentDialog(true)
 											}}
-											className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-orange-50  transition-colors"
+											className="p-1.5 sm:p-2 text-slate-600 hover:text-brand-accent hover:bg-brand-light  transition-colors"
 											title="Edit"
 										>
 											<Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -509,7 +509,7 @@ export default function PaymentMethodsClient() {
 												</button>
 												<button 
 													onClick={savePaymentMethod}
-													className="flex-1 h-11 sm:h-[50px]  bg-brand-accent px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
+													className="flex-1 h-11 sm:h-[50px]  bg-brand-accent px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-brand transition-colors disabled:opacity-50"
 													disabled={submitting}
 												>
 													{submitting ? (isEditing || editingIndex !== null ? 'Updating...' : 'Saving...') : (isEditing || editingIndex !== null ? 'Update' : 'Save')}

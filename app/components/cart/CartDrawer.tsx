@@ -142,7 +142,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 									<Link
 										href="/products"
 										onClick={onClose}
-										className="mt-6 px-6 py-3 bg-brand-accent text-white  font-medium hover:bg-orange-600 transition-colors"
+										className="mt-6 px-6 py-3 bg-brand-accent text-white  font-medium hover:bg-brand transition-colors"
 									>
 										Start Shopping
 									</Link>
@@ -199,14 +199,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 										<Link
 											href="/checkout"
 											onClick={onClose}
-											className="block w-full text-center py-3.5 bg-brand-accent text-white  font-medium hover:bg-orange-600 transition-colors"
+											className="block w-full text-center py-3.5 bg-brand-accent text-white  font-medium hover:bg-brand transition-colors"
 										>
 											Proceed to Checkout
 										</Link>
 										<Link
 											href="/cart"
 											onClick={onClose}
-											className="block w-full text-center py-2.5 text-brand-accent font-medium hover:bg-orange-50  transition-colors"
+											className="block w-full text-center py-2.5 text-brand-accent font-medium hover:bg-brand-light  transition-colors"
 										>
 											View Full Cart
 										</Link>

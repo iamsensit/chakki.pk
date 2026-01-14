@@ -177,7 +177,7 @@ body {
 	
 	.btn-primary {
 		@apply inline-flex items-center justify-center gap-2 bg-brand-accent px-4 py-2 text-sm font-medium text-white;
-		@apply transition-all duration-300 hover:bg-orange-600 hover:shadow-md active:scale-[0.97] transform;
+		@apply transition-all duration-300 hover:bg-brand hover:shadow-md active:scale-[0.97] transform;
 		@apply focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:ring-offset-2;
 		@apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
 		@apply whitespace-nowrap;
@@ -192,7 +192,7 @@ body {
 	
 	.btn-large {
 		@apply inline-flex items-center justify-center gap-2 bg-brand-accent px-5 py-2.5 text-sm font-medium text-white;
-		@apply transition-all duration-300 hover:bg-orange-600 hover:shadow-lg active:scale-[0.97] transform;
+		@apply transition-all duration-300 hover:bg-brand hover:shadow-lg active:scale-[0.97] transform;
 		@apply focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:ring-offset-2;
 		@apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
 	}

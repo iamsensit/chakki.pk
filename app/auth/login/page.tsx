@@ -164,7 +164,7 @@ function LoginForm() {
 								<label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
 									Password
 								</label>
-								<Link href="/auth/forgot-password" className="text-xs text-brand-accent hover:text-orange-600 transition-colors">
+								<Link href="/auth/forgot-password" className="text-xs text-brand-accent hover:text-brand transition-colors">
 									Forgot password?
 								</Link>
 							</div>
@@ -222,7 +222,7 @@ function LoginForm() {
 										const url = email ? `/auth/verify-email?email=${encodeURIComponent(email)}` : '/auth/verify-email'
 										router.push(url as any)
 									}}
-									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-3 py-2 text-white text-sm hover:bg-orange-600"
+									className="inline-flex items-center gap-2 rounded-md bg-brand-accent px-3 py-2 text-white text-sm hover:bg-brand"
 								>
 									Verify now
 								</button>
@@ -288,7 +288,7 @@ function LoginForm() {
 					<div className="mt-6 text-center">
 						<p className="text-sm text-gray-600">
 							Don't have an account?{' '}
-							<Link href={`/auth/signup${searchParams.get('callbackUrl') ? `?callbackUrl=${encodeURIComponent(searchParams.get('callbackUrl')!)}` : ''}` as any} className="font-medium text-brand-accent hover:text-orange-600 transition-colors">
+							<Link href={`/auth/signup${searchParams.get('callbackUrl') ? `?callbackUrl=${encodeURIComponent(searchParams.get('callbackUrl')!)}` : ''}` as any} className="font-medium text-brand-accent hover:text-brand transition-colors">
 								Sign up
 							</Link>
 						</p>

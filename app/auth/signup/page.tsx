@@ -205,7 +205,7 @@ function SignupForm() {
 							Already have an account?{' '}
 							<Link 
 								href={`/auth/login${searchParams.get('callbackUrl') ? `?callbackUrl=${encodeURIComponent(searchParams.get('callbackUrl')!)}` : ''}` as any} 
-								className="font-medium text-brand-accent hover:text-orange-600 transition-colors"
+								className="font-medium text-brand-accent hover:text-brand transition-colors"
 							>
 								Sign in
 							</Link>

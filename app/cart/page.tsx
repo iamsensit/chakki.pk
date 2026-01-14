@@ -101,7 +101,7 @@ export default function CartPage() {
 						<div className="text-[10px] sm:text-xs md:text-base font-medium text-slate-600">Subtotal</div>
 						<div className="font-semibold text-[10px] sm:text-sm md:text-lg text-slate-900">{formatCurrencyPKR(total)}</div>
 					</div>
-					<Link href="/checkout" className="block w-full mt-1.5 sm:mt-3 md:mt-4 bg-brand-accent hover:bg-orange-600 text-white font-medium text-center py-1.5 sm:py-2.5 md:py-3.5 text-[10px] sm:text-xs md:text-base transition-colors active:bg-orange-700 touch-manipulation">
+					<Link href="/checkout" className="block w-full mt-1.5 sm:mt-3 md:mt-4 bg-brand-accent hover:bg-brand text-white font-medium text-center py-1.5 sm:py-2.5 md:py-3.5 text-[10px] sm:text-xs md:text-base transition-colors active:bg-brand-dark touch-manipulation">
 						Go to checkout
 					</Link>
 				</div>

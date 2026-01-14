@@ -153,7 +153,7 @@ export default function Footer() {
 						{!isInstalled && isInstallable && (
 							<button
 								onClick={handleInstallClick}
-								className="flex items-center gap-2 px-4 py-2 bg-brand-accent hover:bg-orange-600 text-white text-sm font-medium transition-colors mb-4"
+								className="flex items-center gap-2 px-4 py-2 bg-brand-accent hover:bg-brand text-white text-sm font-medium transition-colors mb-4"
 							>
 								<Download className="h-4 w-4" />
 								<span>Install App</span>
