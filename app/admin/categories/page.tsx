@@ -70,7 +70,7 @@ export default function CategoriesAdminPage() {
         body: JSON.stringify({ 
           name: newName, 
           slug,
-          image: row.image || '', 
+          image: (row.image && row.image.trim()) ? row.image.trim() : '', 
           description: row.description || '',
           displayOrder: row.displayOrder ?? 1000, 
           isActive: row.isActive !== false,

@@ -8,8 +8,11 @@ export default function CategorySlider({ categories, categoryImages }: { categor
 		<div className="relative md:px-0 px-6 pt-0">
 			<div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth" id="categories-slider">
 				{categories.map((cat: any) => {
-					const catNameLower = cat.name.toLowerCase()
-					const imageUrl = cat.image || categoryImages[catNameLower] || '/categories/default.jpg'
+					const catNameLower = cat.name ? cat.name.toLowerCase().trim() : ''
+					// Prioritize database image, then fallback to categoryImages map, then default
+					const imageUrl = (cat.image && cat.image.trim()) 
+						? cat.image.trim() 
+						: (categoryImages[catNameLower] || '/categories/default.jpg')
 					return (
 						<Link
 							key={cat.name}

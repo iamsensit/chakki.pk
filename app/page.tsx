@@ -9,27 +9,53 @@ import ServiceMarquee from '@/app/components/home/ServiceMarquee'
 async function fetchCategories() {
 	try {
 		await connectToDatabase()
-		const dbCategories = await Category.find({}).lean()
-		const productCategories = await Product.distinct('category')
+		// Only fetch top-level categories (level 0 or no parentCategory)
+		const dbCategories = await Category.find({
+			$or: [
+				{ level: 0 },
+				{ level: { $exists: false } },
+				{ parentCategory: { $exists: false } },
+				{ parentCategory: null }
+			],
+			isActive: { $ne: false }
+		}).lean()
 		
+		// Build category map with proper image handling
 		const categoryMap = new Map()
 		dbCategories.forEach((cat: any) => {
 			if (cat.name && !Array.isArray(cat)) {
-				categoryMap.set(cat.name.toLowerCase(), {
-					name: String(cat.name),
-					image: cat.image ? String(cat.image) : '',
+				const catNameLower = cat.name.toLowerCase().trim()
+				// Preserve image if it exists, even if empty string
+				const imageUrl = cat.image ? String(cat.image).trim() : ''
+				categoryMap.set(catNameLower, {
+					name: String(cat.name).trim(),
+					image: imageUrl,
 					displayOrder: Number(cat.displayOrder || 0)
 				})
 			}
 		})
 		
+		// Only add product-derived categories if they don't exist in admin categories
+		// and only if they're top-level (not sub-categories from products)
+		const productCategories = await Product.distinct('category')
 		for (const catName of productCategories) {
-			if (catName && !categoryMap.has(String(catName).toLowerCase())) {
-				categoryMap.set(String(catName).toLowerCase(), {
-					name: String(catName),
-					image: '',
-					displayOrder: 999
-				})
+			if (catName) {
+				const catNameLower = String(catName).toLowerCase().trim()
+				if (!categoryMap.has(catNameLower)) {
+					// Only add if it's not a sub-category (check if it exists as a sub-category in DB)
+					const existsAsSub = await Category.findOne({
+						name: { $regex: new RegExp(`^${String(catName).trim()}$`, 'i') },
+						level: { $gt: 0 }
+					}).lean()
+					
+					if (!existsAsSub) {
+						categoryMap.set(catNameLower, {
+							name: String(catName).trim(),
+							image: '',
+							displayOrder: 999
+						})
+					}
+				}
 			}
 		}
 		

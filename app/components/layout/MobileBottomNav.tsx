@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Search, ShoppingCart, User, Menu, X, ClipboardList, Monitor, Phone, HelpCircle, Carrot, Power, MapPin } from 'lucide-react'
+import { Home, Search, ShoppingCart, User, Menu, X, ClipboardList, Monitor, Phone, HelpCircle, Carrot, Power, MapPin, Settings } from 'lucide-react'
 import { useCartStore } from '@/store/cart'
 import { useSession, signOut } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
 export default function MobileBottomNav() {
@@ -16,9 +16,24 @@ export default function MobileBottomNav() {
 	const { data: session, status } = useSession()
 	const isAuthenticated = status === 'authenticated'
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+	const [isAdmin, setIsAdmin] = useState(false)
+
+	// Check admin status
+	useEffect(() => {
+		if (status === 'authenticated') {
+			fetch('/api/account', { cache: 'no-store' })
+				.then(res => res.json())
+				.then(json => {
+					if (json?.data?.isAdmin) setIsAdmin(true)
+				})
+				.catch(() => setIsAdmin(false))
+		} else {
+			setIsAdmin(false)
+		}
+	}, [status])
 	
-	// Don't show on admin pages or auth pages
-	if (pathname?.startsWith('/admin') || pathname?.startsWith('/auth')) {
+	// Don't show on auth pages (but allow on admin pages)
+	if (pathname?.startsWith('/auth')) {
 		return null
 	}
 	
@@ -133,6 +148,12 @@ export default function MobileBottomNav() {
 										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
 											<User className="h-5 w-5" />
 											<span className="font-semibold">My Profile</span>
+										</Link>
+									)}
+									{isAdmin && (
+										<Link href="/admin" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>
+											<Settings className="h-5 w-5" />
+											<span className="font-semibold">Admin Panel</span>
 										</Link>
 									)}
 									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileMenuOpen(false)}>

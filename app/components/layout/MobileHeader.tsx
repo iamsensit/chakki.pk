@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, MapPin } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,8 +13,23 @@ import { X, User, ClipboardList, Monitor, Phone, HelpCircle, Carrot, Power, Sett
 export default function MobileHeader() {
 	const { data: session, status } = useSession()
 	const [mobileOpen, setMobileOpen] = useState(false)
+	const [isAdmin, setIsAdmin] = useState(false)
 	const pathname = usePathname()
 	const router = useRouter()
+
+	// Check admin status
+	useEffect(() => {
+		if (status === 'authenticated') {
+			fetch('/api/account', { cache: 'no-store' })
+				.then(res => res.json())
+				.then(json => {
+					if (json?.data?.isAdmin) setIsAdmin(true)
+				})
+				.catch(() => setIsAdmin(false))
+		} else {
+			setIsAdmin(false)
+		}
+	}, [status])
 
 	return (
 		<>
@@ -105,6 +120,12 @@ export default function MobileHeader() {
 										<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
 											<User className="h-5 w-5" />
 											<span className="font-semibold">My Profile</span>
+										</Link>
+									)}
+									{isAdmin && (
+										<Link href="/admin" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>
+											<Settings className="h-5 w-5" />
+											<span className="font-semibold">Admin Panel</span>
 										</Link>
 									)}
 									<Link href="/account" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50  transition-colors" onClick={() => setMobileOpen(false)}>

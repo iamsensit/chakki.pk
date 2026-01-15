@@ -291,13 +291,18 @@ export async function POST(req: NextRequest) {
       }
       const existing = await Category.findOne(existingQuery)
       if (existing) {
+        // Preserve existing image if not provided in update
+        const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
+          ? String(image).trim() 
+          : (existing.image ? String(existing.image).trim() : '')
+        
         // Update the category name
         const updated = await Category.findByIdAndUpdate(
           existing._id,
           { 
             name: newName, 
             slug: categorySlug, 
-            image: String(image || ''), 
+            image: imageToSave, 
             description: String(description || ''),
             displayOrder: Number(displayOrder) || 1000, 
             isActive: !!isActive,
@@ -334,12 +339,18 @@ export async function POST(req: NextRequest) {
       query.$or = [{ parentCategory: null }, { parentCategory: { $exists: false } }]
     }
     
+    // Find existing category to preserve image if not provided
+    const existing = await Category.findOne(query).lean()
+    const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
+      ? String(image).trim() 
+      : (existing && (existing as any).image ? String((existing as any).image).trim() : '')
+    
     const updated = await Category.findOneAndUpdate(
       query,
       { 
         name: newName, 
         slug: categorySlug, 
-        image: String(image || ''), 
+        image: imageToSave, 
         description: String(description || ''),
         displayOrder: Number(displayOrder) || 1000, 
         isActive: !!isActive,
