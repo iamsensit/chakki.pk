@@ -291,10 +291,15 @@ export async function POST(req: NextRequest) {
       }
       const existing = await Category.findOne(existingQuery)
       if (existing) {
-        // Preserve existing image if not provided in update
-        const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
-          ? String(image).trim() 
-          : (existing.image ? String(existing.image).trim() : '')
+        // Handle image: if provided (even if empty string), use it; if not provided (undefined), preserve existing
+        let imageToSave = ''
+        if (image !== undefined && image !== null) {
+          // Image is explicitly provided - use it (even if empty string to clear image)
+          imageToSave = String(image).trim()
+        } else {
+          // Image not provided in request - preserve existing
+          imageToSave = existing.image ? String(existing.image).trim() : ''
+        }
         
         // Update the category name
         const updated = await Category.findByIdAndUpdate(
@@ -341,9 +346,16 @@ export async function POST(req: NextRequest) {
     
     // Find existing category to preserve image if not provided
     const existing = await Category.findOne(query).lean()
-    const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
-      ? String(image).trim() 
-      : (existing && (existing as any).image ? String((existing as any).image).trim() : '')
+    
+    // Handle image: if provided (even if empty string), use it; if not provided (undefined), preserve existing
+    let imageToSave = ''
+    if (image !== undefined && image !== null) {
+      // Image is explicitly provided - use it (even if empty string to clear image)
+      imageToSave = String(image).trim()
+    } else {
+      // Image not provided in request - preserve existing
+      imageToSave = (existing && (existing as any).image) ? String((existing as any).image).trim() : ''
+    }
     
     const updated = await Category.findOneAndUpdate(
       query,

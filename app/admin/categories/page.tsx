@@ -70,7 +70,7 @@ export default function CategoriesAdminPage() {
         body: JSON.stringify({ 
           name: newName, 
           slug,
-          image: (row.image && row.image.trim()) ? row.image.trim() : '', 
+          image: row.image ? String(row.image).trim() : '', 
           description: row.description || '',
           displayOrder: row.displayOrder ?? 1000, 
           isActive: row.isActive !== false,
@@ -101,7 +101,7 @@ export default function CategoriesAdminPage() {
         body: JSON.stringify({ 
           name: newCategory.name.trim(), 
           slug,
-          image: newCategory.image || '', 
+          image: newCategory.image ? String(newCategory.image).trim() : '', 
           description: newCategory.description || '',
           displayOrder: newCategory.displayOrder ?? 1000, 
           isActive: true,
