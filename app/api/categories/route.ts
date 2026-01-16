@@ -347,15 +347,26 @@ export async function POST(req: NextRequest) {
     // Find existing category to preserve image if not provided
     const existing = await Category.findOne(query).lean()
     
-    // Handle image: if provided (even if empty string), use it; if not provided (undefined), preserve existing
+    // Handle image: always use provided image if it exists, otherwise preserve existing
     let imageToSave = ''
-    if (image !== undefined && image !== null) {
-      // Image is explicitly provided - use it (even if empty string to clear image)
+    if (image !== undefined && image !== null && String(image).trim() !== '') {
+      // Image is provided and not empty - use it
       imageToSave = String(image).trim()
+    } else if (existing && (existing as any).image && String((existing as any).image).trim() !== '') {
+      // No image provided or empty - preserve existing if it exists
+      imageToSave = String((existing as any).image).trim()
     } else {
-      // Image not provided in request - preserve existing
-      imageToSave = (existing && (existing as any).image) ? String((existing as any).image).trim() : ''
+      // No image provided and no existing image - save empty
+      imageToSave = ''
     }
+    
+    // Log for debugging (only log first 100 chars of image to avoid console spam)
+    console.log('Category save - image handling:', { 
+      provided: image ? (typeof image === 'string' && image.length > 100 ? image.substring(0, 100) + '...' : image) : null, 
+      existing: existing ? ((existing as any).image && String((existing as any).image).length > 100 ? String((existing as any).image).substring(0, 100) + '...' : (existing as any).image) : null, 
+      final: imageToSave ? (imageToSave.length > 100 ? imageToSave.substring(0, 100) + '...' : imageToSave) : 'empty',
+      finalLength: imageToSave.length 
+    })
     
     const updated = await Category.findOneAndUpdate(
       query,
