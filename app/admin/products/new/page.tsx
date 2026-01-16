@@ -191,8 +191,8 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 			const derivedMainPrice = firstVariant?.pricePerKg || null
 			const derivedMainPriceUnit = firstVariant?.unit ? (unitLabels[firstVariant.unit] || firstVariant.unit) : null
 
-			// Build badges array
-			const badges = ['Wholesale']
+			// Build badges array - only add discount badge if explicitly set
+			const badges: string[] = []
 			if (isDiscounted && discountPercent > 0) {
 				badges.push(`${discountPercent}% OFF`)
 			}

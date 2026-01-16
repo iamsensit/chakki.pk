@@ -6,6 +6,22 @@ if (!MONGODB_URI) {
 	console.warn('MONGODB_URI is not set. Please add it to your .env.local')
 }
 
+// Log database connection info (without exposing full connection string)
+if (MONGODB_URI) {
+	const uriLower = MONGODB_URI.toLowerCase()
+	if (uriLower.includes('localhost') || uriLower.includes('127.0.0.1')) {
+		console.log('✅ [MongoDB] Connecting to LOCAL database')
+	} else if (uriLower.includes('mongodb.net') || uriLower.includes('mongodb.com')) {
+		console.log('⚠️  [MongoDB] Connecting to MongoDB Atlas (cloud)')
+	} else if (uriLower.includes('chakki.pk') || uriLower.includes('vps') || uriLower.includes('hostinger')) {
+		console.error('❌ [MongoDB] WARNING: Connecting to VPS/PRODUCTION database!')
+		console.error('   This should only be used in production. For local development, use:')
+		console.error('   MONGODB_URI=mongodb://localhost:27017/chakki_pk')
+	} else {
+		console.log('⚠️  [MongoDB] Connecting to unknown database location')
+	}
+}
+
 let cached = (global as any).mongoose
 
 if (!cached) {
@@ -18,7 +34,11 @@ export async function connectToDatabase() {
 		cached.promise = mongoose.connect(MONGODB_URI!, { 
 			dbName: process.env.MONGODB_DB || undefined,
 			serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-		}).then((m) => m).catch((err) => {
+		}).then((m) => {
+			const dbName = m.connection.db?.databaseName || process.env.MONGODB_DB || 'unknown'
+			console.log(`✅ [MongoDB] Connected to database: ${dbName}`)
+			return m
+		}).catch((err) => {
 			// Clear the promise on error so we can retry
 			cached.promise = null
 			console.error('MongoDB connection error:', err.message)

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import ProductCard from '@/app/components/product/ProductCard'
 import ProductFilters from './ProductFilters'
 import MobileSearchBar from '@/app/components/home/MobileSearchBar'
+import { getBaseUrl } from '@/app/lib/url'
 
 function buildQuery(params: Record<string, any>) {
 	const search = new URLSearchParams()
@@ -12,7 +13,8 @@ function buildQuery(params: Record<string, any>) {
 }
 
 async function fetchProducts(searchParams: Record<string, string | undefined>) {
-	const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+	// Construct absolute URL for server component fetch
+	const baseUrl = getBaseUrl()
 	const url = `${baseUrl}/api/products?${buildQuery({
 		q: searchParams.q,
 		category: searchParams.category,
@@ -31,7 +33,9 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 }
 
 async function fetchMeta() {
-	const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/products/meta`, { cache: 'no-store' })
+	// Construct absolute URL for server component fetch
+	const baseUrl = getBaseUrl()
+	const res = await fetch(`${baseUrl}/api/products/meta`, { cache: 'no-store' })
 	if (!res.ok) return { categories: [], brands: [] }
 	const json = await res.json()
 	return json.data ?? { categories: [], brands: [] }

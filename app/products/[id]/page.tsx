@@ -8,7 +8,7 @@ import PriceTierTable from '@/app/components/product/PriceTierTable'
 import { formatCurrencyPKR } from '@/app/lib/price'
 import { useSession } from 'next-auth/react'
 import FlashDealCard from '@/app/components/home/FlashDealCard'
-import { Star, Heart, Share2, Facebook, Twitter, Minus, Plus, Check, ChevronLeft, ChevronRight, HelpCircle, Truck, Ruler, MessageCircle } from 'lucide-react'
+import { Star, Heart, Share2, Facebook, Twitter, Minus, Plus, Check, ChevronLeft, ChevronRight, HelpCircle, Truck, Ruler, MessageCircle, Home, ChevronRight as ChevronRightIcon, Shield, Award, Clock } from 'lucide-react'
 import OutOfStockRequestButton from '@/app/components/requests/OutOfStockRequestButton'
 
 async function getProduct(id: string) {
@@ -267,6 +267,61 @@ export default function ProductDetailPage() {
 
 	return (
 		<div className="container-pg py-4 md:py-6 lg:py-8 pb-16 md:pb-6 lg:pb-8">
+			{/* Breadcrumb Navigation */}
+			<nav className="mb-4 sm:mb-6" aria-label="Breadcrumb">
+				<ol className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+					<li>
+						<Link href="/" className="hover:text-brand-accent transition-colors flex items-center gap-1">
+							<Home className="h-4 w-4" />
+							<span className="hidden sm:inline">Home</span>
+						</Link>
+					</li>
+					{data.category && (
+						<>
+							<li><ChevronRightIcon className="h-4 w-4 text-gray-400" /></li>
+							<li>
+								<Link 
+									href={`/products?category=${encodeURIComponent(data.category)}`}
+									className="hover:text-brand-accent transition-colors"
+								>
+									{data.category}
+								</Link>
+							</li>
+						</>
+					)}
+					{data.subCategory && (
+						<>
+							<li><ChevronRightIcon className="h-4 w-4 text-gray-400" /></li>
+							<li>
+								<Link 
+									href={`/products?category=${encodeURIComponent(data.category || '')}&subCategory=${encodeURIComponent(data.subCategory)}`}
+									className="hover:text-brand-accent transition-colors"
+								>
+									{data.subCategory}
+								</Link>
+							</li>
+						</>
+					)}
+					{data.subSubCategory && (
+						<>
+							<li><ChevronRightIcon className="h-4 w-4 text-gray-400" /></li>
+							<li>
+								<Link 
+									href={`/products?category=${encodeURIComponent(data.category || '')}&subCategory=${encodeURIComponent(data.subCategory || '')}`}
+									className="hover:text-brand-accent transition-colors"
+								>
+									{data.subSubCategory}
+								</Link>
+							</li>
+						</>
+					)}
+					<li><ChevronRightIcon className="h-4 w-4 text-gray-400" /></li>
+					<li className="text-gray-900 font-medium truncate max-w-[200px] sm:max-w-none">
+						{data.title}
+					</li>
+				</ol>
+			</nav>
+
 			<div className="grid gap-4 sm:gap-6 md:gap-8 lg:grid-cols-2">
 				{/* Left Side - Product Images */}
 				<div>
@@ -597,6 +652,83 @@ export default function ProductDetailPage() {
 							</div>
 						</div>
 					</div>
+
+					{/* Trust Badges & Features */}
+					<div className="pt-3 sm:pt-4 border-t space-y-3">
+						<div className="grid grid-cols-2 gap-3 sm:gap-4">
+							<div className="flex items-start gap-2 p-2 sm:p-3 bg-gray-50 rounded-lg">
+								<Shield className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent flex-shrink-0 mt-0.5" />
+								<div>
+									<div className="text-xs sm:text-sm font-semibold text-gray-900">Secure Payment</div>
+									<div className="text-[10px] sm:text-xs text-gray-600">100% Secure Checkout</div>
+								</div>
+							</div>
+							<div className="flex items-start gap-2 p-2 sm:p-3 bg-gray-50 rounded-lg">
+								<Truck className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent flex-shrink-0 mt-0.5" />
+								<div>
+									<div className="text-xs sm:text-sm font-semibold text-gray-900">Fast Delivery</div>
+									<div className="text-[10px] sm:text-xs text-gray-600">Quick & Reliable</div>
+								</div>
+							</div>
+							<div className="flex items-start gap-2 p-2 sm:p-3 bg-gray-50 rounded-lg">
+								<Award className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent flex-shrink-0 mt-0.5" />
+								<div>
+									<div className="text-xs sm:text-sm font-semibold text-gray-900">Quality Assured</div>
+									<div className="text-[10px] sm:text-xs text-gray-600">Fresh Products</div>
+								</div>
+							</div>
+							<div className="flex items-start gap-2 p-2 sm:p-3 bg-gray-50 rounded-lg">
+								<Clock className="h-4 w-4 sm:h-5 sm:w-5 text-brand-accent flex-shrink-0 mt-0.5" />
+								<div>
+									<div className="text-xs sm:text-sm font-semibold text-gray-900">24/7 Support</div>
+									<div className="text-[10px] sm:text-xs text-gray-600">Always Available</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Product Specifications */}
+					{(data.brand || data.category || selectedVariant?.sku) && (
+						<div className="pt-3 sm:pt-4 border-t">
+							<h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Product Details</h3>
+							<div className="space-y-2 text-xs sm:text-sm">
+								{data.brand && (
+									<div className="flex justify-between">
+										<span className="text-gray-600">Brand:</span>
+										<span className="text-gray-900 font-medium">{data.brand}</span>
+									</div>
+								)}
+								{data.category && (
+									<div className="flex justify-between">
+										<span className="text-gray-600">Category:</span>
+										<Link href={`/products?category=${encodeURIComponent(data.category)}`} className="text-brand-accent hover:underline font-medium">
+											{data.category}
+										</Link>
+									</div>
+								)}
+								{data.subCategory && (
+									<div className="flex justify-between">
+										<span className="text-gray-600">Sub-Category:</span>
+										<Link href={`/products?category=${encodeURIComponent(data.category || '')}&subCategory=${encodeURIComponent(data.subCategory)}`} className="text-brand-accent hover:underline font-medium">
+											{data.subCategory}
+										</Link>
+									</div>
+								)}
+								{selectedVariant?.sku && (
+									<div className="flex justify-between">
+										<span className="text-gray-600">SKU:</span>
+										<span className="text-gray-900 font-medium">{selectedVariant.sku}</span>
+									</div>
+								)}
+								{selectedVariant && (
+									<div className="flex justify-between">
+										<span className="text-gray-600">Weight/Size:</span>
+										<span className="text-gray-900 font-medium">{selectedVariant.label || `${selectedVariant.unitWeight || 0}${selectedVariant.unit || 'kg'}`}</span>
+									</div>
+								)}
+							</div>
+						</div>
+					)}
 
 					{/* Share Buttons */}
 					<div className="flex items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">

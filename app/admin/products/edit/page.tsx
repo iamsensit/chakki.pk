@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Trash2 } from 'lucide-react'
+import { X, Plus, Trash2, Edit, Search } from 'lucide-react'
 import ImageUpload from '@/app/components/admin/ImageUpload'
 
 type Variant = { _id?: string; id?: string; label?: string; unitWeight?: number; unit?: 'kg' | 'g' | 'half_kg' | 'quarter_kg' | 'l' | 'ml' | 'pcs' | 'pack' | 'unit'; sku?: string; pricePerKg?: number; costPerKg?: number; stockQty?: number }
@@ -32,18 +32,69 @@ export default function EditProductPage() {
   const [relatedProducts, setRelatedProducts] = useState<string[]>([])
   const [relatedProductsSearch, setRelatedProductsSearch] = useState('')
   const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any[]>([])
+  const [allProducts, setAllProducts] = useState<any[]>([])
+  const [productsLoading, setProductsLoading] = useState(false)
 
+  // Removed suggestions - products filter in real-time from allProducts
+
+  // Load all products for the product list (with pagination since API max limit is 40)
   useEffect(() => {
-    const t = setTimeout(async () => {
-      if (!query.trim()) { setSuggestions([]); return }
+    let active = true
+    async function loadProducts() {
+      setProductsLoading(true)
       try {
-        const res = await fetch(`/api/products?suggest=1&q=${encodeURIComponent(query)}&limit=10`)
-        const json = await res.json()
-        setSuggestions(json?.data?.items || [])
-      } catch { setSuggestions([]) }
-    }, 250)
-    return () => clearTimeout(t)
-  }, [query])
+        const allProductsList: any[] = []
+        let page = 1
+        let hasMore = true
+        const limit = 40 // API max limit
+        
+        // Fetch all pages
+        while (hasMore && active) {
+          const res = await fetch(`/api/products?page=${page}&limit=${limit}`, { cache: 'no-store' })
+          const json = await res.json()
+          
+          if (json?.success && json?.data?.items && Array.isArray(json.data.items)) {
+            allProductsList.push(...json.data.items)
+            // Check if there are more pages
+            const total = json?.data?.total || 0
+            const currentTotal = allProductsList.length
+            hasMore = currentTotal < total && json.data.items.length === limit
+            page++
+          } else {
+            hasMore = false
+            if (page === 1) {
+              console.error('Failed to load products:', json)
+            }
+          }
+        }
+        
+        if (active) {
+          setAllProducts(allProductsList)
+          console.log('Loaded products:', allProductsList.length)
+        }
+      } catch (err) {
+        console.error('Failed to load products:', err)
+        if (active) setAllProducts([])
+      } finally {
+        if (active) setProductsLoading(false)
+      }
+    }
+    loadProducts()
+    return () => { active = false }
+  }, [])
+
+  // Filter products based on search query - real-time filtering as user types
+  const filteredProducts = query.trim()
+    ? allProducts.filter((p: any) => {
+        const searchTerm = query.toLowerCase().trim()
+        const title = (p.title || '').toLowerCase()
+        const brand = (p.brand || '').toLowerCase()
+        const category = (p.category || '').toLowerCase()
+        const sku = p.variants?.some((v: any) => (v.sku || '').toLowerCase().includes(searchTerm))
+        // Search in title, brand, category, or SKU
+        return title.includes(searchTerm) || brand.includes(searchTerm) || category.includes(searchTerm) || sku
+      })
+    : allProducts
 
   // Load available categories (hierarchical)
   useEffect(() => {
@@ -376,8 +427,8 @@ export default function EditProductPage() {
       const derivedMainPrice = firstVariant?.pricePerKg || null
       const derivedMainPriceUnit = firstVariant?.unit ? (unitLabels[firstVariant.unit] || firstVariant.unit) : null
 
-      // Build badges array
-      const badges = ['Wholesale']
+      // Build badges array - only add discount badge if explicitly set
+      const badges: string[] = []
       if (isDiscounted && discountPercent > 0) {
         badges.push(`${discountPercent}% OFF`)
       }
@@ -451,14 +502,83 @@ export default function EditProductPage() {
           onChange={e => setQuery(e.target.value)}
           placeholder="Search by title or SKU…"
           className="w-full rounded-md border px-3 py-2 text-sm"
-          onKeyDown={(e) => { if (e.key === 'Enter' && suggestions[0]) { loadProduct(suggestions[0]._id || suggestions[0].id) } }}
         />
-        {suggestions.length > 0 && (
-          <div className="mt-2 max-h-64 overflow-auto rounded-md border divide-y bg-white">
-            {suggestions.map(s => (
-              <button key={s._id || s.id} onClick={() => loadProduct(s._id || s.id)} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">
-                {s.title}
-              </button>
+      </div>
+
+      {/* Products List */}
+      <div className="mt-6 rounded-md border p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-sm font-medium">
+            {query.trim() ? `Search Results (${filteredProducts.length})` : `All Products (${filteredProducts.length})`}
+          </div>
+          {productsLoading && (
+            <div className="text-xs text-gray-500">Loading...</div>
+          )}
+        </div>
+        
+        {productsLoading ? (
+          <div className="text-center py-8 text-gray-500">Loading products...</div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            {query.trim() ? 'No products found matching your search.' : 'No products available.'}
+            {allProducts.length === 0 && (
+              <div className="mt-2 text-xs text-gray-400">
+                Check browser console (F12) for API response details.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredProducts.map((product: any) => (
+              <div
+                key={product._id || product.id}
+                className="border rounded-lg overflow-hidden hover:shadow-sm transition-shadow bg-white flex items-center gap-4 p-3"
+              >
+                {/* Small Product Image */}
+                <div className="relative w-16 h-16 bg-gray-100 rounded flex-shrink-0">
+                  {product.images?.[0] ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      className="w-full h-full object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">
+                      No image
+                    </div>
+                  )}
+                </div>
+                
+                {/* Product Info - Takes remaining space */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-sm text-gray-900 truncate">
+                    {product.title}
+                  </h3>
+                  
+                  {/* Price and SKU */}
+                  <div className="flex items-center gap-3 mt-1">
+                    {product.variants?.[0] && (
+                      <div className="text-xs text-gray-600">
+                        Rs. {Math.round((product.variants[0].pricePerKg || 0) * (product.variants[0].unitWeight || 1))}
+                      </div>
+                    )}
+                    {product.variants?.[0]?.sku && (
+                      <div className="text-xs text-gray-400">
+                        SKU: {product.variants[0].sku}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Edit Button */}
+                <button
+                  onClick={() => loadProduct(product._id || product.id)}
+                  className="flex items-center justify-center gap-2 bg-brand-accent hover:bg-brand text-white text-xs font-medium py-2 px-4 rounded transition-colors flex-shrink-0"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </button>
+              </div>
             ))}
           </div>
         )}

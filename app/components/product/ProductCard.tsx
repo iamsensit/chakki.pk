@@ -40,8 +40,20 @@ export default function ProductCard({
 	const { reviewData, isLoading: reviewsLoading } = useProductReviews(id)
 	const wishlisted = isWishlisted(id, variantId)
 	
-	// Calculate original price (assume discount if badge exists)
-	const discountPercent = badges?.[0] ? (typeof badges[0] === 'string' && badges[0].includes('%') ? parseInt(badges[0]) : 15) : 0
+	// Parse discount from badges (e.g., "15% OFF" -> 15)
+	// Only show discount if there's an explicit "% OFF" badge
+	let discountPercent = 0
+	if (badges && Array.isArray(badges)) {
+		for (const badge of badges) {
+			if (typeof badge === 'string') {
+				const match = badge.match(/(\d+)% OFF/i)
+				if (match) {
+					discountPercent = parseInt(match[1])
+					break
+				}
+			}
+		}
+	}
 	const originalPrice = discountPercent > 0 ? Math.round(unitPrice / (1 - discountPercent / 100)) : unitPrice
 	
 	// Get weight/volume display
