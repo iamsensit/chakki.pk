@@ -278,8 +278,9 @@ export async function POST(req: NextRequest) {
       }
       const existing = await Category.findOne(existingQuery)
       if (existing) {
-        // Preserve existing image if not provided in update
-        const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
+        // If image is explicitly provided (even if empty), use it. Otherwise preserve existing.
+        // Empty string means "clear image"
+        const imageToSave = (image !== undefined && image !== null)
           ? String(image).trim() 
           : (existing.image ? String(existing.image).trim() : '')
         
@@ -327,8 +328,9 @@ export async function POST(req: NextRequest) {
     }
     
     // Find existing category to preserve image if not provided
+    // If image is explicitly provided (even if empty), use it. Empty string means "clear image"
     const existing = await Category.findOne(query).lean()
-    const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
+    const imageToSave = (image !== undefined && image !== null)
       ? String(image).trim() 
       : (existing && (existing as any).image ? String((existing as any).image).trim() : '')
     

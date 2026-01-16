@@ -52,17 +52,25 @@ export default function CategoriesAdminPage() {
   }
   useEffect(() => { load() }, [])
 
-  async function save(idx: number) {
-    const row = rows[idx]
+  async function save(categoryId: string | undefined, categoryName: string) {
+    const flatCats = getAllCategoriesFlat(rows)
+    const row = flatCats.find(c => (c._id && c._id === categoryId) || c.name === categoryName)
+    if (!row) {
+      toast.error('Category not found')
+      return
+    }
     if (!row.name?.trim()) {
       toast.error('Category name is required')
       return
     }
     try {
-      const originalRow = rows.find((r, i) => i === idx)
-      const oldName = originalRow?.name || ''
+      // Get the original category name before editing started (we'll use the current name as oldName if it changed)
       const newName = row.name.trim()
       const slug = newName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      
+      // For updates, we need to find the original category to get the old name
+      // Since we're editing, we'll use the category's current _id to find it in the database
+      const oldName = categoryName !== newName ? categoryName : undefined
       
       const res = await fetch('/api/categories', {
         method: 'POST',
@@ -74,7 +82,7 @@ export default function CategoriesAdminPage() {
           description: row.description || '',
           displayOrder: row.displayOrder ?? 1000, 
           isActive: row.isActive !== false,
-          oldName: oldName !== newName ? oldName : undefined,
+          oldName: oldName,
           parentCategoryId: row.parentCategory?._id || null,
           level: row.level ?? 0
         })
@@ -132,6 +140,23 @@ export default function CategoriesAdminPage() {
     }
     traverse(cats)
     return result
+  }
+
+  // Helper function to update a category in the nested structure
+  function updateCategoryInNested(cats: Cat[], targetId: string | undefined, targetName: string, updater: (cat: Cat) => Cat): Cat[] {
+    return cats.map(cat => {
+      const isTarget = (cat._id && cat._id === targetId) || (cat.name === targetName)
+      if (isTarget) {
+        return updater(cat)
+      }
+      if (cat.subCategories && cat.subCategories.length > 0) {
+        return {
+          ...cat,
+          subCategories: updateCategoryInNested(cat.subCategories, targetId, targetName, updater)
+        }
+      }
+      return cat
+    })
   }
 
   async function deleteCategory(catId: string) {
@@ -212,32 +237,18 @@ export default function CategoriesAdminPage() {
                         const parent = flatCats.find(c => c._id === parentId)
                         if (parent && parent._id !== cat._id) {
                           const parentLevel = parent.level ?? 0
-                          setRows(prev => {
-                            const flat = getAllCategoriesFlat(prev)
-                            const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
-                            if (flatIdx >= 0) {
-                              flat[flatIdx] = {
-                                ...flat[flatIdx],
-                                parentCategory: { _id: parentId, name: parent.name },
-                                level: parentLevel + 1
-                              }
-                            }
-                            return prev // Simplified - will reload after save
-                          })
+                          setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
+                            ...c,
+                            parentCategory: { _id: parentId, name: parent.name },
+                            level: parentLevel + 1
+                          })))
                         }
                       } else {
-                        setRows(prev => {
-                          const flat = getAllCategoriesFlat(prev)
-                          const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
-                          if (flatIdx >= 0) {
-                            flat[flatIdx] = {
-                              ...flat[flatIdx],
-                              parentCategory: null,
-                              level: 0
-                            }
-                          }
-                          return prev
-                        })
+                        setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
+                          ...c,
+                          parentCategory: null,
+                          level: 0
+                        })))
                       }
                     }}
                   >
@@ -261,12 +272,10 @@ export default function CategoriesAdminPage() {
                     placeholder="e.g. Daals, Rice, Spices"
                     value={cat.name}
                     onChange={e => {
-                      const flat = getAllCategoriesFlat(rows)
-                      const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
-                      if (flatIdx >= 0) {
-                        flat[flatIdx].name = e.target.value
-                        setRows([...rows]) // Trigger re-render
-                      }
+                      setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
+                        ...c,
+                        name: e.target.value
+                      })))
                     }}
                   />
                 </div>
@@ -278,12 +287,10 @@ export default function CategoriesAdminPage() {
                     placeholder="Category description"
                     value={cat.description || ''}
                     onChange={e => {
-                      const flat = getAllCategoriesFlat(rows)
-                      const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
-                      if (flatIdx >= 0) {
-                        flat[flatIdx].description = e.target.value
-                        setRows([...rows])
-                      }
+                      setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
+                        ...c,
+                        description: e.target.value
+                      })))
                     }}
                   />
                 </div>
@@ -292,12 +299,11 @@ export default function CategoriesAdminPage() {
                     <ImageUpload
                       images={cat.image ? [cat.image] : []}
                       onImagesChange={(images) => {
-                        const flat = getAllCategoriesFlat(rows)
-                        const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
-                        if (flatIdx >= 0) {
-                          flat[flatIdx].image = images[0] || ''
-                          setRows([...rows])
-                        }
+                        const newImage = images[0] || ''
+                        setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
+                          ...c,
+                          image: newImage
+                        })))
                       }}
                       label="Category Image"
                       multiple={false}
@@ -309,15 +315,13 @@ export default function CategoriesAdminPage() {
                       type="number"
                       className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
                       placeholder="1000"
-                      value={cat.displayOrder ?? 1000}
-                      onChange={e => {
-                        const flat = getAllCategoriesFlat(rows)
-                        const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
-                        if (flatIdx >= 0) {
-                          flat[flatIdx].displayOrder = Number(e.target.value)
-                          setRows([...rows])
-                        }
-                      }}
+                    value={cat.displayOrder ?? 1000}
+                    onChange={e => {
+                      setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
+                        ...c,
+                        displayOrder: Number(e.target.value)
+                      })))
+                    }}
                     />
                   </div>
                 </div>
@@ -325,12 +329,11 @@ export default function CategoriesAdminPage() {
                   <button 
                     className="flex items-center gap-2 rounded-md bg-brand-accent px-4 py-2 text-white text-sm hover:opacity-90" 
                     onClick={() => {
-                      const flat = getAllCategoriesFlat(rows)
-                      const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
-                      if (flatIdx >= 0) {
-                        save(flatIdx)
-                        setEditingId(null)
-                      }
+                      // Get the original category name before editing
+                      const originalCat = getAllCategoriesFlat(rows).find(c => (c._id && c._id === cat._id) || c.name === cat.name)
+                      const originalName = originalCat?.name || cat.name
+                      save(cat._id, originalName)
+                      setEditingId(null)
                     }}
                   >
                     <Save className="h-4 w-4" />
