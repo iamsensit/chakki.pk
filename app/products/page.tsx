@@ -111,14 +111,42 @@ async function fetchMeta() {
 	// Use direct database query instead of HTTP fetch for better performance
 	const { connectToDatabase } = await import('@/app/lib/mongodb')
 	const Product = (await import('@/models/Product')).default
+	const Category = (await import('@/models/Category')).default
 	await connectToDatabase()
 	
-	const [categories, brands] = await Promise.all([
+	// Fetch all categories from Category collection (not just from products)
+	// This ensures all admin-defined categories are shown, even if they have no products yet
+	// Only fetch top-level categories (level 0) for the filter dropdown
+	const [dbCategories, productCategories, brands] = await Promise.all([
+		Category.find({ 
+			isActive: { $ne: false },
+			$or: [
+				{ level: 0 },
+				{ level: { $exists: false } },
+				{ parentCategory: { $exists: false } },
+				{ parentCategory: null }
+			]
+		})
+			.select('name displayOrder')
+			.sort({ displayOrder: 1, name: 1 })
+			.lean()
+			.then(cats => cats.map((c: any) => String(c.name)).filter(Boolean)),
 		Product.distinct('category').then(cats => cats.filter(Boolean)),
 		Product.distinct('brand').then(brands => brands.filter(Boolean))
 	])
 	
-	return { categories, brands }
+	// Combine admin categories with product categories, removing duplicates
+	// Prioritize admin-defined categories order
+	const categorySet = new Set(dbCategories)
+	productCategories.forEach(cat => categorySet.add(cat))
+	
+	// Sort: admin categories first (in their display order), then product categories alphabetically
+	const allCategories = [
+		...dbCategories,
+		...productCategories.filter(cat => !dbCategories.includes(cat))
+	]
+	
+	return { categories: allCategories, brands }
 }
 
 // Enable ISR (Incremental Static Regeneration) for better performance
