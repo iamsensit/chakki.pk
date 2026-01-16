@@ -149,7 +149,7 @@ export default function ProductCard({
 	}
 	
 	return (
-		<div className="bg-white border border-gray-200  overflow-hidden hover:shadow-md transition-shadow">
+		<div className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-md transition-shadow">
 			{/* Product Image */}
 			<Link href={productHref as any} prefetch={true}>
 				<div 
