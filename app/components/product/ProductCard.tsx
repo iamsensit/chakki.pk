@@ -40,8 +40,18 @@ export default function ProductCard({
 	const { reviewData, isLoading: reviewsLoading } = useProductReviews(id)
 	const wishlisted = isWishlisted(id, variantId)
 	
-	// Calculate original price (assume discount if badge exists)
-	const discountPercent = badges?.[0] ? (typeof badges[0] === 'string' && badges[0].includes('%') ? parseInt(badges[0]) : 15) : 0
+	// Calculate discount from badge - only if badge has "% OFF" format
+	const discountBadge = Array.isArray(badges) 
+		? badges.find((b: string) => {
+			if (typeof b !== 'string') return false
+			const match = b.match(/^(\d+)%\s*OFF$/i)
+			return match !== null && parseInt(match[1]) > 0
+		})
+		: null
+	const discountPercent = discountBadge ? (() => {
+		const match = String(discountBadge).match(/^(\d+)%\s*OFF$/i)
+		return match ? parseInt(match[1]) : 0
+	})() : 0
 	const originalPrice = discountPercent > 0 ? Math.round(unitPrice / (1 - discountPercent / 100)) : unitPrice
 	
 	// Get weight/volume display
@@ -166,8 +176,8 @@ export default function ProductCard({
 					) : (
 						<div className="w-full h-full flex items-center justify-center text-xs text-gray-400 rounded bg-gray-100">No image</div>
 					)}
-					{/* Discount Badge */}
-					{discountPercent > 0 && (
+					{/* Discount Badge - Only show if product has explicit discount badge */}
+					{discountPercent > 0 && discountBadge && (
 						<span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded discount-badge">
 							{discountPercent}% OFF
 						</span>
@@ -234,7 +244,7 @@ export default function ProductCard({
 				{/* Price */}
 				<div className="flex items-center gap-2 mb-3">
 					<span className="text-base font-bold text-brand-accent">Rs. {unitPrice}</span>
-					{originalPrice > unitPrice && (
+					{discountPercent > 0 && discountBadge && originalPrice > unitPrice && (
 						<span className="text-xs text-gray-500 line-through">Rs. {originalPrice}</span>
 					)}
 				</div>

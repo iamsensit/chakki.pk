@@ -179,10 +179,17 @@ export default function ProductDetailPage() {
 	const isLowStock = stockQty !== undefined && stockQty > 0 && stockQty <= 10
 	const maxQuantity = isLowStock ? stockQty : undefined
 
-	// Check if product has discount badge (e.g., "23% OFF")
-	const discountBadge = Array.isArray(data?.badges) ? data.badges.find((b: string) => typeof b === 'string' && b.includes('% OFF')) : null
+	// Check if product has discount badge (e.g., "23% OFF") - must be exact format
+	const discountBadge = Array.isArray(data?.badges) 
+		? data.badges.find((b: string) => {
+			if (typeof b !== 'string') return false
+			// Must match exact pattern: number followed by "% OFF" (case insensitive)
+			const match = b.match(/^(\d+)%\s*OFF$/i)
+			return match !== null && parseInt(match[1]) > 0
+		}) 
+		: null
 	const discountPercent = discountBadge ? (() => {
-		const match = String(discountBadge).match(/(\d+)% OFF/)
+		const match = String(discountBadge).match(/^(\d+)%\s*OFF$/i)
 		return match ? parseInt(match[1]) : 0
 	})() : 0
 	
