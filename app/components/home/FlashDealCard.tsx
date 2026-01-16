@@ -23,19 +23,9 @@ export default function FlashDealCard({ product }: { product: any }) {
 	const { reviewData, isLoading: reviewsLoading } = useProductReviews(productId)
 	const wishlisted = isWishlisted(String(productId), variantId)
 	
-	// Calculate discount from badge - only if badge has "% OFF" format
-	const discountBadge = Array.isArray(product.badges) 
-		? product.badges.find((b: string) => {
-			if (typeof b !== 'string') return false
-			const match = b.match(/^(\d+)%\s*OFF$/i)
-			return match !== null && parseInt(match[1]) > 0
-		})
-		: null
-	const discountPercent = discountBadge ? (() => {
-		const match = String(discountBadge).match(/^(\d+)%\s*OFF$/i)
-		return match ? parseInt(match[1]) : 0
-	})() : 0
-	const originalPrice = discountPercent > 0 ? Math.round(unitPrice / (1 - discountPercent / 100)) : unitPrice
+	// Calculate original price (assume 10-20% discount for flash deals)
+	const discountPercent = product.badges?.[0] || 15
+	const originalPrice = Math.round(unitPrice / (1 - discountPercent / 100))
 	
 	// Get weight/volume display
 	let displayWeight = variant?.unitWeight || 0
@@ -136,7 +126,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 	
 	return (
 		<div 
-			className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-md transition-shadow w-[160px] sm:w-[200px] max-w-[160px] sm:max-w-[200px] flex-shrink-0"
+			className="bg-white border border-gray-200  overflow-hidden hover:shadow-md transition-shadow min-w-[160px] sm:min-w-[200px] flex-shrink-0"
 			data-product-id={product._id || product.id}
 		>
 			{/* Product Image */}
@@ -158,8 +148,8 @@ export default function FlashDealCard({ product }: { product: any }) {
 					) : (
 						<div className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-gray-400 rounded bg-gray-100">No image</div>
 					)}
-					{/* Discount Badge - Only show if product has explicit discount badge */}
-					{discountPercent > 0 && discountBadge && (
+					{/* Discount Badge */}
+					{discountPercent > 0 && (
 						<span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-red-500 text-white text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded discount-badge">
 							{discountPercent}% OFF
 						</span>
@@ -230,7 +220,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 				{/* Price */}
 				<div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
 					<span className="text-sm sm:text-base font-bold text-brand-accent">Rs. {unitPrice}</span>
-					{discountPercent > 0 && discountBadge && originalPrice > unitPrice && (
+					{originalPrice > unitPrice && (
 						<span className="text-[10px] sm:text-xs text-gray-500 line-through">Rs. {originalPrice}</span>
 					)}
 				</div>

@@ -52,41 +52,17 @@ export default function CategoriesAdminPage() {
   }
   useEffect(() => { load() }, [])
 
-  async function save(cat: Cat) {
-    if (!cat.name?.trim()) {
+  async function save(idx: number) {
+    const row = rows[idx]
+    if (!row.name?.trim()) {
       toast.error('Category name is required')
       return
     }
     try {
-      // Get the latest category data from state to ensure we have the most recent image
-      const findCategoryInTree = (categories: Cat[], targetId: string | undefined, targetName: string): Cat | null => {
-        for (const c of categories) {
-          if ((c._id && c._id === targetId) || c.name === targetName) {
-            return c
-          }
-          if (c.subCategories && c.subCategories.length > 0) {
-            const found = findCategoryInTree(c.subCategories, targetId, targetName)
-            if (found) return found
-          }
-        }
-        return null
-      }
-      
-      const latestCat = findCategoryInTree(rows, cat._id, cat.name) || cat
-      
-      const oldName = latestCat.name.trim()
-      const newName = latestCat.name.trim()
+      const originalRow = rows.find((r, i) => i === idx)
+      const oldName = originalRow?.name || ''
+      const newName = row.name.trim()
       const slug = newName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-      
-      // Get the current image value from the latest category data
-      const imageToSave = latestCat.image ? String(latestCat.image).trim() : ''
-      
-      console.log('Saving category:', { 
-        name: newName, 
-        image: imageToSave ? `${imageToSave.substring(0, 50)}...` : 'empty',
-        imageLength: imageToSave.length,
-        hasImage: !!latestCat.image
-      })
       
       const res = await fetch('/api/categories', {
         method: 'POST',
@@ -94,13 +70,13 @@ export default function CategoriesAdminPage() {
         body: JSON.stringify({ 
           name: newName, 
           slug,
-          image: imageToSave, 
-          description: latestCat.description || '',
-          displayOrder: latestCat.displayOrder ?? 1000, 
-          isActive: latestCat.isActive !== false,
+          image: (row.image && row.image.trim()) ? row.image.trim() : '', 
+          description: row.description || '',
+          displayOrder: row.displayOrder ?? 1000, 
+          isActive: row.isActive !== false,
           oldName: oldName !== newName ? oldName : undefined,
-          parentCategoryId: latestCat.parentCategory?._id || null,
-          level: latestCat.level ?? 0
+          parentCategoryId: row.parentCategory?._id || null,
+          level: row.level ?? 0
         })
       })
       const json = await res.json()
@@ -125,7 +101,7 @@ export default function CategoriesAdminPage() {
         body: JSON.stringify({ 
           name: newCategory.name.trim(), 
           slug,
-          image: newCategory.image ? String(newCategory.image).trim() : '', 
+          image: newCategory.image || '', 
           description: newCategory.description || '',
           displayOrder: newCategory.displayOrder ?? 1000, 
           isActive: true,
@@ -316,29 +292,11 @@ export default function CategoriesAdminPage() {
                     <ImageUpload
                       images={cat.image ? [cat.image] : []}
                       onImagesChange={(images) => {
-                        const newImage = images[0] || ''
-                        // Update the category in the nested structure
-                        const updateCategoryInTree = (categories: Cat[]): Cat[] => {
-                          return categories.map(c => {
-                            // Match by _id if both exist, otherwise match by name
-                            const matches = (c._id && cat._id && c._id === cat._id) || 
-                                          (!c._id && !cat._id && c.name === cat.name) ||
-                                          (c._id === cat._id && c.name === cat.name)
-                            
-                            if (matches) {
-                              return { ...c, image: newImage }
-                            }
-                            if (c.subCategories && c.subCategories.length > 0) {
-                              return { ...c, subCategories: updateCategoryInTree(c.subCategories) }
-                            }
-                            return c
-                          })
-                        }
-                        try {
-                          setRows(updateCategoryInTree(rows))
-                        } catch (error) {
-                          console.error('Error updating category image:', error)
-                          toast.error('Failed to update image. Please try again.')
+                        const flat = getAllCategoriesFlat(rows)
+                        const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
+                        if (flatIdx >= 0) {
+                          flat[flatIdx].image = images[0] || ''
+                          setRows([...rows])
                         }
                       }}
                       label="Category Image"
@@ -367,8 +325,12 @@ export default function CategoriesAdminPage() {
                   <button 
                     className="flex items-center gap-2 rounded-md bg-brand-accent px-4 py-2 text-white text-sm hover:opacity-90" 
                     onClick={() => {
-                      save(cat)
-                      setEditingId(null)
+                      const flat = getAllCategoriesFlat(rows)
+                      const flatIdx = flat.findIndex(c => (c._id || c.name) === (cat._id || cat.name))
+                      if (flatIdx >= 0) {
+                        save(flatIdx)
+                        setEditingId(null)
+                      }
                     }}
                   >
                     <Save className="h-4 w-4" />

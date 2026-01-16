@@ -74,18 +74,28 @@ async function fetchCategories() {
 async function fetchFlashDeals() {
 	try {
 		await connectToDatabase()
-		// Fetch products with explicit discount badges (must have "% OFF" format)
-		// Only show products that are actually marked as discounted
-		const items = await Product.find({
-			badges: { 
-				$exists: true, 
-				$ne: [],
-				$regex: /^\d+%\s*OFF$/i  // Must match pattern like "15% OFF" or "23% OFF"
-			}
+		// Fetch products with discount badges (badges containing % OFF or similar)
+		let items = await Product.find({
+			badges: { $exists: true, $ne: [] },
+			$or: [
+				{ 'badges': { $regex: /% OFF/i } },
+				{ 'badges': { $regex: /discount/i } },
+				{ 'badges': { $regex: /sale/i } }
+			]
 		})
 			.sort({ recentSales: -1, trendingScore: -1, totalSales: -1, createdAt: -1 })
 			.limit(20)
 			.lean()
+		
+		// Fallback: If no products with discount badges, show products with any badges
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				badges: { $exists: true, $ne: [] }
+			})
+				.sort({ createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
 		
 		return Array.isArray(items) ? items : []
 	} catch (err) {

@@ -232,8 +232,8 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 		let active = true
 		async function load() {
 			try {
-				const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
-				const res = await fetch(`${baseUrl}/api/categories?hierarchical=1`, { cache: 'no-store' })
+				// Use relative URL to always call the local API (not production)
+				const res = await fetch('/api/categories?hierarchical=1', { cache: 'no-store' })
 				const json = await res.json()
 				if (json?.data?.hierarchical && json.data.categories) {
 					if (active) {
@@ -253,7 +253,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 					}
 				} else {
 					// Fallback to flat structure
-					const flatRes = await fetch(`${baseUrl}/api/categories`, { cache: 'no-store' })
+					const flatRes = await fetch('/api/categories', { cache: 'no-store' })
 					const flatJson = await flatRes.json()
 					const cats = (flatJson?.data?.categories || [])
 						.map((c: any) => ({ name: String(c?.name || ''), _id: c?._id ? String(c._id) : undefined, level: c?.level ?? 0 }))

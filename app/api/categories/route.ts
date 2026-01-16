@@ -184,13 +184,22 @@ export async function GET(req: NextRequest) {
 			return json(true, 'Categories fetched', { categories: filtered })
 		}
 
-		// For admin categories page - ONLY return categories from Category collection (no auto-creation)
-		// Use the dbCategories we already loaded - these are the ONLY categories that should exist
-		const allCategories = dbCategories
+		// For admin categories page, include product-derived categories too (but don't auto-create them)
+		// Get distinct categories from products for display purposes only
+		const productCategories = await Product.distinct('category', { category: { $exists: true, $ne: null } })
+		
+		// Build a map of existing admin categories
+		const adminCategoryMap = new Map()
+		dbCategories.forEach((dc: any) => {
+			if (dc.name && !Array.isArray(dc)) {
+				adminCategoryMap.set(String(dc.name).toLowerCase().trim(), dc)
+			}
+		})
 		
 		// Count products per category and build response
+		// Only include categories that exist in the Category collection (admin-created)
 		const categoriesWithData = await Promise.all(
-			allCategories.map(async (dc: any) => {
+			dbCategories.map(async (dc: any) => {
 				if (dc.name && !Array.isArray(dc)) {
 					const count = await Product.countDocuments({ category: dc.name })
 					return {
@@ -269,15 +278,10 @@ export async function POST(req: NextRequest) {
       }
       const existing = await Category.findOne(existingQuery)
       if (existing) {
-        // Handle image: if provided (even if empty string), use it; if not provided (undefined), preserve existing
-        let imageToSave = ''
-        if (image !== undefined && image !== null) {
-          // Image is explicitly provided - use it (even if empty string to clear image)
-          imageToSave = String(image).trim()
-        } else {
-          // Image not provided in request - preserve existing
-          imageToSave = existing.image ? String(existing.image).trim() : ''
-        }
+        // Preserve existing image if not provided in update
+        const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
+          ? String(image).trim() 
+          : (existing.image ? String(existing.image).trim() : '')
         
         // Update the category name
         const updated = await Category.findByIdAndUpdate(
@@ -324,27 +328,9 @@ export async function POST(req: NextRequest) {
     
     // Find existing category to preserve image if not provided
     const existing = await Category.findOne(query).lean()
-    
-    // Handle image: always use provided image if it exists, otherwise preserve existing
-    let imageToSave = ''
-    if (image !== undefined && image !== null && String(image).trim() !== '') {
-      // Image is provided and not empty - use it
-      imageToSave = String(image).trim()
-    } else if (existing && (existing as any).image && String((existing as any).image).trim() !== '') {
-      // No image provided or empty - preserve existing if it exists
-      imageToSave = String((existing as any).image).trim()
-    } else {
-      // No image provided and no existing image - save empty
-      imageToSave = ''
-    }
-    
-    // Log for debugging (only log first 100 chars of image to avoid console spam)
-    console.log('Category save - image handling:', { 
-      provided: image ? (typeof image === 'string' && image.length > 100 ? image.substring(0, 100) + '...' : image) : null, 
-      existing: existing ? ((existing as any).image && String((existing as any).image).length > 100 ? String((existing as any).image).substring(0, 100) + '...' : (existing as any).image) : null, 
-      final: imageToSave ? (imageToSave.length > 100 ? imageToSave.substring(0, 100) + '...' : imageToSave) : 'empty',
-      finalLength: imageToSave.length 
-    })
+    const imageToSave = (image !== undefined && image !== null && String(image).trim() !== '') 
+      ? String(image).trim() 
+      : (existing && (existing as any).image ? String((existing as any).image).trim() : '')
     
     const updated = await Category.findOneAndUpdate(
       query,
