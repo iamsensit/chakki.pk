@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCartStore } from '@/store/cart'
 import { useSession } from 'next-auth/react'
 import { ShoppingCart, Star, Heart } from 'lucide-react'
@@ -170,11 +171,27 @@ export default function ProductCard({
 					onMouseLeave={() => setIsHovering(false)}
 				>
 					{imgSrc ? (
-						<img
-							src={imgSrc}
-							alt={title}
-							className="w-full h-full object-cover rounded bg-gray-100"
-						/>
+						imgSrc.startsWith('data:') ? (
+							// Base64 images from database - use regular img with loading optimization
+							<img
+								src={imgSrc}
+								alt={title}
+								className="w-full h-full object-cover rounded bg-gray-100"
+								loading="lazy"
+								decoding="async"
+							/>
+						) : (
+							// External URLs - use Next.js Image for optimization
+							<Image
+								src={imgSrc}
+								alt={title}
+								fill
+								className="object-cover rounded bg-gray-100"
+								sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+								loading="lazy"
+								quality={75}
+							/>
+						)
 					) : (
 						<div className="w-full h-full flex items-center justify-center text-xs text-gray-400 rounded bg-gray-100">No image</div>
 					)}

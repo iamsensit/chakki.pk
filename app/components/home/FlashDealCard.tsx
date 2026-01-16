@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { ShoppingCart, Star, Heart } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useCartStore } from '@/store/cart'
@@ -157,11 +158,27 @@ export default function FlashDealCard({ product }: { product: any }) {
 					onMouseLeave={() => setIsHovering(false)}
 				>
 					{product.images?.[0] ? (
-						<img
-							src={product.images[0]}
-							alt={product.title}
-							className="w-full h-full object-cover rounded bg-gray-100"
-						/>
+						product.images[0].startsWith('data:') ? (
+							// Base64 images from database - use regular img with loading optimization
+							<img
+								src={product.images[0]}
+								alt={product.title}
+								className="w-full h-full object-cover rounded bg-gray-100"
+								loading="lazy"
+								decoding="async"
+							/>
+						) : (
+							// External URLs - use Next.js Image for optimization
+							<Image
+								src={product.images[0]}
+								alt={product.title}
+								fill
+								className="object-cover rounded bg-gray-100"
+								sizes="200px"
+								loading="lazy"
+								quality={75}
+							/>
+						)
 					) : (
 						<div className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-gray-400 rounded bg-gray-100">No image</div>
 					)}

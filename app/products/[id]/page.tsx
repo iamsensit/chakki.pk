@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCartStore } from '@/store/cart'
 import PriceTierTable from '@/app/components/product/PriceTierTable'
 import { formatCurrencyPKR } from '@/app/lib/price'
@@ -326,8 +327,28 @@ export default function ProductDetailPage() {
 				{/* Left Side - Product Images */}
 				<div>
 					{/* Main Image */}
-					<div className="aspect-square rounded-xl bg-gray-100 overflow-hidden mb-4">
-						{activeImg && <img src={activeImg} alt={data.title} className="h-full w-full object-cover" />}
+					<div className="aspect-square rounded-xl bg-gray-100 overflow-hidden mb-4 relative">
+						{activeImg && (
+							activeImg.startsWith('data:') ? (
+								<img 
+									src={activeImg} 
+									alt={data.title} 
+									className="h-full w-full object-cover" 
+									loading="eager"
+									decoding="async"
+								/>
+							) : (
+								<Image
+									src={activeImg}
+									alt={data.title}
+									fill
+									className="object-cover"
+									sizes="(max-width: 768px) 100vw, 50vw"
+									priority
+									quality={85}
+								/>
+							)
+						)}
 					</div>
 					
 					{/* Thumbnail Navigation */}
@@ -346,11 +367,29 @@ export default function ProductDetailPage() {
 									<button 
 										key={i} 
 										onClick={() => setActiveImg(src)} 
-										className={`h-16 w-16 sm:h-20 sm:w-20  border-2 overflow-hidden transition-all ${
+										className={`h-16 w-16 sm:h-20 sm:w-20 border-2 overflow-hidden transition-all relative ${
 											activeImg === src ? 'border-brand-accent ring-2 ring-brand-accent/20' : 'border-gray-200'
 										}`}
 									>
-										<img src={src} alt="thumb" className="h-full w-full object-cover" />
+										{src.startsWith('data:') ? (
+											<img 
+												src={src} 
+												alt="thumb" 
+												className="h-full w-full object-cover" 
+												loading="lazy"
+												decoding="async"
+											/>
+										) : (
+											<Image
+												src={src}
+												alt="thumb"
+												fill
+												className="object-cover"
+												sizes="80px"
+												loading="lazy"
+												quality={70}
+											/>
+										)}
 									</button>
 								))}
 							</div>

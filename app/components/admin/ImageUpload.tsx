@@ -33,7 +33,8 @@ export default function ImageUpload({ images, onImagesChange, label = "Images", 
 
 	async function compressToDataUrl(file: File): Promise<string> {
 		const img = await loadImage(file)
-		const maxW = 1200, maxH = 1200
+		// Reduced max size for web optimization (800x800 is sufficient for most displays)
+		const maxW = 800, maxH = 800
 		let { width, height } = img
 		const ratio = Math.min(maxW / width, maxH / height, 1)
 		width = Math.round(width * ratio)
@@ -43,7 +44,13 @@ export default function ImageUpload({ images, onImagesChange, label = "Images", 
 		canvas.height = height
 		const ctx = canvas.getContext('2d')!
 		ctx.drawImage(img, 0, 0, width, height)
-		return canvas.toDataURL('image/jpeg', 0.8)
+		// Lower quality (0.7) for better compression and smaller file size
+		// Try WebP first (better compression), fallback to JPEG
+		try {
+			return canvas.toDataURL('image/webp', 0.7)
+		} catch {
+			return canvas.toDataURL('image/jpeg', 0.7)
+		}
 	}
 
 	async function uploadToDatabase(file: File): Promise<string> {
