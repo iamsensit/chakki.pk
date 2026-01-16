@@ -18,15 +18,19 @@ export default function MobileBottomNav() {
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 	const [isAdmin, setIsAdmin] = useState(false)
 
-	// Check admin status
+	// Check admin status (non-blocking, deferred)
 	useEffect(() => {
 		if (status === 'authenticated') {
-			fetch('/api/account', { cache: 'no-store' })
-				.then(res => res.json())
-				.then(json => {
-					if (json?.data?.isAdmin) setIsAdmin(true)
-				})
-				.catch(() => setIsAdmin(false))
+			// Defer to avoid blocking initial render
+			const timeoutId = setTimeout(() => {
+				fetch('/api/account', { cache: 'no-store' })
+					.then(res => res.json())
+					.then(json => {
+						if (json?.data?.isAdmin) setIsAdmin(true)
+					})
+					.catch(() => setIsAdmin(false))
+			}, 50)
+			return () => clearTimeout(timeoutId)
 		} else {
 			setIsAdmin(false)
 		}

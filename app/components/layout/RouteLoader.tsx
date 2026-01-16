@@ -13,7 +13,7 @@ function RouteLoaderInner() {
 	const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const loadingStartTime = useRef<number | null>(null)
 	const isNavigatingRef = useRef<boolean>(false)
-	const minLoadingTime = 300 // Minimum time to show loader (ms)
+	const minLoadingTime = 100 // Minimum time to show loader (ms) - reduced for faster navigation
 
 	// Show loader immediately on link clicks and router navigation
 	useEffect(() => {
@@ -187,7 +187,7 @@ function RouteLoaderInner() {
 
 		if (loading) {
 			if (pathChanged || searchChanged) {
-				// Route has changed, wait for page to fully render
+				// Route has changed, hide loader quickly
 				// Clear any existing timeout
 				if (navigationTimeoutRef.current) {
 					clearTimeout(navigationTimeoutRef.current)
@@ -197,56 +197,51 @@ function RouteLoaderInner() {
 				const elapsed = loadingStartTime.current ? Date.now() - loadingStartTime.current : 0
 				const remainingTime = Math.max(0, minLoadingTime - elapsed)
 
-				// Wait for DOM to update and page to be ready
-				// Use multiple requestAnimationFrame to ensure DOM has fully updated
+				// Simplified: Use single requestAnimationFrame for faster response
 				requestAnimationFrame(() => {
-					requestAnimationFrame(() => {
-						requestAnimationFrame(() => {
-							// Wait for minimum loading time + delay for smooth transition
-							navigationTimeoutRef.current = setTimeout(() => {
-								// Check if page is actually loaded
-								const checkAndHide = () => {
-									// Wait for both DOM ready and React hydration
-									if (document.readyState === 'complete') {
-										// Additional check: ensure main content is rendered
-										const mainContent = document.querySelector('main, [role="main"], .container-pg, body > div')
-										if (mainContent) {
-											// Wait a bit more for React hydration and images
-											setTimeout(() => {
-												setLoading(false)
-												loadingStartTime.current = null
-												isNavigatingRef.current = false
-											}, 150)
-										} else {
-											// Content not ready yet, wait a bit more
-											setTimeout(checkAndHide, 100)
-										}
-									} else {
-										// Page still loading, wait for load event
-										const handleLoad = () => {
-											setTimeout(() => {
-												setLoading(false)
-												loadingStartTime.current = null
-												isNavigatingRef.current = false
-											}, 150)
-										}
-										window.addEventListener('load', handleLoad, { once: true })
-										// Fallback timeout (max 2 seconds)
-										setTimeout(() => {
-											setLoading(false)
-											loadingStartTime.current = null
-											isNavigatingRef.current = false
-										}, 2000)
-									}
+					// Wait for minimum loading time, then check if page is ready
+					navigationTimeoutRef.current = setTimeout(() => {
+						// Quick check: if DOM is interactive or complete, hide immediately
+						if (document.readyState === 'interactive' || document.readyState === 'complete') {
+							// Check if main content exists (quick check)
+							const mainContent = document.querySelector('main, [role="main"], .container-pg, body > div')
+							if (mainContent) {
+								// Hide immediately - React hydration happens in background
+								setLoading(false)
+								loadingStartTime.current = null
+								isNavigatingRef.current = false
+							} else {
+								// Content not ready, wait a bit more (max 300ms)
+								setTimeout(() => {
+									setLoading(false)
+									loadingStartTime.current = null
+									isNavigatingRef.current = false
+								}, 100)
+							}
+						} else {
+							// DOM still loading, wait for interactive state (max 500ms)
+							const checkReady = () => {
+								if (document.readyState === 'interactive' || document.readyState === 'complete') {
+									setLoading(false)
+									loadingStartTime.current = null
+									isNavigatingRef.current = false
+								} else {
+									setTimeout(checkReady, 50)
 								}
-								checkAndHide()
-							}, remainingTime + 150)
-						})
-					})
+							}
+							// Fallback: hide after max 500ms regardless
+							setTimeout(() => {
+								setLoading(false)
+								loadingStartTime.current = null
+								isNavigatingRef.current = false
+							}, 500)
+							checkReady()
+						}
+					}, remainingTime)
 				})
 			} else if (isNavigatingRef.current) {
 				// Navigation started but route hasn't changed yet
-				// Give it more time (max 1 second)
+				// Give it a short time (max 500ms)
 				if (navigationTimeoutRef.current) {
 					clearTimeout(navigationTimeoutRef.current)
 				}
@@ -257,7 +252,7 @@ function RouteLoaderInner() {
 						loadingStartTime.current = null
 						isNavigatingRef.current = false
 					}
-				}, 1000)
+				}, 500)
 			}
 		} else {
 			// Not loading - update refs

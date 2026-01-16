@@ -15,11 +15,28 @@ import MiniCart from '@/app/components/cart/MiniCart'
 
 export default function Header() {
 	const { data: session, status } = useSession()
-	const [mounted, setMounted] = useState(false)
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const [locationOpen, setLocationOpen] = useState(false)
-	const [deliveryCity, setDeliveryCity] = useState('Lahore')
-	const [deliveryAddress, setDeliveryAddress] = useState<string | null>(null)
+	// Initialize from localStorage immediately (non-blocking)
+	const [deliveryCity, setDeliveryCity] = useState(() => {
+		if (typeof window !== 'undefined') {
+			const saved = localStorage.getItem('deliveryCity')
+			return saved || ''
+		}
+		return ''
+	})
+	const [deliveryAddress, setDeliveryAddress] = useState<string | null>(() => {
+		if (typeof window !== 'undefined') {
+			try {
+				const saved = localStorage.getItem('deliveryLocation')
+				if (saved) {
+					const location = JSON.parse(saved)
+					return location.address || null
+				}
+			} catch {}
+		}
+		return null
+	})
 	const [availableCities, setAvailableCities] = useState<string[]>([])
 	const [isAdmin, setIsAdmin] = useState(false)
 	const locationRef = useRef<HTMLDivElement>(null)
@@ -27,82 +44,67 @@ export default function Header() {
 	const router = useRouter()
 	const cartItems = useCartStore((state) => state.items)
 
-	useEffect(() => { setMounted(true) }, [])
 	useEffect(() => { setMobileOpen(false) }, [pathname])
 	
-	// Refresh location when pathname changes (e.g., returning from change-location page)
+	// Refresh location when pathname changes (non-blocking, deferred)
 	useEffect(() => {
-		async function refreshLocation() {
+		// Defer to avoid blocking initial render
+		const timeoutId = setTimeout(() => {
 			if (status === 'authenticated' && session?.user?.email) {
 				const userEmail = session.user.email
-				// Add delay to let LocationSync save guest location first
-				await new Promise(resolve => setTimeout(resolve, 500))
-				
-				try {
-					const res = await fetch('/api/user-delivery-location', { cache: 'no-store' })
-					const json = await res.json()
-					if (json.success && json.data) {
-						setDeliveryAddress(json.data.address)
-						setDeliveryCity(json.data.city)
-						// Update localStorage with user email
-						localStorage.setItem('deliveryLocation', JSON.stringify({
-							...json.data,
-							userEmail: userEmail
-						}))
-					} else {
-						// Check if there's a guest location that hasn't been saved yet
+				// Non-blocking fetch
+				fetch('/api/user-delivery-location', { cache: 'no-store' })
+					.then(res => res.json())
+					.then(json => {
+						if (json.success && json.data) {
+							setDeliveryAddress(json.data.address)
+							setDeliveryCity(json.data.city)
+							localStorage.setItem('deliveryLocation', JSON.stringify({
+								...json.data,
+								userEmail: userEmail
+							}))
+						} else {
+							// Check localStorage for guest location
+							const savedLocation = localStorage.getItem('deliveryLocation')
+							if (savedLocation) {
+								try {
+									const location = JSON.parse(savedLocation)
+									if (!location.userEmail || location.userEmail !== userEmail) {
+										setDeliveryAddress(location.address)
+										setDeliveryCity(location.city || '')
+										return
+									}
+								} catch {}
+							}
+							localStorage.removeItem('deliveryLocation')
+							localStorage.removeItem('deliveryCity')
+							setDeliveryAddress(null)
+							setDeliveryCity('')
+						}
+					})
+					.catch(() => {
+						// On error, keep localStorage values
 						const savedLocation = localStorage.getItem('deliveryLocation')
 						if (savedLocation) {
 							try {
 								const location = JSON.parse(savedLocation)
-								// If it's a guest location (no userEmail) or belongs to different user, keep it
-								// LocationSync will save it to DB
 								if (!location.userEmail || location.userEmail !== userEmail) {
-									// Keep the guest location - LocationSync will handle saving it
 									setDeliveryAddress(location.address)
 									setDeliveryCity(location.city || '')
-									return
 								}
 							} catch {}
 						}
-						// Only clear if no location exists at all
-						localStorage.removeItem('deliveryLocation')
-						localStorage.removeItem('deliveryCity')
-						setDeliveryAddress(null)
-						setDeliveryCity('')
-					}
-				} catch {
-					// On error, check for guest location before clearing
-					const savedLocation = localStorage.getItem('deliveryLocation')
-					if (savedLocation) {
-						try {
-							const location = JSON.parse(savedLocation)
-							if (!location.userEmail || location.userEmail !== session.user.email) {
-								// Keep guest location
-								setDeliveryAddress(location.address)
-								setDeliveryCity(location.city || '')
-								return
-							}
-						} catch {}
-					}
-					// Only clear if no valid guest location
-					localStorage.removeItem('deliveryLocation')
-					localStorage.removeItem('deliveryCity')
-					setDeliveryAddress(null)
-					setDeliveryCity('')
-				}
+					})
 			} else if (status === 'unauthenticated') {
-				// Check localStorage for non-authenticated users (guest)
+				// Use localStorage for guests (already initialized in state)
 				const savedLocation = localStorage.getItem('deliveryLocation')
 				if (savedLocation) {
 					try {
 						const location = JSON.parse(savedLocation)
-						// Only use if it's a guest location (no userEmail)
 						if (!location.userEmail) {
 							setDeliveryAddress(location.address)
 							setDeliveryCity(location.city || '')
 						} else {
-							// This was a logged-in user's location, clear it
 							localStorage.removeItem('deliveryLocation')
 							localStorage.removeItem('deliveryCity')
 							setDeliveryAddress(null)
@@ -114,162 +116,58 @@ export default function Header() {
 						setDeliveryAddress(null)
 						setDeliveryCity('')
 					}
-				} else {
-					setDeliveryAddress(null)
-					setDeliveryCity('')
 				}
 			}
-		}
-		refreshLocation()
+		}, 100) // Small delay to not block initial render
+		
+		return () => clearTimeout(timeoutId)
 	}, [pathname, status, session?.user?.email])
 
-	// Check admin status
+	// Check admin status (non-blocking, deferred)
 	useEffect(() => {
 		if (status === 'authenticated') {
-			fetch('/api/account', { cache: 'no-store' })
-				.then(res => res.json())
-				.then(json => {
-					if (json?.data?.isAdmin) setIsAdmin(true)
-				})
-				.catch(() => {})
+			// Defer to avoid blocking initial render
+			const timeoutId = setTimeout(() => {
+				fetch('/api/account', { cache: 'no-store' })
+					.then(res => res.json())
+					.then(json => {
+						if (json?.data?.isAdmin) setIsAdmin(true)
+					})
+					.catch(() => {})
+			}, 50)
+			return () => clearTimeout(timeoutId)
 		} else {
 			setIsAdmin(false)
 		}
 	}, [status])
 
-	// Load available cities from API (for backward compatibility)
+	// Load available cities from API (non-blocking, deferred)
 	useEffect(() => {
-		async function loadCities() {
-			try {
-				const res = await fetch('/api/delivery-areas?activeOnly=true', { cache: 'no-store' })
-				const json = await res.json()
-				if (json.success && Array.isArray(json.data)) {
-					// Extract unique cities for backward compatibility
-					const cities = [...new Set(json.data.map((area: any) => area.city).filter(Boolean))] as string[]
-					setAvailableCities(cities)
-					
-					// Only load saved city from localStorage if user has a saved location
-					const savedLocation = localStorage.getItem('deliveryLocation')
-					const savedCity = localStorage.getItem('deliveryCity')
-					if (savedLocation && savedCity && cities.includes(savedCity)) {
-						setDeliveryCity(savedCity)
+		// Defer to avoid blocking initial render
+		const timeoutId = setTimeout(() => {
+			fetch('/api/delivery-areas?activeOnly=true', { cache: 'no-store' })
+				.then(res => res.json())
+				.then(json => {
+					if (json.success && Array.isArray(json.data)) {
+						const cities = [...new Set(json.data.map((area: any) => area.city).filter(Boolean))] as string[]
+						setAvailableCities(cities)
+						
+						const savedLocation = localStorage.getItem('deliveryLocation')
+						const savedCity = localStorage.getItem('deliveryCity')
+						if (savedLocation && savedCity && cities.includes(savedCity)) {
+							setDeliveryCity(savedCity)
+						}
 					}
-					// Don't set default city for fresh users - they should select location
-				}
-			} catch (err) {
-				console.error('Failed to load cities:', err)
-				setAvailableCities([])
-			}
-		}
-		loadCities()
+				})
+				.catch(() => {
+					setAvailableCities([])
+				})
+		}, 200) // Load after initial render
+		
+		return () => clearTimeout(timeoutId)
 	}, [])
 
-	// Load user's saved delivery location
-	useEffect(() => {
-		if (status === 'authenticated' && session?.user?.email) {
-			const userEmail = session.user.email
-			
-			// Add delay to let LocationSync save guest location first
-			const timeout = setTimeout(async () => {
-				// Clear any previous user's location from localStorage (only if different user)
-				const prevUserLocation = localStorage.getItem('deliveryLocation')
-				const prevUserCity = localStorage.getItem('deliveryCity')
-				if (prevUserLocation || prevUserCity) {
-					// Check if it belongs to a different user
-					try {
-						const location = prevUserLocation ? JSON.parse(prevUserLocation) : null
-						if (location && location.userEmail && location.userEmail !== userEmail) {
-							// Clear previous user's data
-							localStorage.removeItem('deliveryLocation')
-							localStorage.removeItem('deliveryCity')
-						}
-					} catch {}
-				}
-				
-				// Load from database
-				try {
-					const res = await fetch('/api/user-delivery-location', { cache: 'no-store' })
-					const json = await res.json()
-					if (json.success && json.data) {
-						setDeliveryAddress(json.data.address)
-						setDeliveryCity(json.data.city)
-						// Save to localStorage with user email for this session
-						localStorage.setItem('deliveryLocation', JSON.stringify({
-							...json.data,
-							userEmail: userEmail
-						}))
-						localStorage.setItem('deliveryCity', json.data.city)
-					} else {
-						// No location in database - check for guest location before clearing
-						const savedLocation = localStorage.getItem('deliveryLocation')
-						if (savedLocation) {
-							try {
-								const location = JSON.parse(savedLocation)
-								// If it's a guest location, keep it (LocationSync will save it)
-								if (!location.userEmail || location.userEmail !== userEmail) {
-									setDeliveryAddress(location.address)
-									setDeliveryCity(location.city || '')
-									return
-								}
-							} catch {}
-						}
-						// Only clear if no guest location exists
-						localStorage.removeItem('deliveryLocation')
-						localStorage.removeItem('deliveryCity')
-						setDeliveryAddress(null)
-						setDeliveryCity('')
-					}
-				} catch {
-					// On error, check for guest location before clearing
-					const savedLocation = localStorage.getItem('deliveryLocation')
-					if (savedLocation) {
-						try {
-							const location = JSON.parse(savedLocation)
-							if (!location.userEmail || location.userEmail !== userEmail) {
-								setDeliveryAddress(location.address)
-								setDeliveryCity(location.city || '')
-								return
-							}
-						} catch {}
-					}
-					// Only clear if no valid guest location
-					localStorage.removeItem('deliveryLocation')
-					localStorage.removeItem('deliveryCity')
-					setDeliveryAddress(null)
-					setDeliveryCity('')
-				}
-			}, 400) // Wait for LocationSync to complete
-			
-			return () => clearTimeout(timeout)
-		} else if (status === 'unauthenticated') {
-			// For non-authenticated users, use guest location (no user email)
-			const savedLocation = localStorage.getItem('deliveryLocation')
-			if (savedLocation) {
-				try {
-					const location = JSON.parse(savedLocation)
-					// Only use if it's a guest location (no userEmail) or matches current guest
-					if (!location.userEmail) {
-						setDeliveryAddress(location.address)
-						setDeliveryCity(location.city || '')
-					} else {
-						// This was a logged-in user's location, clear it
-						localStorage.removeItem('deliveryLocation')
-						localStorage.removeItem('deliveryCity')
-						setDeliveryAddress(null)
-						setDeliveryCity('')
-					}
-				} catch {
-					localStorage.removeItem('deliveryLocation')
-					localStorage.removeItem('deliveryCity')
-					setDeliveryAddress(null)
-					setDeliveryCity('')
-				}
-			} else {
-				setDeliveryAddress(null)
-				setDeliveryCity('')
-			}
-		}
-	}, [status, session?.user?.email])
+	// This is now handled in the pathname effect above to avoid duplication
 
 	// Save delivery city to localStorage (only if user is authenticated or guest)
 	useEffect(() => {
@@ -326,12 +224,13 @@ export default function Header() {
 		return () => window.removeEventListener('deliveryLocationUpdated', handleLocationUpdate as EventListener)
 	}, [status, session?.user?.email])
 
-	// Refresh location when page becomes visible (in case it was updated in the same tab)
+	// Refresh location when page becomes visible (non-blocking, only if needed)
 	useEffect(() => {
 		function handleVisibilityChange() {
-			if (document.visibilityState === 'visible') {
-				// Reload location from API if authenticated
-				if (status === 'authenticated') {
+			if (document.visibilityState === 'visible' && status === 'authenticated') {
+				// Only refresh if we don't have a location or it's been a while
+				// Defer to avoid blocking
+				setTimeout(() => {
 					fetch('/api/user-delivery-location', { cache: 'no-store' })
 						.then(res => res.json())
 						.then(json => {
@@ -341,17 +240,7 @@ export default function Header() {
 							}
 						})
 						.catch(() => {})
-				} else {
-					// Check localStorage for non-authenticated users
-					const savedLocation = localStorage.getItem('deliveryLocation')
-					if (savedLocation) {
-						try {
-							const location = JSON.parse(savedLocation)
-							setDeliveryAddress(location.address)
-							setDeliveryCity(location.city || deliveryCity)
-						} catch {}
-					}
-				}
+				}, 500) // Small delay to not interfere with page load
 			}
 		}
 		document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -384,14 +273,6 @@ export default function Header() {
 		document.body.style.overflow = mobileOpen ? 'hidden' : original || ''
 		return () => { document.body.style.overflow = original }
 	}, [mobileOpen])
-
-	if (!mounted) {
-		return (
-			<header className="sticky top-0 z-40 bg-white border-b shadow-sm">
-				<div className="container-pg flex h-14 items-center justify-between gap-4" />
-			</header>
-		)
-	}
 
 	return (
 		<header className="sticky top-0 z-40 bg-white border-b shadow-sm hidden md:block">

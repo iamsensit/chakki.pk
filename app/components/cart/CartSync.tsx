@@ -137,11 +137,11 @@ export default function CartSync() {
 		}
 		
 		// Only sync if status is determined (not 'loading')
-		// Add delay to ensure it runs after LocationSync
+		// Defer to avoid blocking navigation - increase delay to ensure it runs after LocationSync
 		if (status !== 'loading') {
 			const timeout = setTimeout(() => {
 				sync()
-			}, 200)
+			}, 300) // Increased delay to ensure LocationSync completes first
 			return () => clearTimeout(timeout)
 		}
 	}, [status])

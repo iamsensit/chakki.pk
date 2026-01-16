@@ -10,6 +10,8 @@ export default function LocationSync() {
 		async function syncLocation() {
 			// Only sync when authenticated
 			if (status === 'authenticated' && session?.user?.email) {
+				// Defer to avoid blocking navigation
+				await new Promise(resolve => setTimeout(resolve, 100))
 				try {
 					// Check if there's a guest location in localStorage
 					const savedLocation = localStorage.getItem('deliveryLocation')
