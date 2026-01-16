@@ -1902,7 +1902,7 @@ function ChangeLocationContent() {
 									)}
 								</button>
 							</div>
-							<div className="relative w-full">
+							<div className="relative w-full max-w-2xl">
 								<input
 									type="text"
 									value={searchQuery}
@@ -1951,7 +1951,7 @@ function ChangeLocationContent() {
 									</button>
 								)}
 								{(showSuggestions && searchSuggestions.length > 0) || (showDeliveryAreas && deliveryAreas.length > 0) ? (
-									<div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto">
+									<div className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-2xl max-h-80 sm:max-h-96 overflow-y-auto top-full left-0 right-0 mb-4" style={{ maxWidth: '100%' }}>
 										{/* Available Delivery Areas */}
 										{showDeliveryAreas && deliveryAreas.length > 0 && (
 											<>
