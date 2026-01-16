@@ -140,9 +140,9 @@ export default function FlashDealCard({ product }: { product: any }) {
 		<div 
 			className="bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex-shrink-0"
 			style={{ 
-				width: '160px', 
-				maxWidth: '160px',
-				minWidth: '160px'
+				width: '200px', 
+				maxWidth: '200px',
+				minWidth: '200px'
 			}}
 			data-product-id={product._id || product.id}
 		>
