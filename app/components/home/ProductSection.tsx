@@ -42,15 +42,10 @@ export default function ProductSection({ title, products, sliderId, icon = 'flas
 	
 	return (
 		<section className="container-pg py-4 sm:py-6 md:py-8">
-			<motion.div
-				initial={{ opacity: 0, y: -20 }}
-				whileInView={{ opacity: 1, y: 0 }}
-				viewport={{ once: true }}
-				transition={{ duration: 0.5 }}
-				className="flex items-center gap-3 mb-4 sm:mb-6"
-			>
+			<div className="flex items-center gap-3 mb-4 sm:mb-6">
 				<div className="flex items-center gap-2 sm:gap-3">
 					<motion.div
+						initial={{ opacity: 1 }}
 						animate={{ 
 							rotate: [0, 10, -10, 0],
 							scale: [1, 1.1, 1]
@@ -61,30 +56,41 @@ export default function ProductSection({ title, products, sliderId, icon = 'flas
 							repeatDelay: 3,
 							ease: "easeInOut"
 						}}
-						className="p-2 bg-gradient-to-br from-brand-accent to-brand-accent rounded-lg shadow-lg"
+						className="p-2 bg-brand-accent rounded-lg shadow-lg flex-shrink-0"
+						style={{ backgroundColor: '#F4991A' }}
 					>
 						<FinalIconComponent className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
 					</motion.div>
-					<h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-						<span className="bg-gradient-to-r from-brand-accent via-brand-accent to-brand-accent bg-clip-text text-transparent animate-gradient">
+					<h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
+						<span 
+							className="text-brand-accent"
+							style={{
+								color: '#F4991A',
+								backgroundImage: 'linear-gradient(to right, #F4991A, #F4991A, #F4991A)',
+								WebkitBackgroundClip: 'text',
+								WebkitTextFillColor: 'transparent',
+								backgroundClip: 'text',
+								backgroundSize: '200% auto',
+								animation: 'gradient 3s ease infinite'
+							}}
+						>
 							{title}
 						</span>
 					</h2>
 				</div>
-				<div className="flex-1 h-0.5 bg-gradient-to-r from-brand-accent/30 via-brand-accent/20 to-transparent"></div>
-			</motion.div>
+				<div 
+					className="flex-1 h-0.5"
+					style={{
+						background: 'linear-gradient(to right, rgba(244, 153, 26, 0.3), rgba(244, 153, 26, 0.2), transparent)'
+					}}
+				></div>
+			</div>
 			<div className="relative">
 				<div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth" id={sliderId}>
 					{products.map((p: any, idx: number) => (
-						<motion.div
-							key={p._id || p.id || idx}
-							initial={{ opacity: 0, x: 20 }}
-							whileInView={{ opacity: 1, x: 0 }}
-							viewport={{ once: true }}
-							transition={{ duration: 0.3, delay: idx * 0.05 }}
-						>
+						<div key={p._id || p.id || idx}>
 							<FlashDealCard product={p} />
-						</motion.div>
+						</div>
 					))}
 				</div>
 				{/* Navigation Arrows */}

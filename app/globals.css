@@ -301,3 +301,19 @@ body {
 	background-size: 200% auto;
 	animation: gradient 3s ease infinite;
 }
+
+/* Ensure gradient text works even without animation */
+.bg-clip-text {
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Fallback for brand accent color */
+.text-brand-accent {
+	color: #F4991A;
+}
+
+.bg-brand-accent {
+	background-color: #F4991A;
+}
