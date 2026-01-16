@@ -42,8 +42,8 @@ export default function PromoCard({ title, subtitle, linkText, link, image, bgCo
 				{/* Decorative Background (only if no image) */}
 				{(!image || imageError) && (
 					<div className="absolute inset-0 opacity-10">
-						<div className="absolute top-0 right-0 w-48 h-48 bg-orange-300 rounded-full blur-2xl" />
-						<div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-300 rounded-full blur-xl" />
+						<div className="absolute top-0 right-0 w-48 h-48 bg-brand-accent rounded-full blur-2xl" />
+						<div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-accent rounded-full blur-xl" />
 					</div>
 				)}
 

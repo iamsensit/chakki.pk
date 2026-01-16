@@ -18,7 +18,7 @@ const promoSlides: PromoSlide[] = [
 		id: '1',
 		image: '/ss1.jpg',
 		link: '/products',
-		bgColor: 'bg-gradient-to-br from-amber-50 to-orange-100'
+		bgColor: 'bg-gradient-to-br from-brand-accent/10 to-brand-accent/5'
 	},
 	{
 		id: '2',
@@ -120,7 +120,7 @@ export default function PromoBanner() {
 									}}
 								/>
 							) : (
-								<div className={`absolute inset-0 ${promoSlides[currentIndex].bgColor || 'bg-gradient-to-br from-amber-50 to-orange-100'}`}>
+								<div className={`absolute inset-0 ${promoSlides[currentIndex].bgColor || 'bg-gradient-to-br from-brand-accent/10 to-brand-accent/5'}`}>
 									{/* Decorative elements */}
 									<div className="absolute inset-0 opacity-10">
 										<div className="absolute top-10 right-10 w-64 h-64 bg-white rounded-full blur-3xl" />

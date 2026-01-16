@@ -253,6 +253,86 @@ async function fetchSpecialOffers() {
 	}
 }
 
+async function fetchHotProducts() {
+	try {
+		await connectToDatabase()
+		// Fetch hot products (high recent sales velocity + high view count)
+		let items = await Product.find({
+			$and: [
+				{ recentSales: { $gt: 5 } },
+				{ viewCount: { $gt: 20 } }
+			]
+		})
+			.sort({ trendingScore: -1, recentSales: -1, viewCount: -1 })
+			.limit(20)
+			.lean()
+		
+		// Fallback: Products with high trending score
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				trendingScore: { $gt: 0 }
+			})
+				.sort({ trendingScore: -1, recentSales: -1 })
+				.limit(20)
+				.lean()
+		}
+		
+		// Final fallback: Products with any recent activity
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				$or: [
+					{ recentSales: { $gt: 0 } },
+					{ viewCount: { $gt: 0 } }
+				]
+			})
+				.sort({ updatedAt: -1, createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
+		return Array.isArray(items) ? items : []
+	} catch (err) {
+		console.error('Error fetching hot products:', err)
+		return []
+	}
+}
+
+async function fetchMostSelling() {
+	try {
+		await connectToDatabase()
+		// Fetch most selling products (highest total sales quantity)
+		let items = await Product.find({
+			totalSales: { $gt: 0 }
+		})
+			.sort({ totalSales: -1, totalRevenue: -1, recentSales: -1 })
+			.limit(20)
+			.lean()
+		
+		// Fallback: Products sorted by revenue
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({
+				totalRevenue: { $gt: 0 }
+			})
+				.sort({ totalRevenue: -1, popularity: -1 })
+				.limit(20)
+				.lean()
+		}
+		
+		// Final fallback: Any products sorted by popularity
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await Product.find({})
+				.sort({ popularity: -1, createdAt: -1 })
+				.limit(20)
+				.lean()
+		}
+		
+		return Array.isArray(items) ? items : []
+	} catch (err) {
+		console.error('Error fetching most selling products:', err)
+		return []
+	}
+}
+
 const categoryImages: Record<string, string> = {
 	'breakfast essentials': '/categories/breakfast.jpg',
 	'milk & dairy': '/categories/dairy.jpg',
@@ -276,17 +356,19 @@ export default async function HomePage() {
 	const categories = await fetchCategories()
 	
 	// Fetch all product lists
-	const [flashDeals, featuredProducts, bestSellers, newArrivals, trendingProducts, specialOffers] = await Promise.all([
+	const [flashDeals, featuredProducts, bestSellers, newArrivals, trendingProducts, specialOffers, hotProducts, mostSelling] = await Promise.all([
 		fetchFlashDeals(),
 		fetchFeaturedProducts(),
 		fetchBestSellers(),
 		fetchNewArrivals(),
 		fetchTrendingProducts(),
-		fetchSpecialOffers()
+		fetchSpecialOffers(),
+		fetchHotProducts(),
+		fetchMostSelling()
 	])
 	
 	// Ensure products don't appear in multiple sections
-	// Priority: Flash Deals > Trending > Best Sellers > Featured > Special Offers > New Arrivals
+	// Priority: Flash Deals > Hot Products > Trending > Most Selling > Best Sellers > Featured > Special Offers > New Arrivals
 	const usedProductIds = new Set<string>()
 	
 	const deduplicatedFlashDeals = flashDeals.filter(p => {
@@ -296,7 +378,21 @@ export default async function HomePage() {
 		return true
 	})
 	
+	const deduplicatedHotProducts = hotProducts.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
+	
 	const deduplicatedTrending = trendingProducts.filter(p => {
+		const id = String(p._id || p.id)
+		if (usedProductIds.has(id)) return false
+		usedProductIds.add(id)
+		return true
+	})
+	
+	const deduplicatedMostSelling = mostSelling.filter(p => {
 		const id = String(p._id || p.id)
 		if (usedProductIds.has(id)) return false
 		usedProductIds.add(id)
@@ -351,7 +447,18 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Flash Deals" 
 					products={deduplicatedFlashDeals} 
-					sliderId="flash-deals-slider" 
+					sliderId="flash-deals-slider"
+					icon="flash"
+				/>
+			)}
+
+			{/* Hot Products Section */}
+			{deduplicatedHotProducts.length > 0 && (
+				<ProductSection 
+					title="Hot Products" 
+					products={deduplicatedHotProducts} 
+					sliderId="hot-products-slider"
+					icon="hot"
 				/>
 			)}
 
@@ -360,7 +467,18 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Trending Now" 
 					products={deduplicatedTrending} 
-					sliderId="trending-products-slider" 
+					sliderId="trending-products-slider"
+					icon="trending"
+				/>
+			)}
+
+			{/* Most Selling Section */}
+			{deduplicatedMostSelling.length > 0 && (
+				<ProductSection 
+					title="Most Selling" 
+					products={deduplicatedMostSelling} 
+					sliderId="most-selling-slider"
+					icon="bestseller"
 				/>
 			)}
 
@@ -369,7 +487,8 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Best Sellers" 
 					products={deduplicatedBestSellers} 
-					sliderId="best-sellers-slider" 
+					sliderId="best-sellers-slider"
+					icon="bestseller"
 				/>
 			)}
 
@@ -378,7 +497,8 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Featured Products" 
 					products={deduplicatedFeatured} 
-					sliderId="featured-products-slider" 
+					sliderId="featured-products-slider"
+					icon="featured"
 				/>
 			)}
 
@@ -387,7 +507,8 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Special Offers" 
 					products={deduplicatedSpecialOffers} 
-					sliderId="special-offers-slider" 
+					sliderId="special-offers-slider"
+					icon="special"
 				/>
 			)}
 
@@ -396,7 +517,8 @@ export default async function HomePage() {
 				<ProductSection 
 					title="New Arrivals" 
 					products={deduplicatedNewArrivals} 
-					sliderId="new-arrivals-slider" 
+					sliderId="new-arrivals-slider"
+					icon="new"
 				/>
 			)}
 		</main>

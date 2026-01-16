@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ShoppingCart, Star, Heart } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useCartStore } from '@/store/cart'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -23,9 +24,20 @@ export default function FlashDealCard({ product }: { product: any }) {
 	const { reviewData, isLoading: reviewsLoading } = useProductReviews(productId)
 	const wishlisted = isWishlisted(String(productId), variantId)
 	
-	// Calculate original price (assume 10-20% discount for flash deals)
-	const discountPercent = product.badges?.[0] || 15
-	const originalPrice = Math.round(unitPrice / (1 - discountPercent / 100))
+	// Parse discount from badges (e.g., "10% OFF" -> 10)
+	let discountPercent = 0
+	if (product.badges && Array.isArray(product.badges)) {
+		for (const badge of product.badges) {
+			if (typeof badge === 'string') {
+				const match = badge.match(/(\d+)% OFF/i)
+				if (match) {
+					discountPercent = parseInt(match[1])
+					break
+				}
+			}
+		}
+	}
+	const originalPrice = discountPercent > 0 ? Math.round(unitPrice / (1 - discountPercent / 100)) : 0
 	
 	// Get weight/volume display
 	let displayWeight = variant?.unitWeight || 0
@@ -150,9 +162,16 @@ export default function FlashDealCard({ product }: { product: any }) {
 					)}
 					{/* Discount Badge */}
 					{discountPercent > 0 && (
-						<span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-red-500 text-white text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded discount-badge">
-							{discountPercent}% OFF
-						</span>
+						<motion.div
+							initial={{ scale: 0 }}
+							animate={{ scale: 1 }}
+							transition={{ type: "spring", stiffness: 200, damping: 15 }}
+							className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10"
+						>
+							<span className="bg-gradient-to-br from-red-500 to-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md shadow-lg border border-red-400/50">
+								{discountPercent}% OFF
+							</span>
+						</motion.div>
 					)}
 					{/* Wishlist Heart Icon - Show on Hover */}
 					<button

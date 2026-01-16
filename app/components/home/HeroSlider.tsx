@@ -24,7 +24,7 @@ const slides: Slide[] = [
 		id: '2',
 		image: '/g1.png',
 		link: '/products?category=rice',
-		bgColor: 'bg-gradient-to-r from-amber-500 to-orange-600'
+		bgColor: 'bg-gradient-to-r from-brand-accent to-brand-accent'
 	},
 	{
 		id: '3',
