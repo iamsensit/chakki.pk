@@ -2,44 +2,127 @@ import Link from 'next/link'
 import ProductCard from '@/app/components/product/ProductCard'
 import ProductFilters from './ProductFilters'
 import MobileSearchBar from '@/app/components/home/MobileSearchBar'
-import { getBaseUrl } from '@/app/lib/url'
-
-function buildQuery(params: Record<string, any>) {
-	const search = new URLSearchParams()
-	Object.entries(params).forEach(([k, v]) => {
-		if (v !== undefined && v !== null && v !== '') search.set(k, String(v))
-	})
-	return search.toString()
-}
 
 async function fetchProducts(searchParams: Record<string, string | undefined>) {
-	// Construct absolute URL for server component fetch
-	const baseUrl = getBaseUrl()
-	const url = `${baseUrl}/api/products?${buildQuery({
+	// Use direct database query instead of HTTP fetch for better performance
+	const { connectToDatabase } = await import('@/app/lib/mongodb')
+	const Product = (await import('@/models/Product')).default
+	await connectToDatabase()
+	
+	const { productsQuerySchema } = await import('@/app/lib/validators')
+	const parsed = productsQuerySchema.safeParse({
 		q: searchParams.q,
 		category: searchParams.category,
 		brand: searchParams.brand,
-		inStock: searchParams.inStock,
+		inStock: searchParams.inStock === 'true' ? true : searchParams.inStock === 'false' ? false : undefined,
 		minPrice: searchParams.minPrice,
 		maxPrice: searchParams.maxPrice,
 		sort: searchParams.sort,
 		page: searchParams.page ?? '1',
 		limit: searchParams.limit ?? '20',
-	})}`
-	const res = await fetch(url, { cache: 'no-store' })
-	if (!res.ok) return { items: [], total: 0, page: 1, limit: 20 }
-	const json = await res.json()
-	return json.data ?? { items: [], total: 0, page: 1, limit: 20 }
+	})
+	
+	if (!parsed.success) {
+		return { items: [], total: 0, page: 1, limit: 20 }
+	}
+	
+	const { q, category, brand, inStock, minPrice, maxPrice, sort, page, limit } = parsed.data
+	let where: any = {}
+	
+	if (q) {
+		const words = q.trim().split(/\s+/).filter(w => w.length > 0)
+		if (words.length > 0) {
+			const allConditions: any[] = []
+			words.forEach(word => {
+				const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+				const regex = { $regex: escapedWord, $options: 'i' }
+				allConditions.push(
+					{ title: regex },
+					{ description: regex },
+					{ brand: regex },
+					{ category: regex },
+					{ subCategory: regex },
+					{ subSubCategory: regex },
+					{ 'variants.label': regex }
+				)
+			})
+			where.$or = allConditions
+		}
+	}
+	if (category) where.category = category
+	if (brand) where.brand = brand
+	if (typeof inStock === 'boolean') {
+		if (inStock) {
+			where.$and = (where.$and || []).concat([{
+				$or: [
+					{ inStock: true },
+					{ variants: { $elemMatch: { stockQty: { $gt: 0 } } } }
+				]
+			}])
+		} else {
+			where.$and = (where.$and || []).concat([{
+				$and: [
+					{ inStock: { $ne: true } },
+					{ variants: { $not: { $elemMatch: { stockQty: { $gt: 0 } } } } }
+				]
+			}])
+		}
+	}
+	if (minPrice !== undefined || maxPrice !== undefined) {
+		const gte = minPrice !== undefined ? minPrice : 0
+		const lte = maxPrice !== undefined ? maxPrice : 9999999
+		where.variants = { $elemMatch: { pricePerKg: { $gte: gte, $lte: lte } } }
+	}
+	
+	let sortObj: any = { popularity: -1 }
+	let useAgg = false
+	if (sort === 'newest') sortObj = { createdAt: -1 }
+	if (sort === 'price_asc' || sort === 'price_desc') {
+		useAgg = true
+	}
+	
+	const skip = (page - 1) * limit
+	
+	if (useAgg) {
+		const pipeline: any[] = [
+			{ $match: where },
+			{ $addFields: { minPrice: { $min: '$variants.pricePerKg' } } },
+			{ $sort: { minPrice: sort === 'price_asc' ? 1 : -1, _id: 1 } },
+			{ $skip: skip },
+			{ $limit: limit }
+		]
+		const [items, totalArr] = await Promise.all([
+			Product.aggregate(pipeline),
+			Product.aggregate([{ $match: where }, { $count: 'total' }])
+		])
+		const total = totalArr?.[0]?.total ?? 0
+		return { items, total, page, limit }
+	}
+	
+	const [items, total] = await Promise.all([
+		Product.find(where).sort(sortObj).skip(skip).limit(limit).lean(),
+		Product.countDocuments(where)
+	])
+	
+	return { items, total, page, limit }
 }
 
 async function fetchMeta() {
-	// Construct absolute URL for server component fetch
-	const baseUrl = getBaseUrl()
-	const res = await fetch(`${baseUrl}/api/products/meta`, { cache: 'no-store' })
-	if (!res.ok) return { categories: [], brands: [] }
-	const json = await res.json()
-	return json.data ?? { categories: [], brands: [] }
+	// Use direct database query instead of HTTP fetch for better performance
+	const { connectToDatabase } = await import('@/app/lib/mongodb')
+	const Product = (await import('@/models/Product')).default
+	await connectToDatabase()
+	
+	const [categories, brands] = await Promise.all([
+		Product.distinct('category').then(cats => cats.filter(Boolean)),
+		Product.distinct('brand').then(brands => brands.filter(Boolean))
+	])
+	
+	return { categories, brands }
 }
+
+// Enable ISR (Incremental Static Regeneration) for better performance
+export const revalidate = 60
 
 export default async function ProductsPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
 	const [{ items, total }, meta] = await Promise.all([fetchProducts(searchParams), fetchMeta()])

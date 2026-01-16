@@ -3,11 +3,13 @@ import mongoose from 'mongoose'
 const MONGODB_URI = process.env.MONGODB_URI as string
 
 if (!MONGODB_URI) {
-	console.warn('MONGODB_URI is not set. Please add it to your .env.local')
+	if (process.env.NODE_ENV !== 'production') {
+		console.warn('MONGODB_URI is not set. Please add it to your .env.local')
+	}
 }
 
-// Log database connection info (without exposing full connection string)
-if (MONGODB_URI) {
+// Log database connection info only in development (without exposing full connection string)
+if (process.env.NODE_ENV !== 'production' && MONGODB_URI) {
 	const uriLower = MONGODB_URI.toLowerCase()
 	if (uriLower.includes('localhost') || uriLower.includes('127.0.0.1')) {
 		console.log('✅ [MongoDB] Connecting to LOCAL database')
@@ -35,8 +37,10 @@ export async function connectToDatabase() {
 			dbName: process.env.MONGODB_DB || undefined,
 			serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
 		}).then((m) => {
-			const dbName = m.connection.db?.databaseName || process.env.MONGODB_DB || 'unknown'
-			console.log(`✅ [MongoDB] Connected to database: ${dbName}`)
+			if (process.env.NODE_ENV !== 'production') {
+				const dbName = m.connection.db?.databaseName || process.env.MONGODB_DB || 'unknown'
+				console.log(`✅ [MongoDB] Connected to database: ${dbName}`)
+			}
 			return m
 		}).catch((err) => {
 			// Clear the promise on error so we can retry

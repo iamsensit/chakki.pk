@@ -8,7 +8,7 @@ import ServiceMarquee from '@/app/components/home/ServiceMarquee'
 
 async function fetchCategories() {
 	try {
-		await connectToDatabase()
+		// Connection already established at page level
 		// Only fetch top-level categories (level 0 or no parentCategory)
 		const dbCategories = await Category.find({
 			$or: [
@@ -36,19 +36,22 @@ async function fetchCategories() {
 		})
 		
 		// Only add product-derived categories if they don't exist in admin categories
-		// and only if they're top-level (not sub-categories from products)
+		// Optimized: Fetch all sub-categories once instead of querying in loop
 		const productCategories = await Product.distinct('category')
-		for (const catName of productCategories) {
-			if (catName) {
-				const catNameLower = String(catName).toLowerCase().trim()
-				if (!categoryMap.has(catNameLower)) {
-					// Only add if it's not a sub-category (check if it exists as a sub-category in DB)
-					const existsAsSub = await Category.findOne({
-						name: { $regex: new RegExp(`^${String(catName).trim()}$`, 'i') },
-						level: { $gt: 0 }
-					}).lean()
-					
-					if (!existsAsSub) {
+		if (productCategories.length > 0) {
+			// Get all sub-categories in one query
+			const subCategories = await Category.find({
+				level: { $gt: 0 }
+			}).select('name').lean()
+			const subCategoryNames = new Set(
+				subCategories.map((sc: any) => String(sc.name).toLowerCase().trim())
+			)
+			
+			// Add product categories that aren't in admin categories and aren't sub-categories
+			for (const catName of productCategories) {
+				if (catName) {
+					const catNameLower = String(catName).toLowerCase().trim()
+					if (!categoryMap.has(catNameLower) && !subCategoryNames.has(catNameLower)) {
 						categoryMap.set(catNameLower, {
 							name: String(catName).trim(),
 							image: '',
@@ -73,8 +76,9 @@ async function fetchCategories() {
 
 async function fetchFlashDeals() {
 	try {
-		await connectToDatabase()
+		// Connection already established at page level
 		// Fetch products with discount badges (badges containing % OFF or similar)
+		// Only select needed fields for better performance
 		let items = await Product.find({
 			badges: { $exists: true, $ne: [] },
 			$or: [
@@ -83,31 +87,26 @@ async function fetchFlashDeals() {
 				{ 'badges': { $regex: /sale/i } }
 			]
 		})
+			.select('_id title slug images badges variants recentSales trendingScore totalSales createdAt')
 			.sort({ recentSales: -1, trendingScore: -1, totalSales: -1, createdAt: -1 })
 			.limit(20)
 			.lean()
 		
-		// Fallback: If no products with discount badges, show products with any badges
-		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({
-				badges: { $exists: true, $ne: [] }
-			})
-				.sort({ createdAt: -1 })
-				.limit(20)
-				.lean()
-		}
-		
+		// If no discount products, return empty (no fallback to avoid extra query)
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching flash deals:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching flash deals:', err)
+		}
 		return []
 	}
 }
 
 async function fetchFeaturedProducts() {
 	try {
-		await connectToDatabase()
+		// Connection already established at page level
 		// Fetch featured products (high total sales or high view count)
+		// Only select needed fields for better performance
 		let items = await Product.find({
 			$or: [
 				{ totalSales: { $gte: 10 } },
@@ -115,26 +114,15 @@ async function fetchFeaturedProducts() {
 				{ badges: { $exists: true, $ne: [] } }
 			]
 		})
+			.select('_id title slug images badges variants totalSales viewCount createdAt')
 			.sort({ totalSales: -1, viewCount: -1, createdAt: -1 })
 			.limit(20)
 			.lean()
 		
-		// Fallback: If no products meet criteria, show products with any sales or views
-		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({
-				$or: [
-					{ totalSales: { $gt: 0 } },
-					{ viewCount: { $gt: 0 } }
-				]
-			})
-				.sort({ totalSales: -1, viewCount: -1, createdAt: -1 })
-				.limit(20)
-				.lean()
-		}
-		
-		// Final fallback: Show any products sorted by popularity or creation date
+		// Single fallback: If no products meet criteria, show any products sorted by popularity
 		if (!Array.isArray(items) || items.length === 0) {
 			items = await Product.find({})
+				.select('_id title slug images badges variants popularity createdAt')
 				.sort({ popularity: -1, createdAt: -1 })
 				.limit(20)
 				.lean()
@@ -142,77 +130,70 @@ async function fetchFeaturedProducts() {
 		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching featured products:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching featured products:', err)
+		}
 		return []
 	}
 }
 
 async function fetchBestSellers() {
 	try {
-		await connectToDatabase()
-		// Fetch best sellers (highest total sales)
+		// Connection already established at page level
+		// Fetch best sellers (highest total sales) - only select needed fields
 		let items = await Product.find({
 			totalSales: { $gt: 0 }
 		})
+			.select('_id title slug images badges variants totalSales totalRevenue')
 			.sort({ totalSales: -1, totalRevenue: -1 })
 			.limit(20)
 			.lean()
 		
-		// Fallback: If no products have sales yet, show products sorted by popularity
-		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({})
-				.sort({ popularity: -1, createdAt: -1 })
-				.limit(20)
-				.lean()
-		}
-		
+		// If no products with sales, return empty (no fallback to avoid extra query)
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching best sellers:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching best sellers:', err)
+		}
 		return []
 	}
 }
 
 async function fetchNewArrivals() {
 	try {
-		await connectToDatabase()
-		// Fetch newest products
+		// Connection already established at page level
+		// Fetch newest products - only select needed fields
 		const items = await Product.find({})
+			.select('_id title slug images badges variants createdAt')
 			.sort({ createdAt: -1 })
 			.limit(20)
 			.lean()
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching new arrivals:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching new arrivals:', err)
+		}
 		return []
 	}
 }
 
 async function fetchTrendingProducts() {
 	try {
-		await connectToDatabase()
-		// Fetch trending products (high recent sales velocity)
+		// Connection already established at page level
+		// Fetch trending products (high recent sales velocity) - only select needed fields
 		let items = await Product.find({
 			recentSales: { $gt: 0 },
 			lastSoldAt: { $exists: true, $ne: null }
 		})
+			.select('_id title slug images badges variants trendingScore recentSales lastSoldAt')
 			.sort({ trendingScore: -1, recentSales: -1, lastSoldAt: -1 })
 			.limit(20)
 			.lean()
 		
-		// Fallback: If no products have recent sales, show products with any sales
-		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({
-				totalSales: { $gt: 0 }
-			})
-				.sort({ totalSales: -1, updatedAt: -1 })
-				.limit(20)
-				.lean()
-		}
-		
-		// Final fallback: Show recently updated products
+		// Single fallback: If no trending products, show recently updated products
 		if (!Array.isArray(items) || items.length === 0) {
 			items = await Product.find({})
+				.select('_id title slug images badges variants updatedAt createdAt')
 				.sort({ updatedAt: -1, createdAt: -1 })
 				.limit(20)
 				.lean()
@@ -220,71 +201,54 @@ async function fetchTrendingProducts() {
 		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching trending products:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching trending products:', err)
+		}
 		return []
 	}
 }
 
 async function fetchSpecialOffers() {
 	try {
-		await connectToDatabase()
-		// Fetch products with special offers (badges/discounts) - prioritize by sales
+		// Connection already established at page level
+		// Fetch products with special offers (badges/discounts) - only select needed fields
 		let items = await Product.find({
 			badges: { $exists: true, $ne: [] }
 		})
+			.select('_id title slug images badges variants recentSales totalSales createdAt')
 			.sort({ recentSales: -1, totalSales: -1, createdAt: -1 })
 			.limit(20)
 			.lean()
 		
-		// Fallback: If no products with badges, show products with high popularity
-		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({
-				popularity: { $gt: 0 }
-			})
-				.sort({ popularity: -1, createdAt: -1 })
-				.limit(20)
-				.lean()
-		}
-		
+		// If no products with badges, return empty (no fallback to avoid extra query)
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching special offers:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching special offers:', err)
+		}
 		return []
 	}
 }
 
 async function fetchHotProducts() {
 	try {
-		await connectToDatabase()
-		// Fetch hot products (high recent sales velocity + high view count)
+		// Connection already established at page level
+		// Fetch hot products (high recent sales velocity + high view count) - only select needed fields
 		let items = await Product.find({
 			$and: [
 				{ recentSales: { $gt: 5 } },
 				{ viewCount: { $gt: 20 } }
 			]
 		})
+			.select('_id title slug images badges variants trendingScore recentSales viewCount')
 			.sort({ trendingScore: -1, recentSales: -1, viewCount: -1 })
 			.limit(20)
 			.lean()
 		
-		// Fallback: Products with high trending score
+		// Single fallback: If no hot products, show recently updated products
 		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({
-				trendingScore: { $gt: 0 }
-			})
-				.sort({ trendingScore: -1, recentSales: -1 })
-				.limit(20)
-				.lean()
-		}
-		
-		// Final fallback: Products with any recent activity
-		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({
-				$or: [
-					{ recentSales: { $gt: 0 } },
-					{ viewCount: { $gt: 0 } }
-				]
-			})
+			items = await Product.find({})
+				.select('_id title slug images badges variants updatedAt createdAt')
 				.sort({ updatedAt: -1, createdAt: -1 })
 				.limit(20)
 				.lean()
@@ -292,35 +256,29 @@ async function fetchHotProducts() {
 		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching hot products:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching hot products:', err)
+		}
 		return []
 	}
 }
 
 async function fetchMostSelling() {
 	try {
-		await connectToDatabase()
-		// Fetch most selling products (highest total sales quantity)
+		// Connection already established at page level
+		// Fetch most selling products (highest total sales quantity) - only select needed fields
 		let items = await Product.find({
 			totalSales: { $gt: 0 }
 		})
+			.select('_id title slug images badges variants totalSales totalRevenue recentSales')
 			.sort({ totalSales: -1, totalRevenue: -1, recentSales: -1 })
 			.limit(20)
 			.lean()
 		
-		// Fallback: Products sorted by revenue
-		if (!Array.isArray(items) || items.length === 0) {
-			items = await Product.find({
-				totalRevenue: { $gt: 0 }
-			})
-				.sort({ totalRevenue: -1, popularity: -1 })
-				.limit(20)
-				.lean()
-		}
-		
-		// Final fallback: Any products sorted by popularity
+		// Single fallback: If no products with sales, show any products sorted by popularity
 		if (!Array.isArray(items) || items.length === 0) {
 			items = await Product.find({})
+				.select('_id title slug images badges variants popularity createdAt')
 				.sort({ popularity: -1, createdAt: -1 })
 				.limit(20)
 				.lean()
@@ -328,7 +286,9 @@ async function fetchMostSelling() {
 		
 		return Array.isArray(items) ? items : []
 	} catch (err) {
-		console.error('Error fetching most selling products:', err)
+		if (process.env.NODE_ENV !== 'production') {
+			console.error('Error fetching most selling products:', err)
+		}
 		return []
 	}
 }
@@ -349,14 +309,17 @@ const categoryImages: Record<string, string> = {
 	'rice': '/categories/rice.jpg',
 }
 
-// Make this page dynamic to avoid MongoDB connection errors during build
-export const dynamic = 'force-dynamic'
+// Enable ISR (Incremental Static Regeneration) for better performance
+// Revalidate every 60 seconds - page will be cached and only regenerated when needed
+export const revalidate = 60
 
 export default async function HomePage() {
-	const categories = await fetchCategories()
+	// Connect to database once at the top level (connection is cached globally)
+	await connectToDatabase()
 	
-	// Fetch all product lists
-	const [flashDeals, featuredProducts, bestSellers, newArrivals, trendingProducts, specialOffers, hotProducts, mostSelling] = await Promise.all([
+	// Fetch all data in parallel
+	const [categories, flashDeals, featuredProducts, bestSellers, newArrivals, trendingProducts, specialOffers, hotProducts, mostSelling] = await Promise.all([
+		fetchCategories(),
 		fetchFlashDeals(),
 		fetchFeaturedProducts(),
 		fetchBestSellers(),
