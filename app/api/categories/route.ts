@@ -184,31 +184,9 @@ export async function GET(req: NextRequest) {
 			return json(true, 'Categories fetched', { categories: filtered })
 		}
 
-		// For admin categories page, include product-derived categories too
-		// Get distinct categories from products
-		const productCategories = await Product.distinct('category', { category: { $exists: true, $ne: null } })
-		
-		// Auto-create Category records for product-derived categories that don't exist
-		for (const catName of productCategories) {
-			const nameStr = String(catName)
-			if (!nameStr) continue
-			const existing = await Category.findOne({ name: nameStr })
-			if (!existing) {
-				// Auto-create category from product data
-				const slug = nameStr.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-				await Category.create({
-					name: nameStr,
-					slug,
-					image: '',
-					description: '',
-					displayOrder: 1000,
-					isActive: true
-				})
-			}
-		}
-		
-		// Reload all categories after auto-creating missing ones
-		const allCategories = await Category.find({ isActive: { $ne: false } }).lean()
+		// For admin categories page - ONLY return categories from Category collection (no auto-creation)
+		// Use the dbCategories we already loaded - these are the ONLY categories that should exist
+		const allCategories = dbCategories
 		
 		// Count products per category and build response
 		const categoriesWithData = await Promise.all(

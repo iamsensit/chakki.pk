@@ -11,6 +11,8 @@ type Variant = { _id?: string; id?: string; label?: string; unitWeight?: number;
 export default function EditProductPage() {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<any[]>([])
+  const [allProducts, setAllProducts] = useState<any[]>([])
+  const [showAllProducts, setShowAllProducts] = useState(false)
   const [productId, setProductId] = useState<string>('')
 
   // editable fields
@@ -33,17 +35,59 @@ export default function EditProductPage() {
   const [relatedProductsSearch, setRelatedProductsSearch] = useState('')
   const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any[]>([])
 
+  // Load all products on mount
+  useEffect(() => {
+    async function loadAllProducts() {
+      try {
+        const res = await fetch(`/api/products?limit=1000`)
+        const json = await res.json()
+        if (json?.data?.items) {
+          setAllProducts(json.data.items)
+        }
+      } catch (err) {
+        console.error('Failed to load products:', err)
+      }
+    }
+    loadAllProducts()
+  }, [])
+
+  // Search/filter products
   useEffect(() => {
     const t = setTimeout(async () => {
-      if (!query.trim()) { setSuggestions([]); return }
+      if (!query.trim()) { 
+        setSuggestions([])
+        return 
+      }
       try {
-        const res = await fetch(`/api/products?suggest=1&q=${encodeURIComponent(query)}&limit=10`)
-        const json = await res.json()
-        setSuggestions(json?.data?.items || [])
-      } catch { setSuggestions([]) }
+        // Search in all products first (client-side)
+        const queryLower = query.toLowerCase().trim()
+        const filtered = allProducts.filter((p: any) => {
+          const title = (p.title || '').toLowerCase()
+          const sku = p.variants?.some((v: any) => 
+            (v.sku || '').toLowerCase().includes(queryLower)
+          )
+          return title.includes(queryLower) || sku
+        })
+        
+        // Sort: exact matches first, then partial matches
+        const sorted = filtered.sort((a: any, b: any) => {
+          const aTitle = (a.title || '').toLowerCase()
+          const bTitle = (b.title || '').toLowerCase()
+          const aExact = aTitle === queryLower || aTitle.startsWith(queryLower)
+          const bExact = bTitle === queryLower || bTitle.startsWith(queryLower)
+          
+          if (aExact && !bExact) return -1
+          if (!aExact && bExact) return 1
+          return aTitle.localeCompare(bTitle)
+        })
+        
+        setSuggestions(sorted.slice(0, 20))
+      } catch { 
+        setSuggestions([]) 
+      }
     }, 250)
     return () => clearTimeout(t)
-  }, [query])
+  }, [query, allProducts])
 
   // Load available categories (hierarchical)
   useEffect(() => {
@@ -445,7 +489,16 @@ export default function EditProductPage() {
 
       {/* Search */}
       <div className="mt-6 rounded-md border p-4">
-        <div className="text-sm font-medium mb-2">Find a product</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm font-medium">Find a product</div>
+          <button
+            type="button"
+            onClick={() => setShowAllProducts(!showAllProducts)}
+            className="text-xs text-brand-accent hover:underline"
+          >
+            {showAllProducts ? 'Hide' : 'Show'} All Products ({allProducts.length})
+          </button>
+        </div>
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
@@ -453,14 +506,58 @@ export default function EditProductPage() {
           className="w-full rounded-md border px-3 py-2 text-sm"
           onKeyDown={(e) => { if (e.key === 'Enter' && suggestions[0]) { loadProduct(suggestions[0]._id || suggestions[0].id) } }}
         />
-        {suggestions.length > 0 && (
-          <div className="mt-2 max-h-64 overflow-auto rounded-md border divide-y bg-white">
-            {suggestions.map(s => (
-              <button key={s._id || s.id} onClick={() => loadProduct(s._id || s.id)} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">
-                {s.title}
+        
+        {/* Show all products (collapsed) */}
+        {showAllProducts && !query.trim() && (
+          <div className="mt-2 max-h-96 overflow-auto rounded-md border divide-y bg-white">
+            {allProducts.map((p: any) => (
+              <button 
+                key={p._id || p.id} 
+                onClick={() => {
+                  loadProduct(p._id || p.id)
+                  setShowAllProducts(false)
+                }} 
+                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                <div className="font-medium">{p.title}</div>
+                {p.variants?.[0]?.sku && <div className="text-xs text-gray-500">SKU: {p.variants[0].sku}</div>}
               </button>
             ))}
           </div>
+        )}
+        
+        {/* Show search results (matched products at top) */}
+        {query.trim() && suggestions.length > 0 && (
+          <div className="mt-2 max-h-96 overflow-auto rounded-md border divide-y bg-white">
+            {suggestions.map((p: any) => {
+              const title = (p.title || '').toLowerCase()
+              const queryLower = query.toLowerCase().trim()
+              const isExactMatch = title === queryLower || title.startsWith(queryLower)
+              
+              return (
+                <button 
+                  key={p._id || p.id} 
+                  onClick={() => {
+                    loadProduct(p._id || p.id)
+                    setQuery('')
+                    setSuggestions([])
+                  }} 
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                    isExactMatch ? 'bg-yellow-50 hover:bg-yellow-100' : ''
+                  }`}
+                >
+                  <div className="font-medium">{p.title}</div>
+                  {p.variants?.[0]?.sku && <div className="text-xs text-gray-500">SKU: {p.variants[0].sku}</div>}
+                  {isExactMatch && <div className="text-xs text-green-600 mt-1">✓ Exact match</div>}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        
+        {/* No results message */}
+        {query.trim() && suggestions.length === 0 && (
+          <div className="mt-2 text-sm text-gray-500 px-2">No products found matching "{query}"</div>
         )}
       </div>
 
