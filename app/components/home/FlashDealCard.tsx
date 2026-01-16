@@ -126,7 +126,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 	
 	return (
 		<div 
-			className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-md transition-shadow min-w-[160px] sm:min-w-[200px] flex-shrink-0"
+			className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-md transition-shadow w-[160px] sm:w-[200px] max-w-[160px] sm:max-w-[200px] flex-shrink-0"
 			data-product-id={product._id || product.id}
 		>
 			{/* Product Image */}
