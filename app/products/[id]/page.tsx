@@ -66,62 +66,6 @@ export default function ProductDetailPage() {
 				setActiveImg(d?.images?.[0] || '')
 				setLoading(false)
 				
-				// Update meta tags for social sharing (Open Graph, Twitter Card)
-				if (d && typeof document !== 'undefined') {
-					const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://chakki.pk')
-					const productUrl = `${baseUrl}/products/${d.slug || (d.id || d._id)}`
-					// Use first product image if available and it's a URL (not base64), otherwise use site logo
-					let productImage = `${baseUrl}/icon.png` // Default to logo
-					if (d.images?.[0]) {
-						const firstImage = d.images[0]
-						if (firstImage.startsWith('http')) {
-							productImage = firstImage // Already absolute URL
-						} else if (!firstImage.startsWith('data:') && firstImage.startsWith('/')) {
-							productImage = `${baseUrl}${firstImage}` // Relative path - make absolute
-						} else if (!firstImage.startsWith('data:')) {
-							productImage = `${baseUrl}/${firstImage.replace(/^\//, '')}` // Path without leading slash
-						}
-					}
-					const productTitle = d.title || 'Product'
-					const productDescription = d.description ? d.description.substring(0, 200).replace(/\n/g, ' ').trim() : 'Wholesale food grains and daily essentials at the best bulk prices in Pakistan.'
-					const price = d.variants?.[0] ? `Rs. ${Math.round((d.variants[0].pricePerKg || 0) * (d.variants[0].unitWeight || 1))}` : ''
-					
-					// Helper function to update or create meta tag
-					const updateMetaTag = (property: string, content: string) => {
-						let meta = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`)
-						if (!meta) {
-							meta = document.createElement('meta')
-							meta.setAttribute(property.startsWith('og:') ? 'property' : 'name', property)
-							document.head.appendChild(meta)
-						}
-						meta.setAttribute('content', content)
-					}
-					
-					// Update title
-					document.title = `${productTitle} | Chakki`
-					
-					// Open Graph tags
-					updateMetaTag('og:title', productTitle)
-					updateMetaTag('og:description', productDescription)
-					updateMetaTag('og:image', productImage)
-					updateMetaTag('og:url', productUrl)
-					updateMetaTag('og:type', 'product')
-					updateMetaTag('og:site_name', 'Chakki')
-					
-					// Twitter Card tags
-					updateMetaTag('twitter:card', 'summary_large_image')
-					updateMetaTag('twitter:title', productTitle)
-					updateMetaTag('twitter:description', productDescription)
-					updateMetaTag('twitter:image', productImage)
-					
-					// Standard meta tags
-					updateMetaTag('description', productDescription)
-					if (price) {
-						updateMetaTag('product:price:amount', price.replace(/[^\d]/g, ''))
-						updateMetaTag('product:price:currency', 'PKR')
-					}
-				}
-				
 				// Track product view (best-effort, don't block page load)
 				if (d?.id || d?._id) {
 					fetch('/api/products/track-view', {
@@ -683,7 +627,9 @@ export default function ProductDetailPage() {
 									const unitLabels: Record<string, string> = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
 									const unitLabel = unitLabels[v.unit] || v.unit || 'kg'
 									const displayWeightStr = `${displayWeight}${unitLabel}`
-									const displayLabel = v.label || displayWeightStr
+									let displayLabel = v.label || displayWeightStr
+									// Remove "bag" word from label
+									displayLabel = displayLabel.replace(/\s*bag\s*/gi, '').trim()
 									return (
 										<button 
 											key={v.id || v._id} 

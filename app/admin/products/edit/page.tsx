@@ -386,7 +386,7 @@ export default function EditProductPage() {
       const processedVariants = variants.map(v => {
         const derivedLabel = (v.label && v.label.trim().length > 0)
           ? v.label
-          : (v.unitWeight ? `${v.unitWeight}${v.unit === 'g' ? 'g' : 'kg'} bag` : 'Unit')
+          : (v.unitWeight ? `${v.unitWeight}${v.unit === 'g' ? 'g' : 'kg'}` : 'Unit')
         
         // Convert unitWeight to base unit for storage:
         // - g -> kg (divide by 1000)
