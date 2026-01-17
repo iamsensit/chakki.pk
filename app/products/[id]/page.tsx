@@ -632,11 +632,16 @@ export default function ProductDetailPage() {
 									displayLabel = displayLabel.replace(/\s*bag\s*/gi, '').trim()
 									// Normalize kg to " KG" (with space and uppercase) - handles "1kg", "1 kg", "1KG", "1 KG"
 									displayLabel = displayLabel.replace(/(\d+(?:\.\d+)?)\s*kg\s*/gi, '$1 KG').replace(/(\d+(?:\.\d+)?)\s*KG\s*/gi, '$1 KG').trim()
+									const isSelected = v.id === variantId || String(v._id) === variantId
 									return (
 										<button 
 											key={v.id || v._id} 
 											onClick={() => setVariantId(v.id || String(v._id))} 
-											className={`btn-secondary text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 sm:py-2 ${(v.id === variantId || String(v._id) === variantId) ? 'bg-brand-accent text-white border-brand-accent' : ''}`}
+											className={`btn-secondary text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 sm:py-2 ${
+												isSelected 
+													? 'bg-brand-accent text-white border-brand-accent hover:bg-brand-accent hover:text-white hover:border-brand-accent' 
+													: ''
+											}`}
 										>
 											{displayLabel}
 										</button>
