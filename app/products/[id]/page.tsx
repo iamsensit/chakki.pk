@@ -66,6 +66,62 @@ export default function ProductDetailPage() {
 				setActiveImg(d?.images?.[0] || '')
 				setLoading(false)
 				
+				// Update meta tags for social sharing (Open Graph, Twitter Card)
+				if (d && typeof document !== 'undefined') {
+					const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://chakki.pk')
+					const productUrl = `${baseUrl}/products/${d.slug || (d.id || d._id)}`
+					// Use first product image if available and it's a URL (not base64), otherwise use site logo
+					let productImage = `${baseUrl}/icon.png` // Default to logo
+					if (d.images?.[0]) {
+						const firstImage = d.images[0]
+						if (firstImage.startsWith('http')) {
+							productImage = firstImage // Already absolute URL
+						} else if (!firstImage.startsWith('data:') && firstImage.startsWith('/')) {
+							productImage = `${baseUrl}${firstImage}` // Relative path - make absolute
+						} else if (!firstImage.startsWith('data:')) {
+							productImage = `${baseUrl}/${firstImage.replace(/^\//, '')}` // Path without leading slash
+						}
+					}
+					const productTitle = d.title || 'Product'
+					const productDescription = d.description ? d.description.substring(0, 200).replace(/\n/g, ' ').trim() : 'Wholesale food grains and daily essentials at the best bulk prices in Pakistan.'
+					const price = d.variants?.[0] ? `Rs. ${Math.round((d.variants[0].pricePerKg || 0) * (d.variants[0].unitWeight || 1))}` : ''
+					
+					// Helper function to update or create meta tag
+					const updateMetaTag = (property: string, content: string) => {
+						let meta = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`)
+						if (!meta) {
+							meta = document.createElement('meta')
+							meta.setAttribute(property.startsWith('og:') ? 'property' : 'name', property)
+							document.head.appendChild(meta)
+						}
+						meta.setAttribute('content', content)
+					}
+					
+					// Update title
+					document.title = `${productTitle} | Chakki`
+					
+					// Open Graph tags
+					updateMetaTag('og:title', productTitle)
+					updateMetaTag('og:description', productDescription)
+					updateMetaTag('og:image', productImage)
+					updateMetaTag('og:url', productUrl)
+					updateMetaTag('og:type', 'product')
+					updateMetaTag('og:site_name', 'Chakki')
+					
+					// Twitter Card tags
+					updateMetaTag('twitter:card', 'summary_large_image')
+					updateMetaTag('twitter:title', productTitle)
+					updateMetaTag('twitter:description', productDescription)
+					updateMetaTag('twitter:image', productImage)
+					
+					// Standard meta tags
+					updateMetaTag('description', productDescription)
+					if (price) {
+						updateMetaTag('product:price:amount', price.replace(/[^\d]/g, ''))
+						updateMetaTag('product:price:currency', 'PKR')
+					}
+				}
+				
 				// Track product view (best-effort, don't block page load)
 				if (d?.id || d?._id) {
 					fetch('/api/products/track-view', {
@@ -403,6 +459,77 @@ export default function ProductDetailPage() {
 							)}
 						</div>
 					)}
+
+					{/* Share Buttons - Moved below images */}
+					<div className="flex items-center gap-2 sm:gap-3 pt-4 mt-4 border-t">
+						<span className="text-xs sm:text-sm text-gray-600">Share:</span>
+						<button 
+							onClick={() => {
+								const url = window.location.href
+								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
+								window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400')
+							}}
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
+							title="Share on Facebook"
+						>
+							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1877F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+								<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+							</svg>
+						</button>
+						<button 
+							onClick={() => {
+								const url = window.location.href
+								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
+								window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400')
+							}}
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
+							title="Share on Twitter"
+						>
+							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1DA1F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+								<path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+							</svg>
+						</button>
+						<button 
+							onClick={() => {
+								const url = window.location.href
+								const text = `Check out ${data.title} - ${formatCurrencyPKR(unitPrice)}`
+								window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400')
+							}}
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
+							title="Share on WhatsApp"
+						>
+							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#25D366" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+								<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.36.489 1.871.118.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+							</svg>
+						</button>
+						<button 
+							onClick={async () => {
+								const url = window.location.href
+								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
+								
+								if (navigator.share) {
+									try {
+										await navigator.share({
+											title: data.title,
+											text: text,
+											url: url
+										})
+									} catch (err) {
+										// User cancelled or error occurred
+										console.log('Share cancelled or failed')
+									}
+								} else {
+									// Fallback: copy to clipboard
+									await navigator.clipboard.writeText(url)
+									alert('Link copied to clipboard!')
+								}
+							}}
+							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
+							title="Share"
+						>
+							<Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-600" />
+						</button>
+					</div>
 				</div>
 
 				{/* Right Side - Product Info */}
@@ -724,120 +851,6 @@ export default function ProductDetailPage() {
 								</div>
 							</div>
 						</div>
-					</div>
-
-					{/* Product Specifications */}
-					{(data.brand || data.category || selectedVariant?.sku) && (
-						<div className="pt-3 sm:pt-4 border-t">
-							<h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Product Details</h3>
-							<div className="space-y-2 text-xs sm:text-sm">
-								{data.brand && (
-									<div className="flex justify-between">
-										<span className="text-gray-600">Brand:</span>
-										<span className="text-gray-900 font-medium">{data.brand}</span>
-									</div>
-								)}
-								{data.category && (
-									<div className="flex justify-between">
-										<span className="text-gray-600">Category:</span>
-										<Link href={`/products?category=${encodeURIComponent(data.category)}`} className="text-brand-accent hover:underline font-medium">
-											{data.category}
-										</Link>
-									</div>
-								)}
-								{data.subCategory && (
-									<div className="flex justify-between">
-										<span className="text-gray-600">Sub-Category:</span>
-										<Link href={`/products?category=${encodeURIComponent(data.category || '')}&subCategory=${encodeURIComponent(data.subCategory)}`} className="text-brand-accent hover:underline font-medium">
-											{data.subCategory}
-										</Link>
-									</div>
-								)}
-								{selectedVariant?.sku && (
-									<div className="flex justify-between">
-										<span className="text-gray-600">SKU:</span>
-										<span className="text-gray-900 font-medium">{selectedVariant.sku}</span>
-									</div>
-								)}
-								{selectedVariant && (
-									<div className="flex justify-between">
-										<span className="text-gray-600">Weight/Size:</span>
-										<span className="text-gray-900 font-medium">{selectedVariant.label || `${selectedVariant.unitWeight || 0}${selectedVariant.unit || 'kg'}`}</span>
-									</div>
-								)}
-							</div>
-						</div>
-					)}
-
-					{/* Share Buttons */}
-					<div className="flex items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
-						<span className="text-xs sm:text-sm text-gray-600">Share:</span>
-						<button 
-							onClick={() => {
-								const url = window.location.href
-								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
-								window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400')
-							}}
-							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
-							title="Share on Facebook"
-						>
-							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1877F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-								<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-							</svg>
-						</button>
-						<button 
-							onClick={() => {
-								const url = window.location.href
-								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
-								window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400')
-							}}
-							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
-							title="Share on Twitter"
-						>
-							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#1DA1F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-								<path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-							</svg>
-						</button>
-						<button 
-							onClick={() => {
-								const url = window.location.href
-								const text = `Check out ${data.title} - ${formatCurrencyPKR(unitPrice)}`
-								window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=600,height=400')
-							}}
-							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
-							title="Share on WhatsApp"
-						>
-							<svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="#25D366" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-								<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-							</svg>
-						</button>
-						<button 
-							onClick={async () => {
-								const url = window.location.href
-								const text = `${data.title} - ${formatCurrencyPKR(unitPrice)}`
-								
-								if (navigator.share) {
-									try {
-										await navigator.share({
-											title: data.title,
-											text: text,
-											url: url
-										})
-									} catch (err) {
-										// User cancelled or error occurred
-										console.log('Share cancelled or failed')
-									}
-								} else {
-									// Fallback: copy to clipboard
-									await navigator.clipboard.writeText(url)
-									alert('Link copied to clipboard!')
-								}
-							}}
-							className="p-1.5 sm:p-2  border border-gray-300 hover:bg-gray-50 transition-colors"
-							title="Share"
-						>
-							<Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-600" />
-						</button>
 					</div>
 				</div>
 			</div>
@@ -1180,10 +1193,39 @@ function RelatedProductsSection({ productId, relatedProducts, category }: { prod
 	return (
 		<div className="mt-6 sm:mt-8 md:mt-10">
 			<h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Related Products</h2>
-			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-				{products.map((p: any) => (
-					<FlashDealCard key={p._id || p.id} product={p} />
-				))}
+			<div className="relative">
+				<div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth" data-related-products-slider>
+					{products.map((p: any) => (
+						<div key={p._id || p.id}>
+							<FlashDealCard product={p} />
+						</div>
+					))}
+				</div>
+				{/* Navigation Arrows */}
+				{products.length > 4 && (
+					<>
+						<button
+							onClick={() => {
+								const slider = document.querySelector('[data-related-products-slider]') as HTMLElement
+								if (slider) slider.scrollBy({ left: -300, behavior: 'smooth' })
+							}}
+							className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full p-2 shadow-lg hover:bg-white hover:shadow-xl transition-all z-10 group"
+							aria-label="Scroll left"
+						>
+							<ChevronLeft className="h-5 w-5 text-gray-700 group-hover:text-brand-accent transition-colors" />
+						</button>
+						<button
+							onClick={() => {
+								const slider = document.querySelector('[data-related-products-slider]') as HTMLElement
+								if (slider) slider.scrollBy({ left: 300, behavior: 'smooth' })
+							}}
+							className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full p-2 shadow-lg hover:bg-white hover:shadow-xl transition-all z-10 group"
+							aria-label="Scroll right"
+						>
+							<ChevronRight className="h-5 w-5 text-gray-700 group-hover:text-brand-accent transition-colors" />
+						</button>
+					</>
+				)}
 			</div>
 		</div>
 	)

@@ -17,26 +17,10 @@ export default function Header() {
 	const { data: session, status } = useSession()
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const [locationOpen, setLocationOpen] = useState(false)
-	// Initialize from localStorage immediately (non-blocking)
-	const [deliveryCity, setDeliveryCity] = useState(() => {
-		if (typeof window !== 'undefined') {
-			const saved = localStorage.getItem('deliveryCity')
-			return saved || ''
-		}
-		return ''
-	})
-	const [deliveryAddress, setDeliveryAddress] = useState<string | null>(() => {
-		if (typeof window !== 'undefined') {
-			try {
-				const saved = localStorage.getItem('deliveryLocation')
-				if (saved) {
-					const location = JSON.parse(saved)
-					return location.address || null
-				}
-			} catch {}
-		}
-		return null
-	})
+	// Initialize with empty values to prevent hydration mismatch
+	const [deliveryCity, setDeliveryCity] = useState('')
+	const [deliveryAddress, setDeliveryAddress] = useState<string | null>(null)
+	const [mounted, setMounted] = useState(false)
 	const [availableCities, setAvailableCities] = useState<string[]>([])
 	const [isAdmin, setIsAdmin] = useState(false)
 	const locationRef = useRef<HTMLDivElement>(null)
@@ -45,6 +29,24 @@ export default function Header() {
 	const cartItems = useCartStore((state) => state.items)
 
 	useEffect(() => { setMobileOpen(false) }, [pathname])
+	
+	// Initialize from localStorage after mount to prevent hydration mismatch
+	useEffect(() => {
+		setMounted(true)
+		if (typeof window !== 'undefined') {
+			const savedCity = localStorage.getItem('deliveryCity')
+			if (savedCity) setDeliveryCity(savedCity)
+			
+			try {
+				const savedLocation = localStorage.getItem('deliveryLocation')
+				if (savedLocation) {
+					const location = JSON.parse(savedLocation)
+					setDeliveryAddress(location.address || null)
+					if (location.city && !savedCity) setDeliveryCity(location.city)
+				}
+			} catch {}
+		}
+	}, [])
 	
 	// Refresh location when pathname changes (non-blocking, deferred)
 	useEffect(() => {
