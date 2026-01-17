@@ -624,12 +624,14 @@ export default function ProductDetailPage() {
 									} else if (v.unit === 'ml') {
 										displayWeight = (v.unitWeight || 0) * 1000
 									}
-									const unitLabels: Record<string, string> = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
-									const unitLabel = unitLabels[v.unit] || v.unit || 'kg'
-									const displayWeightStr = `${displayWeight}${unitLabel}`
+									const unitLabels: Record<string, string> = { kg: 'KG', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
+									const unitLabel = unitLabels[v.unit] || v.unit || 'KG'
+									const displayWeightStr = `${displayWeight} ${unitLabel}`
 									let displayLabel = v.label || displayWeightStr
 									// Remove "bag" word from label
 									displayLabel = displayLabel.replace(/\s*bag\s*/gi, '').trim()
+									// Normalize kg to " KG" (with space and uppercase) - handles "1kg", "1 kg", "1KG", "1 KG"
+									displayLabel = displayLabel.replace(/(\d+(?:\.\d+)?)\s*kg\s*/gi, '$1 KG').replace(/(\d+(?:\.\d+)?)\s*KG\s*/gi, '$1 KG').trim()
 									return (
 										<button 
 											key={v.id || v._id} 

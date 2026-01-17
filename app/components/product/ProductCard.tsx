@@ -66,9 +66,9 @@ export default function ProductCard({
 		displayWeight = (variant?.unitWeight || 0) * 1000
 	}
 	
-	const unitLabels: Record<string, string> = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
+	const unitLabels: Record<string, string> = { kg: 'KG', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
 	const unitLabel = unitLabels[unit] || unit
-	const displayWeightStr = `${displayWeight}${unitLabel}`
+	const displayWeightStr = `${displayWeight} ${unitLabel}`
 
 	const imgSrc = images?.[0] || ''
 	const lowStock = typeof (variant as any)?.stockQty === 'number' ? (variant as any).stockQty : undefined

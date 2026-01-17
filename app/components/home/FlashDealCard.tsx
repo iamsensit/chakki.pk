@@ -49,9 +49,9 @@ export default function FlashDealCard({ product }: { product: any }) {
 		displayWeight = (variant?.unitWeight || 0) * 1000
 	}
 	
-	const unitLabels: Record<string, string> = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
+	const unitLabels: Record<string, string> = { kg: 'KG', g: 'g', l: 'l', ml: 'ml', pcs: 'pcs', pack: 'pack' }
 	const unitLabel = unitLabels[unit] || unit
-	const displayWeightStr = `${displayWeight}${unitLabel}`
+	const displayWeightStr = `${displayWeight} ${unitLabel}`
 	
 	async function handleAddToCart(e: React.MouseEvent) {
 		e.preventDefault()
