@@ -343,7 +343,7 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 							rows={8} 
 							className="input-enhanced resize-y min-h-[120px] text-sm" 
 							placeholder="Enter product description here in any language (English, Urdu, etc.)...&#10;Press Enter for new lines.&#10;You can paste formatted text from other sources."
-							style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', direction: 'auto', unicodeBidi: 'plaintext' }}
+							style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}
 							dir="auto"
 						/>
 						<div className="text-xs text-gray-500 mt-1">

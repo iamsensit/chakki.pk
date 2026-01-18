@@ -634,7 +634,7 @@ export default function EditProductPage() {
                 rows={8} 
                 className="rounded-md border px-3 py-2 text-sm resize-y min-h-[120px]" 
                 placeholder="Enter product description here in any language (English, Urdu, etc.)...&#10;Press Enter for new lines.&#10;You can paste formatted text from other sources."
-                style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', direction: 'auto', unicodeBidi: 'plaintext' }}
+                style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}
                 dir="auto"
               />
               <div className="text-xs text-gray-500 mt-1">
