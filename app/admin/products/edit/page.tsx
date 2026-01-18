@@ -308,19 +308,16 @@ export default function EditProductPage() {
           const newVariant = { ...v, [field]: value }
           
           
-          // If unit or unitWeight changed, recalculate price/cost based on main variant
+          // If unit or unitWeight changed, copy pricePerKg from main variant (don't multiply by ratio)
+          // pricePerKg should be the same for all variants - it's the price PER unit weight
+          // The total price is calculated as pricePerKg * unitWeight
           if (index > 0 && (field === 'unit' || field === 'unitWeight')) {
             const mainVariant = prev[0]
             if (mainVariant && mainVariant.pricePerKg !== undefined && mainVariant.pricePerKg !== null && mainVariant.pricePerKg > 0 && areUnitsCompatible(mainVariant.unit || 'kg', newVariant.unit || 'kg')) {
-              const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight || 1, mainVariant.unit || 'kg')
-              const newBaseWeight = getBaseUnitWeight(newVariant.unitWeight || 1, newVariant.unit || 'kg')
-              
-              if (mainBaseWeight > 0) {
-                const ratio = newBaseWeight / mainBaseWeight
-                newVariant.pricePerKg = Math.round((mainVariant.pricePerKg || 0) * ratio)
-                if (mainVariant.costPerKg && mainVariant.costPerKg > 0) {
-                  newVariant.costPerKg = Math.round(mainVariant.costPerKg * ratio)
-                }
+              // Copy pricePerKg directly (same price per unit for all variants)
+              newVariant.pricePerKg = mainVariant.pricePerKg || 0
+              if (mainVariant.costPerKg && mainVariant.costPerKg > 0) {
+                newVariant.costPerKg = mainVariant.costPerKg
               }
             }
           }
@@ -328,20 +325,16 @@ export default function EditProductPage() {
           return newVariant
         }
         
-        // If main variant price/cost changed, update this variant proportionally
+        // If main variant price/cost changed, copy to all other variants (same pricePerKg for all)
+        // pricePerKg is the price PER unit weight, so it should be the same for all variants
         if (index === 0 && (field === 'pricePerKg' || field === 'costPerKg') && i > 0) {
           const mainVariant = { ...prev[0], [field]: value }
           if (mainVariant.pricePerKg !== undefined && areUnitsCompatible(mainVariant.unit || 'kg', v.unit || 'kg')) {
-            const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight || 1, mainVariant.unit || 'kg')
-            const variantBaseWeight = getBaseUnitWeight(v.unitWeight || 1, v.unit || 'kg')
-            
-            if (mainBaseWeight > 0) {
-              const ratio = variantBaseWeight / mainBaseWeight
-              if (field === 'pricePerKg' && mainVariant.pricePerKg !== undefined) {
-                return { ...v, pricePerKg: Math.round(mainVariant.pricePerKg * ratio) }
-              } else if (field === 'costPerKg' && mainVariant.costPerKg !== undefined) {
-                return { ...v, costPerKg: Math.round(mainVariant.costPerKg * ratio) }
-              }
+            // Copy pricePerKg directly (same for all variants)
+            if (field === 'pricePerKg') {
+              return { ...v, pricePerKg: mainVariant.pricePerKg }
+            } else if (field === 'costPerKg' && mainVariant.costPerKg !== undefined) {
+              return { ...v, costPerKg: mainVariant.costPerKg }
             }
           }
         }
@@ -349,23 +342,19 @@ export default function EditProductPage() {
         return v
       })
       
-      // After updating main variant price/cost, update all other variants
+      // After updating main variant price/cost, copy to all other variants (same pricePerKg for all)
+      // pricePerKg is the price PER unit weight, so it should be the same for all variants
       if (index === 0 && (field === 'pricePerKg' || field === 'costPerKg')) {
         const mainVariant = updated[0]
         if (mainVariant && mainVariant.pricePerKg !== undefined) {
           return updated.map((v, i) => {
             if (i === 0) return v
             if (areUnitsCompatible(mainVariant.unit || 'kg', v.unit || 'kg')) {
-              const mainBaseWeight = getBaseUnitWeight(mainVariant.unitWeight || 1, mainVariant.unit || 'kg')
-              const variantBaseWeight = getBaseUnitWeight(v.unitWeight || 1, v.unit || 'kg')
-              
-              if (mainBaseWeight > 0) {
-                const ratio = variantBaseWeight / mainBaseWeight
-                if (field === 'pricePerKg' && mainVariant.pricePerKg !== undefined) {
-                  return { ...v, pricePerKg: Math.round(mainVariant.pricePerKg * ratio) }
-                } else if (field === 'costPerKg' && mainVariant.costPerKg !== undefined) {
-                  return { ...v, costPerKg: Math.round((mainVariant.costPerKg || 0) * ratio) }
-                }
+              // Copy pricePerKg directly (same for all variants)
+              if (field === 'pricePerKg') {
+                return { ...v, pricePerKg: mainVariant.pricePerKg }
+              } else if (field === 'costPerKg' && mainVariant.costPerKg !== undefined) {
+                return { ...v, costPerKg: mainVariant.costPerKg }
               }
             }
             return v
@@ -619,25 +608,37 @@ export default function EditProductPage() {
             <div className="grid gap-2">
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">
                 Description
-                <span className="text-xs text-gray-500 font-normal ml-2">(Press Enter for new lines)</span>
+                <span className="text-xs text-gray-500 font-normal ml-2">(Supports multiple languages: English, Urdu, etc.)</span>
               </label>
               <textarea 
                 value={description} 
                 onChange={e => setDescription(e.target.value)}
-                onKeyDown={e => {
-                  // Allow Enter key to create new lines
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    // Shift+Enter for new line, Enter alone also works in textarea
-                    // This is default behavior, but we ensure it works
+                onPaste={e => {
+                  // Allow pasting any text including formatted content from other sources
+                  // The paste event is handled normally, but we ensure proper encoding
+                  const pastedText = e.clipboardData.getData('text/plain')
+                  if (pastedText) {
+                    e.preventDefault()
+                    const cursorPosition = (e.currentTarget as HTMLTextAreaElement).selectionStart || 0
+                    const textBefore = description.substring(0, cursorPosition)
+                    const textAfter = description.substring((e.currentTarget as HTMLTextAreaElement).selectionEnd || cursorPosition)
+                    setDescription(textBefore + pastedText + textAfter)
+                    // Set cursor position after pasted text
+                    setTimeout(() => {
+                      const textarea = e.currentTarget as HTMLTextAreaElement
+                      const newPosition = cursorPosition + pastedText.length
+                      textarea.setSelectionRange(newPosition, newPosition)
+                    }, 0)
                   }
                 }}
                 rows={8} 
-                className="rounded-md border px-3 py-2 text-sm resize-y min-h-[120px] font-mono" 
-                placeholder="Enter product description here...&#10;Press Enter for new lines.&#10;You can format with line breaks."
-                style={{ whiteSpace: 'pre-wrap' }}
+                className="rounded-md border px-3 py-2 text-sm resize-y min-h-[120px]" 
+                placeholder="Enter product description here in any language (English, Urdu, etc.)...&#10;Press Enter for new lines.&#10;You can paste formatted text from other sources."
+                style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', direction: 'auto', unicodeBidi: 'plaintext' }}
+                dir="auto"
               />
               <div className="text-xs text-gray-500 mt-1">
-                {description.length} characters
+                {description.length} characters • Supports all languages and scripts (English, Urdu, Arabic, etc.)
               </div>
             </div>
             <div className="grid gap-2">

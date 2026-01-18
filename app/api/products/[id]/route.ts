@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/app/lib/mongodb'
 import Product from '@/models/Product'
 import { auth } from '@/app/lib/auth'
 import { isAdminAsync } from '@/app/lib/roles'
+import { enhanceProductSEO } from '@/app/lib/seo-enhancer'
 
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
@@ -77,6 +78,35 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 		}
 		const updated = await Product.findByIdAndUpdate(idParsed.data.id, updateData, { new: true }).lean()
 		if (Array.isArray(updated)) return json(false, 'Invalid update result', undefined, undefined, 500)
+		
+		// Automatically enhance SEO metadata after update (only if description is missing or very short)
+		if (updated) {
+			try {
+				const currentDescription = updated.description || ''
+				// Only enhance if description is missing or very short (< 50 chars)
+				if (!currentDescription || currentDescription.length < 50) {
+					const seoEnhancement = enhanceProductSEO({
+						title: updated.title,
+						description: currentDescription,
+						brand: updated.brand,
+						category: updated.category,
+						subCategory: updated.subCategory,
+						subSubCategory: updated.subSubCategory,
+						variants: updated.variants || [],
+					})
+					
+					// Update product with enhanced description if it was enhanced
+					if (seoEnhancement.description && seoEnhancement.description !== currentDescription) {
+						await Product.findByIdAndUpdate(idParsed.data.id, { description: seoEnhancement.description })
+						updated.description = seoEnhancement.description
+					}
+				}
+			} catch (seoError) {
+				// Don't fail product update if SEO enhancement fails
+				console.error('SEO enhancement error (non-critical):', seoError)
+			}
+		}
+		
 		// Convert relatedProducts ObjectIds to strings for easier handling
 		if (updated && updated.relatedProducts && Array.isArray(updated.relatedProducts)) {
 			updated.relatedProducts = updated.relatedProducts.map((id: any) => {

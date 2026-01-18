@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/app/lib/mongodb'
 import Product from '@/models/Product'
 import { auth } from '@/app/lib/auth'
 import { isAdminAsync } from '@/app/lib/roles'
+import { enhanceProductSEO } from '@/app/lib/seo-enhancer'
 
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
@@ -200,6 +201,38 @@ export async function POST(req: NextRequest) {
 		}
 
 		const created = await Product.create(data)
+		
+		// Automatically enhance SEO metadata after creation
+		try {
+			const seoEnhancement = enhanceProductSEO({
+				title: created.title,
+				description: created.description,
+				brand: created.brand,
+				category: created.category,
+				subCategory: created.subCategory,
+				subSubCategory: created.subSubCategory,
+				variants: created.variants || [],
+			})
+			
+			// Update product with enhanced description if it was enhanced
+			if (seoEnhancement.description && seoEnhancement.description !== created.description) {
+				created.description = seoEnhancement.description
+				await created.save()
+			}
+			
+			// Log SEO enhancement for reference (can be used for meta tags)
+			if (process.env.NODE_ENV !== 'production') {
+				console.log('SEO Enhancement:', {
+					productId: created._id,
+					metaDescription: seoEnhancement.metaDescription,
+					metaKeywords: seoEnhancement.metaKeywords,
+				})
+			}
+		} catch (seoError) {
+			// Don't fail product creation if SEO enhancement fails
+			console.error('SEO enhancement error (non-critical):', seoError)
+		}
+		
 		// Convert relatedProducts ObjectIds to strings for response
 		if (created && created.relatedProducts && Array.isArray(created.relatedProducts)) {
 			(created as any).relatedProducts = created.relatedProducts.map((id: any) => {
@@ -211,7 +244,7 @@ export async function POST(req: NextRequest) {
 				return String(id || '').trim()
 			}).filter(Boolean)
 		}
-		return json(true, 'Product created', created, undefined, 201)
+		return json(true, 'Product created with enhanced SEO metadata', created, undefined, 201)
 	} catch (err: any) {
 		console.error('POST /api/products error', err)
 		// Handle duplicate key (e.g., slug)
