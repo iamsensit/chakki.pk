@@ -18,8 +18,8 @@ export function getBaseUrl() {
 	
 	// Fallback to headers() only when necessary (slower)
 	try {
-		const h = headers()
-		const host = h.get('host') || 'localhost:3000'
+	const h = headers()
+	const host = h.get('host') || 'localhost:3000'
 		const proto = h.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http')
 		cachedBaseUrl = `${proto}://${host}`
 		return cachedBaseUrl

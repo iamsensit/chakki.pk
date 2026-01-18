@@ -23,12 +23,12 @@ export default function MobileBottomNav() {
 		if (status === 'authenticated') {
 			// Defer to avoid blocking initial render
 			const timeoutId = setTimeout(() => {
-				fetch('/api/account', { cache: 'no-store' })
-					.then(res => res.json())
-					.then(json => {
-						if (json?.data?.isAdmin) setIsAdmin(true)
-					})
-					.catch(() => setIsAdmin(false))
+			fetch('/api/account', { cache: 'no-store' })
+				.then(res => res.json())
+				.then(json => {
+					if (json?.data?.isAdmin) setIsAdmin(true)
+				})
+				.catch(() => setIsAdmin(false))
 			}, 50)
 			return () => clearTimeout(timeoutId)
 		} else {

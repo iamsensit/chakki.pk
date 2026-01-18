@@ -200,40 +200,40 @@ function RouteLoaderInner() {
 				// Simplified: Use single requestAnimationFrame for faster response
 				requestAnimationFrame(() => {
 					// Wait for minimum loading time, then check if page is ready
-					navigationTimeoutRef.current = setTimeout(() => {
+							navigationTimeoutRef.current = setTimeout(() => {
 						// Quick check: if DOM is interactive or complete, hide immediately
 						if (document.readyState === 'interactive' || document.readyState === 'complete') {
 							// Check if main content exists (quick check)
-							const mainContent = document.querySelector('main, [role="main"], .container-pg, body > div')
-							if (mainContent) {
+										const mainContent = document.querySelector('main, [role="main"], .container-pg, body > div')
+										if (mainContent) {
 								// Hide immediately - React hydration happens in background
 								setLoading(false)
 								loadingStartTime.current = null
 								isNavigatingRef.current = false
 							} else {
 								// Content not ready, wait a bit more (max 300ms)
-								setTimeout(() => {
-									setLoading(false)
-									loadingStartTime.current = null
-									isNavigatingRef.current = false
+											setTimeout(() => {
+												setLoading(false)
+												loadingStartTime.current = null
+												isNavigatingRef.current = false
 								}, 100)
-							}
-						} else {
+										}
+									} else {
 							// DOM still loading, wait for interactive state (max 500ms)
 							const checkReady = () => {
 								if (document.readyState === 'interactive' || document.readyState === 'complete') {
-									setLoading(false)
-									loadingStartTime.current = null
-									isNavigatingRef.current = false
+												setLoading(false)
+												loadingStartTime.current = null
+												isNavigatingRef.current = false
 								} else {
 									setTimeout(checkReady, 50)
 								}
-							}
+										}
 							// Fallback: hide after max 500ms regardless
-							setTimeout(() => {
-								setLoading(false)
-								loadingStartTime.current = null
-								isNavigatingRef.current = false
+										setTimeout(() => {
+											setLoading(false)
+											loadingStartTime.current = null
+											isNavigatingRef.current = false
 							}, 500)
 							checkReady()
 						}

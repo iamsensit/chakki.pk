@@ -48,9 +48,9 @@ async function fetchCategories() {
 			)
 			
 			// Add product categories that aren't in admin categories and aren't sub-categories
-			for (const catName of productCategories) {
-				if (catName) {
-					const catNameLower = String(catName).toLowerCase().trim()
+		for (const catName of productCategories) {
+			if (catName) {
+				const catNameLower = String(catName).toLowerCase().trim()
 					if (!categoryMap.has(catNameLower) && !subCategoryNames.has(catNameLower)) {
 						categoryMap.set(catNameLower, {
 							name: String(catName).trim(),
@@ -96,7 +96,7 @@ async function fetchFlashDeals() {
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
-			console.error('Error fetching flash deals:', err)
+		console.error('Error fetching flash deals:', err)
 		}
 		return []
 	}
@@ -131,7 +131,7 @@ async function fetchFeaturedProducts() {
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
-			console.error('Error fetching featured products:', err)
+		console.error('Error fetching featured products:', err)
 		}
 		return []
 	}
@@ -153,7 +153,7 @@ async function fetchBestSellers() {
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
-			console.error('Error fetching best sellers:', err)
+		console.error('Error fetching best sellers:', err)
 		}
 		return []
 	}
@@ -171,7 +171,7 @@ async function fetchNewArrivals() {
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
-			console.error('Error fetching new arrivals:', err)
+		console.error('Error fetching new arrivals:', err)
 		}
 		return []
 	}
@@ -202,7 +202,7 @@ async function fetchTrendingProducts() {
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
-			console.error('Error fetching trending products:', err)
+		console.error('Error fetching trending products:', err)
 		}
 		return []
 	}
@@ -269,7 +269,7 @@ async function fetchMostSelling() {
 		// Fetch most selling products (highest total sales quantity) - only select needed fields
 		let items = await Product.find({
 			totalSales: { $gt: 0 }
-		})
+			})
 			.select('_id title slug images badges variants totalSales totalRevenue recentSales')
 			.sort({ totalSales: -1, totalRevenue: -1, recentSales: -1 })
 			.limit(20)
@@ -410,7 +410,7 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Flash Deals" 
 					products={deduplicatedFlashDeals} 
-					sliderId="flash-deals-slider"
+					sliderId="flash-deals-slider" 
 					icon="flash"
 				/>
 			)}
@@ -430,7 +430,7 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Trending Now" 
 					products={deduplicatedTrending} 
-					sliderId="trending-products-slider"
+					sliderId="trending-products-slider" 
 					icon="trending"
 				/>
 			)}
@@ -450,7 +450,7 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Best Sellers" 
 					products={deduplicatedBestSellers} 
-					sliderId="best-sellers-slider"
+					sliderId="best-sellers-slider" 
 					icon="bestseller"
 				/>
 			)}
@@ -460,7 +460,7 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Featured Products" 
 					products={deduplicatedFeatured} 
-					sliderId="featured-products-slider"
+					sliderId="featured-products-slider" 
 					icon="featured"
 				/>
 			)}
@@ -470,7 +470,7 @@ export default async function HomePage() {
 				<ProductSection 
 					title="Special Offers" 
 					products={deduplicatedSpecialOffers} 
-					sliderId="special-offers-slider"
+					sliderId="special-offers-slider" 
 					icon="special"
 				/>
 			)}
@@ -480,7 +480,7 @@ export default async function HomePage() {
 				<ProductSection 
 					title="New Arrivals" 
 					products={deduplicatedNewArrivals} 
-					sliderId="new-arrivals-slider"
+					sliderId="new-arrivals-slider" 
 					icon="new"
 				/>
 			)}

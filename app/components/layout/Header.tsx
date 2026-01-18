@@ -58,34 +58,15 @@ export default function Header() {
 				fetch('/api/user-delivery-location', { cache: 'no-store' })
 					.then(res => res.json())
 					.then(json => {
-						if (json.success && json.data) {
-							setDeliveryAddress(json.data.address)
-							setDeliveryCity(json.data.city)
-							localStorage.setItem('deliveryLocation', JSON.stringify({
-								...json.data,
-								userEmail: userEmail
-							}))
-						} else {
+					if (json.success && json.data) {
+						setDeliveryAddress(json.data.address)
+						setDeliveryCity(json.data.city)
+						localStorage.setItem('deliveryLocation', JSON.stringify({
+							...json.data,
+							userEmail: userEmail
+						}))
+					} else {
 							// Check localStorage for guest location
-							const savedLocation = localStorage.getItem('deliveryLocation')
-							if (savedLocation) {
-								try {
-									const location = JSON.parse(savedLocation)
-									if (!location.userEmail || location.userEmail !== userEmail) {
-										setDeliveryAddress(location.address)
-										setDeliveryCity(location.city || '')
-										return
-									}
-								} catch {}
-							}
-							localStorage.removeItem('deliveryLocation')
-							localStorage.removeItem('deliveryCity')
-							setDeliveryAddress(null)
-							setDeliveryCity('')
-						}
-					})
-					.catch(() => {
-						// On error, keep localStorage values
 						const savedLocation = localStorage.getItem('deliveryLocation')
 						if (savedLocation) {
 							try {
@@ -93,9 +74,28 @@ export default function Header() {
 								if (!location.userEmail || location.userEmail !== userEmail) {
 									setDeliveryAddress(location.address)
 									setDeliveryCity(location.city || '')
+									return
 								}
 							} catch {}
 						}
+						localStorage.removeItem('deliveryLocation')
+						localStorage.removeItem('deliveryCity')
+						setDeliveryAddress(null)
+						setDeliveryCity('')
+					}
+					})
+					.catch(() => {
+						// On error, keep localStorage values
+					const savedLocation = localStorage.getItem('deliveryLocation')
+					if (savedLocation) {
+						try {
+							const location = JSON.parse(savedLocation)
+								if (!location.userEmail || location.userEmail !== userEmail) {
+								setDeliveryAddress(location.address)
+								setDeliveryCity(location.city || '')
+							}
+						} catch {}
+					}
 					})
 			} else if (status === 'unauthenticated') {
 				// Use localStorage for guests (already initialized in state)
@@ -130,12 +130,12 @@ export default function Header() {
 		if (status === 'authenticated') {
 			// Defer to avoid blocking initial render
 			const timeoutId = setTimeout(() => {
-				fetch('/api/account', { cache: 'no-store' })
-					.then(res => res.json())
-					.then(json => {
-						if (json?.data?.isAdmin) setIsAdmin(true)
-					})
-					.catch(() => {})
+			fetch('/api/account', { cache: 'no-store' })
+				.then(res => res.json())
+				.then(json => {
+					if (json?.data?.isAdmin) setIsAdmin(true)
+				})
+				.catch(() => {})
 			}, 50)
 			return () => clearTimeout(timeoutId)
 		} else {
@@ -150,19 +150,19 @@ export default function Header() {
 			fetch('/api/delivery-areas?activeOnly=true', { cache: 'no-store' })
 				.then(res => res.json())
 				.then(json => {
-					if (json.success && Array.isArray(json.data)) {
-						const cities = [...new Set(json.data.map((area: any) => area.city).filter(Boolean))] as string[]
-						setAvailableCities(cities)
-						
-						const savedLocation = localStorage.getItem('deliveryLocation')
-						const savedCity = localStorage.getItem('deliveryCity')
-						if (savedLocation && savedCity && cities.includes(savedCity)) {
-							setDeliveryCity(savedCity)
-						}
+				if (json.success && Array.isArray(json.data)) {
+					const cities = [...new Set(json.data.map((area: any) => area.city).filter(Boolean))] as string[]
+					setAvailableCities(cities)
+					
+					const savedLocation = localStorage.getItem('deliveryLocation')
+					const savedCity = localStorage.getItem('deliveryCity')
+					if (savedLocation && savedCity && cities.includes(savedCity)) {
+						setDeliveryCity(savedCity)
 					}
+				}
 				})
 				.catch(() => {
-					setAvailableCities([])
+				setAvailableCities([])
 				})
 		}, 200) // Load after initial render
 		

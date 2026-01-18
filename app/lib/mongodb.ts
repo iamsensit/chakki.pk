@@ -4,7 +4,7 @@ const MONGODB_URI = process.env.MONGODB_URI as string
 
 if (!MONGODB_URI) {
 	if (process.env.NODE_ENV !== 'production') {
-		console.warn('MONGODB_URI is not set. Please add it to your .env.local')
+	console.warn('MONGODB_URI is not set. Please add it to your .env.local')
 	}
 }
 

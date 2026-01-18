@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Trash2, Edit, Search } from 'lucide-react'
 import ImageUpload from '@/app/components/admin/ImageUpload'
+import RichTextEditor from '@/app/components/admin/RichTextEditor'
 
 type Variant = { _id?: string; id?: string; label?: string; unitWeight?: number; unit?: 'kg' | 'g' | 'half_kg' | 'quarter_kg' | 'l' | 'ml' | 'pcs' | 'pack' | 'unit'; sku?: string; pricePerKg?: number; costPerKg?: number; stockQty?: number }
 
@@ -608,37 +609,16 @@ export default function EditProductPage() {
             <div className="grid gap-2">
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">
                 Description
-                <span className="text-xs text-gray-500 font-normal ml-2">(Supports multiple languages: English, Urdu, etc.)</span>
+                <span className="text-xs text-gray-500 font-normal ml-2">(Supports rich text formatting: bold, italic, bullets, numbering, etc.)</span>
               </label>
-              <textarea 
-                value={description} 
-                onChange={e => setDescription(e.target.value)}
-                onPaste={e => {
-                  // Allow pasting any text including formatted content from other sources
-                  // The paste event is handled normally, but we ensure proper encoding
-                  const pastedText = e.clipboardData.getData('text/plain')
-                  if (pastedText) {
-                    e.preventDefault()
-                    const cursorPosition = (e.currentTarget as HTMLTextAreaElement).selectionStart || 0
-                    const textBefore = description.substring(0, cursorPosition)
-                    const textAfter = description.substring((e.currentTarget as HTMLTextAreaElement).selectionEnd || cursorPosition)
-                    setDescription(textBefore + pastedText + textAfter)
-                    // Set cursor position after pasted text
-                    setTimeout(() => {
-                      const textarea = e.currentTarget as HTMLTextAreaElement
-                      const newPosition = cursorPosition + pastedText.length
-                      textarea.setSelectionRange(newPosition, newPosition)
-                    }, 0)
-                  }
-                }}
-                rows={8} 
-                className="rounded-md border px-3 py-2 text-sm resize-y min-h-[120px]" 
-                placeholder="Enter product description here in any language (English, Urdu, etc.)...&#10;Press Enter for new lines.&#10;You can paste formatted text from other sources."
-                style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}
-                dir="auto"
+              <RichTextEditor
+                value={description}
+                onChange={setDescription}
+                placeholder="Enter product description with formatting support. Paste from Word, websites, or any rich text editor and formatting will be preserved."
+                className="border rounded-md overflow-hidden"
               />
               <div className="text-xs text-gray-500 mt-1">
-                {description.length} characters • Supports all languages and scripts (English, Urdu, Arabic, etc.)
+                Supports: Bold, Italic, Underline, Bullets, Numbering, Colors, Fonts, Line Spacing, and more • Paste formatted text from Word/websites
               </div>
             </div>
             <div className="grid gap-2">

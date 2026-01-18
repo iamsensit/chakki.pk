@@ -239,15 +239,15 @@ export default function CategoriesAdminPage() {
                           const parentLevel = parent.level ?? 0
                           setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
                             ...c,
-                            parentCategory: { _id: parentId, name: parent.name },
-                            level: parentLevel + 1
+                                parentCategory: { _id: parentId, name: parent.name },
+                                level: parentLevel + 1
                           })))
                         }
                       } else {
                         setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
                           ...c,
-                          parentCategory: null,
-                          level: 0
+                              parentCategory: null,
+                              level: 0
                         })))
                       }
                     }}
@@ -315,13 +315,13 @@ export default function CategoriesAdminPage() {
                       type="number"
                       className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
                       placeholder="1000"
-                    value={cat.displayOrder ?? 1000}
-                    onChange={e => {
+                      value={cat.displayOrder ?? 1000}
+                      onChange={e => {
                       setRows(prev => updateCategoryInNested(prev, cat._id, cat.name, (c) => ({
                         ...c,
                         displayOrder: Number(e.target.value)
                       })))
-                    }}
+                      }}
                     />
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export default function CategoriesAdminPage() {
                       const originalCat = getAllCategoriesFlat(rows).find(c => (c._id && c._id === cat._id) || c.name === cat.name)
                       const originalName = originalCat?.name || cat.name
                       save(cat._id, originalName)
-                      setEditingId(null)
+                        setEditingId(null)
                     }}
                   >
                     <Save className="h-4 w-4" />
