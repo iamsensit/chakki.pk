@@ -555,10 +555,56 @@ export default function ProductDetailPage() {
 						)}
 					</div>
 
-					{/* Short Description */}
-					<div className="text-gray-600 leading-relaxed whitespace-pre-line">
-						{data.description?.substring(0, 200) || 'No description available.'}
-						{data.description && data.description.length > 200 && '...'}
+					{/* Short Description - Plain Text Preview with Read More */}
+					<div className="text-gray-600 leading-relaxed">
+						{(() => {
+							// Strip HTML tags for preview (plain text only)
+							const stripHtml = (html: string) => {
+								if (!html) return ''
+								// Remove HTML tags
+								const text = html.replace(/<[^>]*>/g, '')
+								// Decode HTML entities
+								const tmp = typeof document !== 'undefined' ? document.createElement('div') : null
+								if (tmp) {
+									tmp.innerHTML = text
+									return tmp.textContent || tmp.innerText || text
+								}
+								// Fallback for SSR - just strip tags and basic entities
+								return text.replace(/&[^;]+;/g, '')
+							}
+							const plainText = stripHtml(data.description || '')
+							const preview = plainText.substring(0, 200)
+							const isTruncated = plainText.length > 200
+							
+							const scrollToDescription = () => {
+								// Ensure description tab is active
+								setActiveTab('description')
+								// Scroll to description section after a brief delay
+								setTimeout(() => {
+									const descriptionSection = document.getElementById('product-description-section')
+									if (descriptionSection) {
+										descriptionSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+									}
+								}, 100)
+							}
+							
+							return (
+								<>
+									<span>{preview || 'No description available.'}</span>
+									{isTruncated && (
+										<>
+											<span>...</span>
+											<button
+												onClick={scrollToDescription}
+												className="ml-1 text-brand-accent hover:underline font-medium"
+											>
+												Read more
+											</button>
+										</>
+									)}
+								</>
+							)
+						})()}
 					</div>
 
 					{/* Stock Status - Only show if in stock, no numbers */}
@@ -809,7 +855,7 @@ export default function ProductDetailPage() {
 			</div>
 
 			{/* Product Details Tabs */}
-			<div className="mt-6 sm:mt-8 md:mt-12">
+			<div id="product-description-section" className="mt-6 sm:mt-8 md:mt-12">
 				<div className="border-b border-gray-200">
 					<div className="flex gap-4 sm:gap-6">
 						<button
@@ -837,9 +883,8 @@ export default function ProductDetailPage() {
 
 				<div className="mt-4 sm:mt-6">
 					{activeTab === 'description' && (
-						<div className="prose max-w-none prose-sm sm:prose-base">
+						<div className="prose prose-sm sm:prose-base max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:text-gray-700 prose-a:text-brand-accent">
 							<div 
-								className="text-sm sm:text-base text-gray-700 leading-relaxed"
 								dangerouslySetInnerHTML={{ 
 									__html: data.description || '<p>No description available.</p>' 
 								}}

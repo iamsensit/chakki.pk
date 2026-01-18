@@ -34,26 +34,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
 		],
 		clipboard: {
 			// Enhanced clipboard matcher to handle Word format
-			matchVisual: false,
-			matchers: [
-				// Handle Word's specific HTML format
-				[Node.ELEMENT_NODE, (node: any, delta: any) => {
-					// Clean up Word-specific attributes and classes
-					if (node.nodeName === 'P' || node.nodeName === 'DIV') {
-						// Preserve formatting but clean Word-specific styles
-						const cleanNode = node.cloneNode(true)
-						cleanNode.removeAttribute('class')
-						cleanNode.removeAttribute('style')
-						// Keep only semantic formatting
-					}
-					return delta
-				}],
-				// Handle Word list format
-				['LI', (node: any, delta: any) => {
-					// Ensure lists are properly formatted
-					return delta
-				}],
-			]
+			matchVisual: false
 		}
 	}), [])
 
