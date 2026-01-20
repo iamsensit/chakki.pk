@@ -425,8 +425,8 @@ export default function EditProductPage() {
 
       const body: any = {
         title, slug, description, brand, category, 
-        subCategory: subCategory || undefined,
-        subSubCategory: subSubCategory || undefined,
+        subCategory: subCategory && subCategory.trim() ? subCategory.trim() : undefined,
+        subSubCategory: subSubCategory && subSubCategory.trim() ? subSubCategory.trim() : undefined,
         images,
         badges,
         mainPrice: derivedMainPrice || undefined,

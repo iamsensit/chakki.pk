@@ -23,6 +23,8 @@ export const productCreateSchema = z.object({
 	description: z.string().min(1),
 	brand: z.string().optional(),
 	category: z.string().optional(),
+	subCategory: z.string().optional(),
+	subSubCategory: z.string().optional(),
 	badges: z.array(z.string()).default([]),
 	// allow absolute URLs or /public paths
 	images: z.array(z.union([z.string().url(), z.string().regex(/^\/.+/, { message: 'must be a /public path or full URL' })])).default([]),
