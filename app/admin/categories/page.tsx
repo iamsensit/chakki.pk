@@ -436,6 +436,15 @@ export default function CategoriesAdminPage() {
                 Select a parent category to create a sub-category. Leave empty for a main category.
               </p>
             </div>
+            {/* Category Image - Priority First */}
+            <div>
+              <ImageUpload
+                images={newCategory.image ? [newCategory.image] : []}
+                onImagesChange={(images) => setNewCategory(prev => ({ ...prev, image: images[0] || '' }))}
+                label="Category Image"
+                multiple={false}
+              />
+            </div>
             <div>
               <label className="text-sm font-medium">Category Name *</label>
               <input
@@ -460,25 +469,15 @@ export default function CategoriesAdminPage() {
                 onChange={e => setNewCategory(prev => ({ ...prev, description: e.target.value }))}
               />
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <ImageUpload
-                  images={newCategory.image ? [newCategory.image] : []}
-                  onImagesChange={(images) => setNewCategory(prev => ({ ...prev, image: images[0] || '' }))}
-                  label="Category Image"
-                  multiple={false}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Display Order</label>
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                  placeholder="1000"
-                  value={newCategory.displayOrder ?? 1000}
-                  onChange={e => setNewCategory(prev => ({ ...prev, displayOrder: Number(e.target.value) }))}
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Display Order</label>
+              <input
+                type="number"
+                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                placeholder="1000"
+                value={newCategory.displayOrder ?? 1000}
+                onChange={e => setNewCategory(prev => ({ ...prev, displayOrder: Number(e.target.value) }))}
+              />
             </div>
             <div className="flex gap-2">
               <button

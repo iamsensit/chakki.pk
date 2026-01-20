@@ -203,7 +203,7 @@ async function fetchSubCategories(mainCategoryName: string) {
 	const mainCategoryResult = await Category.findOne({ name: mainCategoryName, level: 0 }).lean()
 	const mainCategory = Array.isArray(mainCategoryResult) ? null : mainCategoryResult
 	
-	if (!mainCategory || !mainCategory._id) return []
+	if (!mainCategory || !mainCategory._id) return { subCategories: [], allCount: 0 }
 	
 	const mainCategoryId = mainCategory._id as any
 	
@@ -213,19 +213,62 @@ async function fetchSubCategories(mainCategoryName: string) {
 		level: 1,
 		isActive: { $ne: false }
 	})
-		.select('name displayOrder image')
+		.select('name displayOrder image _id')
 		.sort({ displayOrder: 1, name: 1 })
 		.lean()
 	
+	// Get all sub-subcategories (level 2) for counting
+	const subCategoryIds = subCategories.map((sc: any) => sc._id)
+	const subSubCategories = subCategoryIds.length > 0 ? await Category.find({
+		parentCategory: { $in: subCategoryIds },
+		level: 2,
+		isActive: { $ne: false }
+	}).lean() : []
+	
 	// Get product counts for each subcategory
 	// Products can have subcategory name in category, subCategory, or subSubCategory fields
+	// Also include products where main category is in category field and subcategory is in subCategory field
+	// Also include products from sub-subcategories of this subcategory
 	const subCategoriesWithCounts = await Promise.all(
 		subCategories.map(async (subCat: any) => {
+			// Get sub-subcategories for this subcategory
+			const subSubCatsForThis = subSubCategories.filter((ssc: any) => 
+				ssc.parentCategory && String(ssc.parentCategory._id || ssc.parentCategory) === String(subCat._id)
+			)
+			const subSubNames = subSubCatsForThis.map((ssc: any) => ssc.name)
+			
+			// Count products in this subcategory
+			// Check all possible combinations:
+			// 1. category = subcategory name
+			// 2. subCategory = subcategory name
+			// 3. subSubCategory = subcategory name
+			// 4. category = main category AND subCategory = subcategory name
+			// 5. Products from sub-subcategories
 			const count = await Product.countDocuments({
 				$or: [
 					{ category: subCat.name },
 					{ subCategory: subCat.name },
-					{ subSubCategory: subCat.name }
+					{ subSubCategory: subCat.name },
+					// Products with main category in category field and this subcategory in subCategory field
+					{
+						$and: [
+							{ category: mainCategoryName },
+							{ subCategory: subCat.name }
+						]
+					},
+					// Also include products from sub-subcategories
+					...(subSubNames.length > 0 ? [
+						{ category: { $in: subSubNames } },
+						{ subCategory: { $in: subSubNames } },
+						{ subSubCategory: { $in: subSubNames } },
+						// Products with main category and sub-subcategory
+						{
+							$and: [
+								{ category: mainCategoryName },
+								{ subSubCategory: { $in: subSubNames } }
+							]
+						}
+					] : [])
 				]
 			})
 			return {
@@ -237,8 +280,22 @@ async function fetchSubCategories(mainCategoryName: string) {
 		})
 	)
 	
+	// Calculate total count for "All" - includes all products from main category and all subcategories
+	const allCategoryNames = [
+		mainCategoryName,
+		...subCategories.map((sc: any) => sc.name),
+		...subSubCategories.map((ssc: any) => ssc.name)
+	]
+	const allCount = await Product.countDocuments({
+		$or: [
+			{ category: { $in: allCategoryNames } },
+			{ subCategory: { $in: allCategoryNames } },
+			{ subSubCategory: { $in: allCategoryNames } }
+		]
+	})
+	
 	// Show all subcategories (even with 0 products) so users can see what's available
-	return subCategoriesWithCounts
+	return { subCategories: subCategoriesWithCounts, allCount }
 }
 
 async function fetchMeta() {
@@ -290,7 +347,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
 	const [{ items, total }, meta] = await Promise.all([fetchProducts(searchParams), fetchMeta()])
 	
 	// Fetch subcategories if a main category is selected
-	const subCategories = searchParams.category ? await fetchSubCategories(searchParams.category) : []
+	const subCategoriesData = searchParams.category ? await fetchSubCategories(searchParams.category) : { subCategories: [], allCount: 0 }
+	const subCategories = subCategoriesData.subCategories || []
+	const allCategoryCount = subCategoriesData.allCount || total
 	
 	return (
 		<div className="pb-16 md:pb-0">
@@ -321,7 +380,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
 												: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
 										}`}
 									>
-										All ({total})
+										All ({allCategoryCount})
 									</Link>
 									{subCategories.map((subCat: any) => (
 										<Link
