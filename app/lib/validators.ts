@@ -7,6 +7,7 @@ export const idParamSchema = z.object({ id: z.string().min(1) })
 export const productsQuerySchema = z.object({
 	q: z.string().optional(),
 	category: z.string().optional(),
+	subCategory: z.string().optional(),
 	brand: z.string().optional(),
 	minPrice: z.coerce.number().optional(),
 	maxPrice: z.coerce.number().optional(),

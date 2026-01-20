@@ -30,7 +30,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 			return json(false, 'Order not found', undefined, undefined, 404)
 		}
 		
-		return json(true, 'Order fetched', order)
+		// Enrich order items with product names
+		const { enrichOrderItems } = await import('@/app/lib/email-templates')
+		const enrichedItems = await enrichOrderItems(order.items || [])
+		const enrichedOrder = {
+			...order,
+			items: enrichedItems
+		}
+		
+		return json(true, 'Order fetched', enrichedOrder)
 	} catch (err: any) {
 		console.error('GET /api/orders/:id error', err)
 		return json(false, err.message || 'Failed to fetch order', undefined, { error: 'SERVER_ERROR' }, 500)

@@ -13,6 +13,7 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 	const parsed = productsQuerySchema.safeParse({
 		q: searchParams.q,
 		category: searchParams.category,
+		subCategory: searchParams.subCategory,
 		brand: searchParams.brand,
 		inStock: searchParams.inStock === 'true' ? true : searchParams.inStock === 'false' ? false : undefined,
 		minPrice: searchParams.minPrice,
@@ -26,7 +27,7 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 		return { items: [], total: 0, page: 1, limit: 20 }
 	}
 	
-	const { q, category, brand, inStock, minPrice, maxPrice, sort, page, limit } = parsed.data
+	const { q, category, subCategory, brand, inStock, minPrice, maxPrice, sort, page, limit } = parsed.data
 	let where: any = {}
 	
 	if (q) {
@@ -49,7 +50,90 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 			where.$or = allConditions
 		}
 	}
-	if (category) where.category = category
+	
+	// Handle category filtering - include products from main category AND all subcategories
+	// If subCategory is specified, filter to just that subcategory
+	if (category) {
+		if (subCategory) {
+			// If subcategory is specified, filter to just that subcategory
+			const subCategoryCondition = {
+				$or: [
+					{ subCategory: subCategory },
+					{ subSubCategory: subCategory }
+				]
+			}
+			
+			// Combine with existing conditions using $and
+			if (where.$or) {
+				where.$and = (where.$and || []).concat([
+					{ $or: where.$or },
+					subCategoryCondition
+				])
+				delete where.$or
+			} else {
+				Object.assign(where, subCategoryCondition)
+			}
+		} else {
+			// No subcategory specified - include all products from main category AND all subcategories
+			const Category = (await import('@/models/Category')).default
+			// Find the main category
+			const mainCategoryResult = await Category.findOne({ name: category, level: 0 }).lean()
+			const mainCategory = Array.isArray(mainCategoryResult) ? null : mainCategoryResult
+			
+			if (mainCategory && mainCategory._id) {
+				const mainCategoryId = mainCategory._id as any
+				
+				// Get all subcategories (level 1) of this main category
+				const subCategories = await Category.find({
+					parentCategory: mainCategoryId,
+					level: 1,
+					isActive: { $ne: false }
+				}).lean()
+				
+				// Get all sub-subcategories (level 2) - children of the subcategories
+				const subCategoryIds = subCategories.map((sc: any) => sc._id).filter(Boolean)
+				const subSubCategories = subCategoryIds.length > 0 ? await Category.find({
+					parentCategory: { $in: subCategoryIds },
+					level: 2,
+					isActive: { $ne: false }
+				}).lean() : []
+				
+				// Collect all category names to search
+				const categoryNames = [category] // Main category
+				subCategories.forEach((subCat: any) => {
+					if (subCat.name) categoryNames.push(subCat.name)
+				})
+				subSubCategories.forEach((subSubCat: any) => {
+					if (subSubCat.name) categoryNames.push(subSubCat.name)
+				})
+				
+				// Filter products that match main category OR any subcategory
+				const categoryCondition = {
+					$or: [
+						{ category: { $in: categoryNames } },
+						{ subCategory: { $in: categoryNames } },
+						{ subSubCategory: { $in: categoryNames } }
+					]
+				}
+				
+				// Combine with existing conditions using $and
+				if (where.$or) {
+					// If there's already a $or (from search), combine with $and
+					where.$and = (where.$and || []).concat([
+						{ $or: where.$or },
+						categoryCondition
+					])
+					delete where.$or
+				} else {
+					// No existing $or, just add category condition
+					Object.assign(where, categoryCondition)
+				}
+			} else {
+				// Fallback: if category not found in admin categories, use simple match
+				where.category = category
+			}
+		}
+	}
 	if (brand) where.brand = brand
 	if (typeof inStock === 'boolean') {
 		if (inStock) {
@@ -107,6 +191,51 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 	return { items, total, page, limit }
 }
 
+async function fetchSubCategories(mainCategoryName: string) {
+	const { connectToDatabase } = await import('@/app/lib/mongodb')
+	const Category = (await import('@/models/Category')).default
+	const Product = (await import('@/models/Product')).default
+	await connectToDatabase()
+	
+	// Find the main category
+	const mainCategoryResult = await Category.findOne({ name: mainCategoryName, level: 0 }).lean()
+	const mainCategory = Array.isArray(mainCategoryResult) ? null : mainCategoryResult
+	
+	if (!mainCategory || !mainCategory._id) return []
+	
+	const mainCategoryId = mainCategory._id as any
+	
+	// Get all subcategories (level 1) of this main category
+	const subCategories = await Category.find({
+		parentCategory: mainCategoryId,
+		level: 1,
+		isActive: { $ne: false }
+	})
+		.select('name displayOrder image')
+		.sort({ displayOrder: 1, name: 1 })
+		.lean()
+	
+	// Get product counts for each subcategory
+	const subCategoriesWithCounts = await Promise.all(
+		subCategories.map(async (subCat: any) => {
+			const count = await Product.countDocuments({
+				$or: [
+					{ subCategory: subCat.name },
+					{ subSubCategory: subCat.name }
+				]
+			})
+			return {
+				name: String(subCat.name),
+				displayOrder: Number(subCat.displayOrder || 0),
+				image: subCat.image ? String(subCat.image) : '',
+				count: count
+			}
+		})
+	)
+	
+	return subCategoriesWithCounts.filter((sc: any) => sc.count > 0 || sc.name) // Only show subcategories with products or defined in admin
+}
+
 async function fetchMeta() {
 	// Use direct database query instead of HTTP fetch for better performance
 	const { connectToDatabase } = await import('@/app/lib/mongodb')
@@ -154,6 +283,10 @@ export const revalidate = 60
 
 export default async function ProductsPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
 	const [{ items, total }, meta] = await Promise.all([fetchProducts(searchParams), fetchMeta()])
+	
+	// Fetch subcategories if a main category is selected
+	const subCategories = searchParams.category ? await fetchSubCategories(searchParams.category) : []
+	
 	return (
 		<div className="pb-16 md:pb-0">
 			{/* Mobile Search Bar - Only visible on mobile */}
@@ -164,9 +297,43 @@ export default async function ProductsPage({ searchParams }: { searchParams: Rec
 					<ProductFilters categories={meta.categories} brands={meta.brands} />
 					<section className="lg:col-span-3">
 						<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-							<h1 className="text-lg sm:text-xl md:text-2xl font-semibold">All Products</h1>
+							<h1 className="text-lg sm:text-xl md:text-2xl font-semibold">
+								{searchParams.category ? `${searchParams.category}` : 'All Products'}
+							</h1>
 							<div className="text-xs sm:text-sm text-slate-600">{total} results</div>
 						</div>
+						
+						{/* Subcategories Section - Show when main category is selected */}
+						{subCategories.length > 0 && (
+							<div className="mt-4 sm:mt-6">
+								<h2 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Subcategories</h2>
+								<div className="flex flex-wrap gap-2 sm:gap-3">
+									<Link
+										href={`/products?category=${encodeURIComponent(searchParams.category || '')}`}
+										className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+											!searchParams.subCategory
+												? 'bg-brand-accent text-white'
+												: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+										}`}
+									>
+										All ({total})
+									</Link>
+									{subCategories.map((subCat: any) => (
+										<Link
+											key={subCat.name}
+											href={`/products?category=${encodeURIComponent(searchParams.category || '')}&subCategory=${encodeURIComponent(subCat.name)}`}
+											className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+												searchParams.subCategory === subCat.name
+													? 'bg-brand-accent text-white'
+													: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+											}`}
+										>
+											{subCat.name} ({subCat.count})
+										</Link>
+									))}
+								</div>
+							</div>
+						)}
 					{items.length === 0 ? (
 						<div className="mt-6 sm:mt-10  border p-6 sm:p-8 text-center text-sm sm:text-base text-slate-600">No products found. Try adjusting filters or keywords.</div>
 					) : (

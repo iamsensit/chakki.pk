@@ -289,10 +289,21 @@ export async function GET(req: NextRequest) {
 		const url = new URL(req.url)
 		const phone = url.searchParams.get('phone')
 		
+		// Import enrichOrderItems to add product names to order items
+		const { enrichOrderItems } = await import('@/app/lib/email-templates')
+		
 		// If phone is provided, allow public access to search by phone
 		if (phone) {
 			const orders = await Order.find({ shippingPhone: phone.trim() }).sort({ createdAt: -1 }).lean()
-			return json(true, 'Orders fetched', orders)
+			// Enrich order items with product names
+			const enrichedOrders = await Promise.all(orders.map(async (order: any) => {
+				const enrichedItems = await enrichOrderItems(order.items || [])
+				return {
+					...order,
+					items: enrichedItems
+				}
+			}))
+			return json(true, 'Orders fetched', enrichedOrders)
 		}
 		
 		// Otherwise, require authentication
@@ -301,7 +312,15 @@ export async function GET(req: NextRequest) {
 		if (!userEmail) return json(false, 'Authentication required', undefined, undefined, 401)
 		const where: any = isAdmin(session) ? {} : { userId: userEmail }
 		const orders = await Order.find(where).sort({ createdAt: -1 }).lean()
-		return json(true, 'Orders fetched', orders)
+		// Enrich order items with product names
+		const enrichedOrders = await Promise.all(orders.map(async (order: any) => {
+			const enrichedItems = await enrichOrderItems(order.items || [])
+			return {
+				...order,
+				items: enrichedItems
+			}
+		}))
+		return json(true, 'Orders fetched', enrichedOrders)
 	} catch (err) {
 		console.error('GET /api/orders error', err)
 		return json(false, 'Failed to fetch orders', undefined, { error: 'SERVER_ERROR' }, 500)
