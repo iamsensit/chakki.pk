@@ -306,16 +306,6 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 		<div className="mx-auto w-full max-w-3xl">
 			<h1 className="text-2xl font-semibold">Add product</h1>
 			<div className="mt-6 grid gap-4">
-				{/* Images Section - Priority First */}
-				<div className="rounded-md border p-4">
-					<ImageUpload
-						images={images}
-						onImagesChange={setImages}
-						label="Images"
-						multiple={true}
-					/>
-				</div>
-
 				<div className="rounded-md border p-4 grid gap-3">
 					<div className="grid gap-2">
 						<label className="text-sm font-medium text-gray-700 mb-1.5 block">Title</label>
@@ -436,6 +426,13 @@ const [relatedProductsSuggestions, setRelatedProductsSuggestions] = useState<any
 							</div>
 						)}
 					</div>
+
+					<ImageUpload
+						images={images}
+						onImagesChange={setImages}
+						label="Images"
+						multiple={true}
+					/>
 				</div>
 
 				{/* Discount Settings */}

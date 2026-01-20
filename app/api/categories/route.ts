@@ -254,25 +254,38 @@ export async function POST(req: NextRequest) {
     // Validate parent category if provided
     let parentCategory = null
     let actualLevel = level
-    if (parentCategoryId) {
-      parentCategory = await Category.findById(parentCategoryId)
-      if (!parentCategory) {
-        return json(false, 'Parent category not found', undefined, { field: 'parentCategoryId' }, 400)
+    let finalParentCategoryId: string | null = null
+    
+    if (parentCategoryId && parentCategoryId !== 'null' && parentCategoryId !== 'undefined' && String(parentCategoryId).trim()) {
+      try {
+        const parentIdStr = String(parentCategoryId).trim()
+        parentCategory = await Category.findById(parentIdStr)
+        if (!parentCategory) {
+          return json(false, 'Parent category not found', undefined, { field: 'parentCategoryId' }, 400)
+        }
+        // Auto-determine level based on parent
+        const parentLevel = (parentCategory as any).level ?? 0
+        actualLevel = parentLevel + 1
+        if (actualLevel > 2) {
+          return json(false, 'Maximum category depth is 3 levels (Category > Sub-Category > Sub-Sub-Category)', undefined, { field: 'level' }, 400)
+        }
+        finalParentCategoryId = parentIdStr
+      } catch (err: any) {
+        console.error('Error finding parent category:', err)
+        return json(false, 'Invalid parent category ID', undefined, { field: 'parentCategoryId' }, 400)
       }
-      // Auto-determine level based on parent
-      const parentLevel = (parentCategory as any).level ?? 0
-      actualLevel = parentLevel + 1
-      if (actualLevel > 2) {
-        return json(false, 'Maximum category depth is 3 levels (Category > Sub-Category > Sub-Sub-Category)', undefined, { field: 'level' }, 400)
-      }
+    } else {
+      // No parent category - ensure it's null and level is 0
+      finalParentCategoryId = null
+      actualLevel = 0
     }
     
     // If oldName is provided and different from newName, update all products
     if (oldName && oldName !== newName) {
       // Find the existing category by old name and parent (if any)
       const existingQuery: any = { name: oldName }
-      if (parentCategoryId) {
-        existingQuery.parentCategory = parentCategoryId
+      if (finalParentCategoryId) {
+        existingQuery.parentCategory = finalParentCategoryId
       } else {
         existingQuery.$or = [{ parentCategory: null }, { parentCategory: { $exists: false } }]
       }
@@ -294,7 +307,7 @@ export async function POST(req: NextRequest) {
             description: String(description || ''),
             displayOrder: Number(displayOrder) || 1000, 
             isActive: !!isActive,
-            parentCategory: parentCategoryId || null,
+            parentCategory: finalParentCategoryId || null,
             level: actualLevel
           },
           { new: true }
@@ -321,8 +334,8 @@ export async function POST(req: NextRequest) {
     
     // Normal upsert (create or update by name + parentCategory)
     const query: any = { name: newName }
-    if (parentCategoryId) {
-      query.parentCategory = parentCategoryId
+    if (finalParentCategoryId) {
+      query.parentCategory = finalParentCategoryId
     } else {
       query.$or = [{ parentCategory: null }, { parentCategory: { $exists: false } }]
     }
@@ -343,7 +356,7 @@ export async function POST(req: NextRequest) {
         description: String(description || ''),
         displayOrder: Number(displayOrder) || 1000, 
         isActive: !!isActive,
-        parentCategory: parentCategoryId || null,
+        parentCategory: finalParentCategoryId || null,
         level: actualLevel
       },
       { upsert: true, new: true }

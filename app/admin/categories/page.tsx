@@ -103,24 +103,46 @@ export default function CategoriesAdminPage() {
     }
     try {
       const slug = newCategory.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      
+      // Extract parentCategoryId - ensure it's a valid string or null
+      const parentCategoryId = newCategory.parentCategory?._id 
+        ? String(newCategory.parentCategory._id).trim() 
+        : null
+      
+      // Determine level - if parentCategory exists, level should be parentLevel + 1
+      let actualLevel = newCategory.level ?? 0
+      if (parentCategoryId && newCategory.parentCategory) {
+        const flatCats = getAllCategoriesFlat(mainCategories)
+        const parent = flatCats.find(c => c._id === parentCategoryId)
+        if (parent) {
+          actualLevel = (parent.level ?? 0) + 1
+        }
+      }
+      
+      const requestBody = { 
+        name: newCategory.name.trim(), 
+        slug,
+        image: newCategory.image || '', 
+        description: newCategory.description || '',
+        displayOrder: newCategory.displayOrder ?? 1000, 
+        isActive: true,
+        parentCategoryId: parentCategoryId,
+        level: actualLevel
+      }
+      
       const res = await fetch('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: newCategory.name.trim(), 
-          slug,
-          image: newCategory.image || '', 
-          description: newCategory.description || '',
-          displayOrder: newCategory.displayOrder ?? 1000, 
-          isActive: true,
-          parentCategoryId: newCategory.parentCategory?._id || null,
-          level: newCategory.level ?? 0
-        })
+        body: JSON.stringify(requestBody)
       })
       const json = await res.json()
-      if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to create')
-      toast.success('Category created')
-      setNewCategory({ name: '', image: '', description: '', displayOrder: 1000, isActive: true, level: 0 })
+      
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Failed to create category')
+      }
+      
+      toast.success('Category created successfully')
+      setNewCategory({ name: '', image: '', description: '', displayOrder: 1000, isActive: true, level: 0, parentCategory: undefined })
       setShowNewForm(false)
       load()
     } catch (e:any) {
@@ -416,7 +438,7 @@ export default function CategoriesAdminPage() {
                   } else {
                     setNewCategory(prev => ({
                       ...prev,
-                      parentCategory: undefined,
+                      parentCategory: null,
                       level: 0
                     }))
                   }
@@ -435,15 +457,6 @@ export default function CategoriesAdminPage() {
               <p className="mt-1 text-xs text-gray-500">
                 Select a parent category to create a sub-category. Leave empty for a main category.
               </p>
-            </div>
-            {/* Category Image - Priority First */}
-            <div>
-              <ImageUpload
-                images={newCategory.image ? [newCategory.image] : []}
-                onImagesChange={(images) => setNewCategory(prev => ({ ...prev, image: images[0] || '' }))}
-                label="Category Image"
-                multiple={false}
-              />
             </div>
             <div>
               <label className="text-sm font-medium">Category Name *</label>
@@ -469,15 +482,25 @@ export default function CategoriesAdminPage() {
                 onChange={e => setNewCategory(prev => ({ ...prev, description: e.target.value }))}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Display Order</label>
-              <input
-                type="number"
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="1000"
-                value={newCategory.displayOrder ?? 1000}
-                onChange={e => setNewCategory(prev => ({ ...prev, displayOrder: Number(e.target.value) }))}
-              />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <ImageUpload
+                  images={newCategory.image ? [newCategory.image] : []}
+                  onImagesChange={(images) => setNewCategory(prev => ({ ...prev, image: images[0] || '' }))}
+                  label="Category Image"
+                  multiple={false}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Display Order</label>
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  placeholder="1000"
+                  value={newCategory.displayOrder ?? 1000}
+                  onChange={e => setNewCategory(prev => ({ ...prev, displayOrder: Number(e.target.value) }))}
+                />
+              </div>
             </div>
             <div className="flex gap-2">
               <button

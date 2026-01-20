@@ -597,16 +597,6 @@ export default function EditProductPage() {
               </button>
             </div>
             <div className="max-h-[70vh] overflow-auto p-4 space-y-4">
-              {/* Images Section - Priority First */}
-              <div className="rounded-md border p-4">
-                <ImageUpload
-                  images={images}
-                  onImagesChange={setImages}
-                  label="Images"
-                  multiple={true}
-                />
-              </div>
-
               <div className="rounded-md border p-4 grid gap-3">
             <div className="grid gap-2">
               <label className="text-sm">Title</label>
@@ -722,6 +712,13 @@ export default function EditProductPage() {
                 </div>
               )}
             </div>
+
+            <ImageUpload
+              images={images}
+              onImagesChange={setImages}
+              label="Images"
+              multiple={true}
+            />
           </div>
 
           {/* Discount Settings */}

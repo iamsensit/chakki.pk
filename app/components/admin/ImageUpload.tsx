@@ -15,7 +15,7 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ images, onImagesChange, label = "Images", multiple = true }: ImageUploadProps) {
 	const [imageUrl, setImageUrl] = useState('')
-	const [imageSource, setImageSource] = useState<ImageSource>('public')
+	const [imageSource, setImageSource] = useState<ImageSource>('database') // Default to file upload
 	const [uploading, setUploading] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -159,9 +159,9 @@ export default function ImageUpload({ images, onImagesChange, label = "Images", 
 					value={imageSource}
 					onChange={e => setImageSource(e.target.value as ImageSource)}
 				>
+					<option value="database">Upload Image (Browse)</option>
 					<option value="public">Public folder (/path)</option>
 					<option value="external">External URL (https://…)</option>
-					<option value="database">Upload to Database</option>
 				</select>
 			</div>
 
