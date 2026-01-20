@@ -56,8 +56,10 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 	if (category) {
 		if (subCategory) {
 			// If subcategory is specified, filter to just that subcategory
+			// Products can have subcategory name in category, subCategory, or subSubCategory fields
 			const subCategoryCondition = {
 				$or: [
+					{ category: subCategory },
 					{ subCategory: subCategory },
 					{ subSubCategory: subCategory }
 				]
@@ -216,10 +218,12 @@ async function fetchSubCategories(mainCategoryName: string) {
 		.lean()
 	
 	// Get product counts for each subcategory
+	// Products can have subcategory name in category, subCategory, or subSubCategory fields
 	const subCategoriesWithCounts = await Promise.all(
 		subCategories.map(async (subCat: any) => {
 			const count = await Product.countDocuments({
 				$or: [
+					{ category: subCat.name },
 					{ subCategory: subCat.name },
 					{ subSubCategory: subCat.name }
 				]
@@ -233,7 +237,8 @@ async function fetchSubCategories(mainCategoryName: string) {
 		})
 	)
 	
-	return subCategoriesWithCounts.filter((sc: any) => sc.count > 0 || sc.name) // Only show subcategories with products or defined in admin
+	// Show all subcategories (even with 0 products) so users can see what's available
+	return subCategoriesWithCounts
 }
 
 async function fetchMeta() {

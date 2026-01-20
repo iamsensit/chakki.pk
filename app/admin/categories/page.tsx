@@ -355,7 +355,7 @@ export default function CategoriesAdminPage() {
               <div className="grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
                 <div>
                   {cat.image ? (
-                    <span>Image: <a href={cat.image} target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline">{cat.image.length > 40 ? cat.image.substring(0, 40) + '...' : cat.image}</a></span>
+                    <span className="text-green-600">✓ Image set</span>
                   ) : (
                     <span>No image set</span>
                   )}

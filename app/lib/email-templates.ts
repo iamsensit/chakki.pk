@@ -163,9 +163,9 @@ export function renderOrderEmailTemplate(order: OrderData, title: string, messag
 						<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 							<!-- Header -->
 							<tr>
-								<td style="background:#0f172a;padding:20px;text-align:center;">
+								<td style="background:#f1f5f9;padding:20px;text-align:center;">
 									<img src="${logoUrl}" alt="Chakki" style="height:40px;width:auto;display:block;margin:0 auto;" />
-									<div style="color:#ffffff;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
+									<div style="color:#64748b;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
 								</td>
 							</tr>
 							
@@ -311,9 +311,9 @@ export function renderWelcomeEmailTemplate(name: string) {
 						<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 							<!-- Header -->
 							<tr>
-								<td style="background:#0f172a;padding:20px;text-align:center;">
+								<td style="background:#f1f5f9;padding:20px;text-align:center;">
 									<img src="${logoUrl}" alt="Chakki" style="height:40px;width:auto;display:block;margin:0 auto;" />
-									<div style="color:#ffffff;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
+									<div style="color:#64748b;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
 								</td>
 							</tr>
 							
@@ -374,9 +374,9 @@ export function renderVerificationEmailTemplate(code: string, name?: string) {
 						<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 							<!-- Header -->
 							<tr>
-								<td style="background:#0f172a;padding:20px;text-align:center;">
+								<td style="background:#f1f5f9;padding:20px;text-align:center;">
 									<img src="${logoUrl}" alt="Chakki" style="height:40px;width:auto;display:block;margin:0 auto;" />
-									<div style="color:#ffffff;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
+									<div style="color:#64748b;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
 								</td>
 							</tr>
 							
@@ -389,7 +389,7 @@ export function renderVerificationEmailTemplate(code: string, name?: string) {
 										${name ? `Hi ${name}, ` : ''}Please use the verification code below to confirm your email address.
 									</p>
 									
-									<div style="display:inline-block;padding:16px 24px;border-radius:8px;background:#0f172a;color:#ffffff;font-size:28px;letter-spacing:4px;font-weight:700;margin-bottom:24px;font-family:monospace;">
+									<div style="display:inline-block;padding:16px 24px;border-radius:8px;background:#f1f5f9;color:#0f172a;font-size:28px;letter-spacing:4px;font-weight:700;margin-bottom:24px;font-family:monospace;">
 										${code}
 									</div>
 									
@@ -432,9 +432,9 @@ export function renderPasswordResetEmailTemplate(resetLink: string, name?: strin
 						<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 							<!-- Header -->
 							<tr>
-								<td style="background:#0f172a;padding:20px;text-align:center;">
+								<td style="background:#f1f5f9;padding:20px;text-align:center;">
 									<img src="${logoUrl}" alt="Chakki" style="height:40px;width:auto;display:block;margin:0 auto;" />
-									<div style="color:#ffffff;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
+									<div style="color:#64748b;font-size:14px;margin-top:8px;opacity:0.9;">by Digital Dervish</div>
 								</td>
 							</tr>
 							

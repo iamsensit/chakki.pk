@@ -33,8 +33,9 @@ export default function ImageUpload({ images, onImagesChange, label = "Images", 
 
 	async function compressToDataUrl(file: File): Promise<string> {
 		const img = await loadImage(file)
-		// Reduced max size for web optimization (800x800 is sufficient for most displays)
-		const maxW = 800, maxH = 800
+		// Further reduced max size for better performance (600x600 is optimal for web)
+		// This significantly reduces file size while maintaining good quality
+		const maxW = 600, maxH = 600
 		let { width, height } = img
 		const ratio = Math.min(maxW / width, maxH / height, 1)
 		width = Math.round(width * ratio)
@@ -43,13 +44,16 @@ export default function ImageUpload({ images, onImagesChange, label = "Images", 
 		canvas.width = width
 		canvas.height = height
 		const ctx = canvas.getContext('2d')!
+		// Use high-quality image rendering
+		ctx.imageSmoothingEnabled = true
+		ctx.imageSmoothingQuality = 'high'
 		ctx.drawImage(img, 0, 0, width, height)
-		// Lower quality (0.7) for better compression and smaller file size
+		// Lower quality (0.65) for better compression and smaller file size
 		// Try WebP first (better compression), fallback to JPEG
 		try {
-			return canvas.toDataURL('image/webp', 0.7)
+			return canvas.toDataURL('image/webp', 0.65)
 		} catch {
-			return canvas.toDataURL('image/jpeg', 0.7)
+			return canvas.toDataURL('image/jpeg', 0.65)
 		}
 	}
 
@@ -220,6 +224,8 @@ export default function ImageUpload({ images, onImagesChange, label = "Images", 
 								src={src.startsWith('data:') ? src : src} 
 								className="h-24 w-full object-cover border" 
 								alt={`Image ${idx + 1}`}
+								loading="lazy"
+								decoding="async"
 								onError={(e) => {
 									// Hide broken images
 									(e.target as HTMLImageElement).style.display = 'none'
