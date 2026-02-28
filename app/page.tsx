@@ -5,7 +5,6 @@ import CategorySlider from '@/app/components/home/CategorySlider'
 import ProductSection from '@/app/components/home/ProductSection'
 import MobileSearchBar from '@/app/components/home/MobileSearchBar'
 import ServiceMarquee from '@/app/components/home/ServiceMarquee'
-
 async function fetchCategories() {
 	try {
 		// Connection already established at page level
@@ -204,17 +203,20 @@ async function fetchNewArrivals() {
 	try {
 		// Connection already established at page level
 		// Fetch newest products - only select needed fields
-		const items = await Product.find({})
+		let items = await Product.find({})
 			.select('_id title slug images badges variants createdAt')
 			.sort({ createdAt: -1 })
 			.limit(20)
 			.lean()
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await getRandomProducts(20, 5)
+		}
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
-		console.error('Error fetching new arrivals:', err)
+			console.error('Error fetching new arrivals:', err)
 		}
-		return []
+		return await getRandomProducts(20, 5)
 	}
 }
 
@@ -258,13 +260,16 @@ async function fetchSpecialOffers() {
 			.limit(20)
 			.lean()
 		
-		// If no products with badges, return empty (no fallback to avoid extra query)
+		// Fallback to any products if none have badges
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await getRandomProducts(20, 6)
+		}
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
 			console.error('Error fetching special offers:', err)
 		}
-		return []
+		return await getRandomProducts(20, 6)
 	}
 }
 
@@ -310,7 +315,7 @@ async function fetchMostSelling() {
 			.limit(20)
 			.lean()
 		
-		// Single fallback: If no products with sales, show any products sorted by popularity
+		// Fallback: If no products with sales, show any products sorted by popularity or random
 		if (!Array.isArray(items) || items.length === 0) {
 			items = await Product.find({})
 				.select('_id title slug images badges variants popularity createdAt')
@@ -318,13 +323,15 @@ async function fetchMostSelling() {
 				.limit(20)
 				.lean()
 		}
-		
+		if (!Array.isArray(items) || items.length === 0) {
+			items = await getRandomProducts(20, 7)
+		}
 		return Array.isArray(items) ? items : []
 	} catch (err) {
 		if (process.env.NODE_ENV !== 'production') {
 			console.error('Error fetching most selling products:', err)
 		}
-		return []
+		return await getRandomProducts(20, 7)
 	}
 }
 
@@ -348,12 +355,25 @@ const categoryImages: Record<string, string> = {
 // Revalidate every 60 seconds - page will be cached and only regenerated when needed
 export const revalidate = 60
 
+async function fetchAllProducts() {
+	try {
+		const items = await Product.find({})
+			.select('_id title slug images badges variants totalSales viewCount recentSales createdAt')
+			.sort({ createdAt: -1 })
+			.limit(20)
+			.lean()
+		return Array.isArray(items) ? items : []
+	} catch {
+		return []
+	}
+}
+
 export default async function HomePage() {
 	// Connect to database once at the top level (connection is cached globally)
 	await connectToDatabase()
 	
 	// Fetch all data in parallel
-	const [categories, flashDeals, featuredProducts, bestSellers, newArrivals, trendingProducts, specialOffers, hotProducts, mostSelling] = await Promise.all([
+	let [categories, flashDeals, featuredProducts, bestSellers, newArrivals, trendingProducts, specialOffers, hotProducts, mostSelling] = await Promise.all([
 		fetchCategories(),
 		fetchFlashDeals(),
 		fetchFeaturedProducts(),
@@ -365,65 +385,19 @@ export default async function HomePage() {
 		fetchMostSelling()
 	])
 	
-	// Ensure products don't appear in multiple sections
-	// Priority: Flash Deals > Hot Products > Trending > Most Selling > Best Sellers > Featured > Special Offers > New Arrivals
-	const usedProductIds = new Set<string>()
-	
-	const deduplicatedFlashDeals = flashDeals.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
-	
-	const deduplicatedHotProducts = hotProducts.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
-	
-	const deduplicatedTrending = trendingProducts.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
-	
-	const deduplicatedMostSelling = mostSelling.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
-	
-	const deduplicatedBestSellers = bestSellers.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
-	
-	const deduplicatedFeatured = featuredProducts.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
-	
-	const deduplicatedSpecialOffers = specialOffers.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
-	
-	const deduplicatedNewArrivals = newArrivals.filter(p => {
-		const id = String(p._id || p.id)
-		if (usedProductIds.has(id)) return false
-		usedProductIds.add(id)
-		return true
-	})
+	// Ensure every section has products - use all products as fallback for any empty section
+	const allProducts = await fetchAllProducts()
+	const fillProducts = allProducts.length > 0 ? allProducts : await getRandomProducts(20, 99)
+	if (fillProducts.length > 0) {
+		if (!flashDeals.length) flashDeals = fillProducts
+		if (!featuredProducts.length) featuredProducts = fillProducts
+		if (!bestSellers.length) bestSellers = fillProducts
+		if (!newArrivals.length) newArrivals = fillProducts
+		if (!trendingProducts.length) trendingProducts = fillProducts
+		if (!specialOffers.length) specialOffers = fillProducts
+		if (!hotProducts.length) hotProducts = fillProducts
+		if (!mostSelling.length) mostSelling = fillProducts
+	}
 	
 	return (
 		<main className="bg-white pb-16 md:pb-0">
@@ -440,43 +414,83 @@ export default async function HomePage() {
 				<CategorySlider categories={categories} categoryImages={categoryImages} />
 			</section>
 
-			{/* Featured Products Section - First Section */}
-			{deduplicatedFeatured.length > 0 && (
+			{/* Flash Deals */}
+			{flashDeals.length > 0 && (
 				<ProductSection 
-					title="Featured Products" 
-					products={deduplicatedFeatured} 
-					sliderId="featured-products-slider" 
-					icon="featured"
+					title="Flash Deals" 
+					products={flashDeals} 
+					sliderId="flash-deals-slider" 
+					icon="flash"
 				/>
 			)}
 
-			{/* Hot Products Section - Second Section */}
-			{deduplicatedHotProducts.length > 0 && (
+			{/* Hot Products */}
+			{hotProducts.length > 0 && (
 				<ProductSection 
 					title="Hot Products" 
-					products={deduplicatedHotProducts} 
+					products={hotProducts} 
 					sliderId="hot-products-slider"
 					icon="hot"
 				/>
 			)}
 
-			{/* Trending Products Section - Third Section */}
-			{deduplicatedTrending.length > 0 && (
+			{/* Featured Products */}
+			{featuredProducts.length > 0 && (
+				<ProductSection 
+					title="Featured Products" 
+					products={featuredProducts} 
+					sliderId="featured-products-slider" 
+					icon="featured"
+				/>
+			)}
+
+			{/* Trending Products */}
+			{trendingProducts.length > 0 && (
 				<ProductSection 
 					title="Trending Now" 
-					products={deduplicatedTrending} 
+					products={trendingProducts} 
 					sliderId="trending-products-slider" 
 					icon="trending"
 				/>
 			)}
 
-			{/* Best Sellers Section - Fourth Section */}
-			{deduplicatedBestSellers.length > 0 && (
+			{/* New Arrivals */}
+			{newArrivals.length > 0 && (
+				<ProductSection 
+					title="New Arrivals" 
+					products={newArrivals} 
+					sliderId="new-arrivals-slider" 
+					icon="new"
+				/>
+			)}
+
+			{/* Best Sellers */}
+			{bestSellers.length > 0 && (
 				<ProductSection 
 					title="Best Sellers" 
-					products={deduplicatedBestSellers} 
+					products={bestSellers} 
 					sliderId="best-sellers-slider" 
 					icon="bestseller"
+				/>
+			)}
+
+			{/* Most Selling */}
+			{mostSelling.length > 0 && (
+				<ProductSection 
+					title="Most Selling" 
+					products={mostSelling} 
+					sliderId="most-selling-slider" 
+					icon="bestseller"
+				/>
+			)}
+
+			{/* Special Offers */}
+			{specialOffers.length > 0 && (
+				<ProductSection 
+					title="Special Offers" 
+					products={specialOffers} 
+					sliderId="special-offers-slider" 
+					icon="special"
 				/>
 			)}
 		</main>

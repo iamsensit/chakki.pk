@@ -1,5 +1,6 @@
 "use client"
 
+import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Zap, Star, TrendingUp, Award, Sparkles, Flame, ShoppingBag } from 'lucide-react'
 import FlashDealCard from './FlashDealCard'
 import { motion } from 'framer-motion'
@@ -86,37 +87,44 @@ export default function ProductSection({ title, products, sliderId, icon = 'flas
 				></div>
 			</div>
 			<div className="relative">
-				<div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth" id={sliderId}>
+				<div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth" id={sliderId}>
 					{products.map((p: any, idx: number) => (
-						<div key={p._id || p.id || idx}>
+						<div key={p._id || p.id || idx} className="flex-shrink-0">
 							<FlashDealCard product={p} />
 						</div>
 					))}
 				</div>
-				{/* Navigation Arrows */}
 				{products.length > 4 && (
 					<>
 						<button
 							onClick={() => {
 								const slider = document.getElementById(sliderId)
-								if (slider) slider.scrollBy({ left: -300, behavior: 'smooth' })
+								if (slider) slider.scrollBy({ left: -240, behavior: 'smooth' })
 							}}
-							className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full p-2 shadow-lg hover:bg-white hover:shadow-xl transition-all z-10 group"
+							className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full p-2 shadow-lg hover:bg-white hover:shadow-xl transition-all z-10"
 							aria-label="Scroll left"
 						>
-							<ChevronLeft className="h-5 w-5 text-gray-700 group-hover:text-brand-accent transition-colors" />
+							<ChevronLeft className="h-5 w-5 text-gray-700" />
 						</button>
 						<button
 							onClick={() => {
 								const slider = document.getElementById(sliderId)
-								if (slider) slider.scrollBy({ left: 300, behavior: 'smooth' })
+								if (slider) slider.scrollBy({ left: 240, behavior: 'smooth' })
 							}}
-							className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full p-2 shadow-lg hover:bg-white hover:shadow-xl transition-all z-10 group"
+							className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full p-2 shadow-lg hover:bg-white hover:shadow-xl transition-all z-10"
 							aria-label="Scroll right"
 						>
-							<ChevronRight className="h-5 w-5 text-gray-700 group-hover:text-brand-accent transition-colors" />
+							<ChevronRight className="h-5 w-5 text-gray-700" />
 						</button>
 					</>
+				)}
+				{products.length > 0 && (
+					<div className="mt-4 flex justify-end">
+						<Link href="/products" className="text-sm font-medium text-brand-accent hover:underline inline-flex items-center gap-1">
+							View all products
+							<ChevronRight className="h-4 w-4" />
+						</Link>
+					</div>
 				)}
 			</div>
 		</section>

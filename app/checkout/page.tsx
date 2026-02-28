@@ -237,26 +237,27 @@ export default function CheckoutPage() {
 			return
 		}
 		
-		// Sync cart to database before placing order
+		// Sync local cart to server: use PUT to set quantities (not POST which adds and would double prices)
 		setLoading(true)
 		try {
-			// Sync all cart items to database
-			for (const item of items) {
-				await fetch('/api/cart', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						productId: item.productId,
-						variantId: item.variantId,
-						quantity: item.quantity
-					})
-				})
+			const res = await fetch('/api/cart', { cache: 'no-store' })
+			if (res.ok) {
+				const json = await res.json()
+				const serverItems = Array.isArray(json?.data?.items) ? json.data.items : []
+				for (const item of items) {
+					const onServer = serverItems.find((s: any) => s.productId === item.productId && String(s.variantId || '') === String(item.variantId || ''))
+					if (onServer) {
+						if (onServer.quantity !== item.quantity) {
+							await fetch('/api/cart', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: item.productId, variantId: item.variantId, quantity: item.quantity }) })
+						}
+					} else {
+						await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: item.productId, variantId: item.variantId, quantity: item.quantity }) })
+					}
+				}
 			}
 		} catch (error) {
 			console.error('Error syncing cart:', error)
-			// Continue anyway - the API will check the cart
 		}
-		
 		setFormErrors({})
 		try {
 				const res = await fetch('/api/orders', {
