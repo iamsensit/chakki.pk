@@ -176,8 +176,8 @@ async function fetchMeta() {
 			isActive: { $ne: false },
 			$or: [{ level: 0 }, { level: { $exists: false } }, { parentCategory: null }]
 		}).select('name displayOrder image').sort({ displayOrder: 1, name: 1 }).lean(),
-		Product.distinct('category', { category: { $exists: true, $ne: null, $ne: '' } }),
-		Product.distinct('brand', { brand: { $exists: true, $ne: null, $ne: '' } })
+		Product.distinct('category', { category: { $exists: true, $nin: [null, ''] } }),
+		Product.distinct('brand', { brand: { $exists: true, $nin: [null, ''] } })
 	])
 	
 	const categoryMap = new Map<string, { name: string; count: number }>()

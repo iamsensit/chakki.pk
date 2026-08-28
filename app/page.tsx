@@ -31,7 +31,7 @@ async function fetchCategories() {
 		}).sort({ displayOrder: 1, name: 1 }).lean()
 		
 		// 2. Fetch distinct product categories to include any product-assigned categories
-		const productCategories = await Product.distinct('category', { category: { $exists: true, $ne: null, $ne: '' } })
+		const productCategories = await Product.distinct('category', { category: { $exists: true, $nin: [null, ''] } })
 		
 		const categoryMap = new Map<string, { name: string; slug: string; image: string; displayOrder: number; productCount: number }>()
 
