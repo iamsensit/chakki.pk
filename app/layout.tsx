@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Providers from './providers'
-import Header from '@/app/components/layout/Header'
-import MobileHeader from '@/app/components/layout/MobileHeader'
+import Header from '@/components/layout/Header'
 import MobileBottomNav from '@/app/components/layout/MobileBottomNav'
-import Footer from '@/app/components/layout/Footer'
+import Footer from '@/components/layout/Footer'
 import { Toaster } from 'sonner'
 import StructuredData from '@/app/components/SEO/StructuredData'
 import CartSync from '@/app/components/cart/CartSync'
@@ -55,18 +54,17 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-	themeColor: '#F4991A',
+	themeColor: '#7EB338',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" className="h-full">
-			<body className="min-h-full antialiased bg-white text-slate-900">
+			<body className="min-h-full antialiased bg-white text-[#2D3748]">
 				<StructuredData />
 				<Providers>
 					<ErrorDialogProvider>
 						<Header />
-						<MobileHeader />
 						<MobileBottomNav />
 						<CartSync />
 						<LocationSync />
@@ -77,12 +75,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 						<RouteLoader />
 						<Toaster 
 							position="top-right" 
-							duration={1000}
+							duration={1500}
 							toastOptions={{
 								classNames: {
-									toast: 'bg-white border border-gray-200 shadow-lg',
-									title: 'text-brand-accent font-medium',
-									description: 'text-gray-600',
+									toast: 'bg-white border border-[#E2E8F0] shadow-lg rounded-2xl',
+									title: 'text-[#7EB338] font-semibold',
+									description: 'text-[#718096]',
 									success: 'bg-white',
 									error: 'bg-white',
 									info: 'bg-white',
@@ -90,7 +88,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 								},
 								style: {
 									background: 'white',
-									color: '#F4991A',
+									color: '#7EB338',
 								},
 							}}
 						/>
@@ -100,3 +98,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		</html>
 	)
 }
+

@@ -11,11 +11,22 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          DEFAULT: '#344F1F',
-          dark: '#2A3E17',
-          light: '#F2EAD3',
-          accent: '#F4991A',
+          DEFAULT: '#7EB338',
+          accent: '#7EB338',
+          secondary: '#F08C38',
+          cream: '#F5EFE0',
+          dark: '#2D3748',
+          muted: '#718096',
+          border: '#E2E8F0',
+          light: '#F5EFE0',
+        },
+        slate: {
+          850: '#1e293b',
         }
+      },
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.5rem',
       },
       fontWeight: {
         bold: '700',
@@ -30,3 +41,4 @@ const config: Config = {
   ],
 }
 export default config
+

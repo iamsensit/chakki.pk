@@ -2,31 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
-
-const placeholders = [
-	'Search hot selling products 🔥',
-	'Search fresh products 🥬',
-	'Search best deals 💰',
-	'Search products...',
-]
+import { Search, X, ArrowRight } from 'lucide-react'
 
 export default function MobileSearchBar() {
 	const [q, setQ] = useState('')
 	const [open, setOpen] = useState(false)
 	const [items, setItems] = useState<any[]>([])
 	const [highlight, setHighlight] = useState(0)
-	const [currentPlaceholder, setCurrentPlaceholder] = useState(0)
 	const ref = useRef<HTMLDivElement>(null)
 	const router = useRouter()
-
-	// Rotate placeholders
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setCurrentPlaceholder((prev) => (prev + 1) % placeholders.length)
-		}, 3000) // Change every 3 seconds
-		return () => clearInterval(interval)
-	}, [])
 
 	useEffect(() => {
 		const t = setTimeout(async () => {
@@ -36,7 +20,7 @@ export default function MobileSearchBar() {
 				return 
 			}
 			try {
-				const res = await fetch(`/api/products?suggest=1&q=${encodeURIComponent(q)}&limit=10`)
+				const res = await fetch(`/api/products?suggest=1&q=${encodeURIComponent(q)}&limit=8`)
 				const json = await res.json()
 				
 				if (!res.ok || !json?.success) {
@@ -98,68 +82,100 @@ export default function MobileSearchBar() {
 	function onSubmit(e: React.FormEvent) {
 		e.preventDefault()
 		if (q.trim()) {
-			router.push(`/products?q=${encodeURIComponent(q)}`)
+			router.push(`/products?q=${encodeURIComponent(q.trim())}`)
 			setOpen(false)
 		}
 	}
 
 	return (
-		<div className="md:hidden px-3 sm:px-4 py-2 sm:py-3">
-			<div className="relative w-full max-w-full" ref={ref}>
+		<div className="md:hidden px-4 py-2 bg-white">
+			<div className="relative w-full" ref={ref}>
 				<form id="mobile-search-form" onSubmit={onSubmit} className="relative w-full">
-					<div className="flex items-center border-2 border-brand-accent  bg-white shadow-sm focus-within:border-brand-accent focus-within:ring-0 transition-all overflow-hidden">
-						<div className="flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 min-w-0 pr-1 sm:pr-1.5">
-							<input 
-								value={q} 
-								onChange={(e) => setQ(e.target.value)} 
-								onFocus={() => {
-									if (q.trim() && items.length > 0) {
-										setOpen(true)
-									}
-								}}
-								className="w-full border-0 outline-none bg-transparent text-sm sm:text-base text-slate-900 placeholder-slate-500 focus:ring-0 focus:outline-none" 
-								placeholder={placeholders[currentPlaceholder]}
-								autoComplete="off"
-							/>
+					<div className="relative flex items-center rounded-full border border-[#E2E8F0] bg-slate-50/80 shadow-xs focus-within:bg-white focus-within:border-[#7EB338] focus-within:ring-2 focus-within:ring-[#7EB338]/15 transition-all">
+						{/* Search Icon */}
+						<div className="pl-3.5 pr-2 text-[#7EB338] flex items-center justify-center pointer-events-none">
+							<Search className="h-4 w-4 stroke-[2.5]" />
 						</div>
+
+						{/* Search Input */}
+						<input 
+							value={q} 
+							onChange={(e) => setQ(e.target.value)} 
+							onFocus={() => {
+								if (q.trim() && items.length > 0) {
+									setOpen(true)
+								}
+							}}
+							className="flex-1 py-2.5 bg-transparent text-xs text-[#2D3748] placeholder-[#718096] focus:outline-none min-w-0" 
+							placeholder="Search whole wheat atta, rice, pulses, spices..."
+							autoComplete="off"
+						/>
+
+						{/* Clear Button */}
+						{q.trim() && (
+							<button
+								type="button"
+								onClick={() => {
+									setQ('')
+									setItems([])
+									setOpen(false)
+								}}
+								className="p-1.5 text-[#718096] hover:text-[#2D3748] transition-colors"
+								aria-label="Clear search"
+							>
+								<X className="h-3.5 w-3.5" />
+							</button>
+						)}
+
+						{/* Search Action Pill Button */}
 						<button 
 							type="submit"
-							className="px-2 sm:px-2.5 py-1.5 sm:py-2 bg-transparent hover:bg-transparent active:bg-transparent transition-colors flex-shrink-0 flex items-center justify-center touch-manipulation focus:outline-none focus:ring-0"
+							className="m-1 h-7 w-7 rounded-full bg-[#7EB338] hover:bg-[#6fa02f] text-white flex items-center justify-center flex-shrink-0 shadow-xs transition-transform active:scale-95"
+							aria-label="Submit search"
 						>
-							<Search className="h-5 w-5 sm:h-6 sm:w-6 text-brand-accent" strokeWidth={2.5} />
+							<ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
 						</button>
 					</div>
 				</form>
-				{/* Search Suggestions Dropdown - No Images */}
+
+				{/* Search Suggestions Dropdown */}
 				{open && q.trim() && (
-					<div className="absolute top-full left-0 right-0 z-[100] mt-1  border border-gray-200 bg-white shadow-xl max-h-72 sm:max-h-80 overflow-hidden">
+					<div className="absolute top-full left-0 right-0 z-[100] mt-2 rounded-2xl border border-[#E2E8F0] bg-white shadow-xl max-h-72 overflow-hidden">
 						{items.length > 0 ? (
-							<ul className="overflow-y-auto max-h-72 sm:max-h-80">
+							<ul className="overflow-y-auto max-h-72 divide-y divide-[#E2E8F0]">
 								{items.map((it, idx) => (
 									<li 
 										key={it._id || it.id || idx} 
-										className={`px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm cursor-pointer hover:bg-gray-50 active:bg-gray-100 border-b border-gray-100 last:border-b-0 transition-colors touch-manipulation ${idx === highlight ? 'bg-gray-50' : ''}`} 
+										className={`px-3.5 py-2.5 text-xs cursor-pointer hover:bg-[#F5EFE0] active:bg-[#F5EFE0] transition-colors flex items-center justify-between ${idx === highlight ? 'bg-[#F5EFE0]' : ''}`} 
 										onMouseEnter={() => setHighlight(idx)} 
 										onClick={() => {
-											router.push(`/products?q=${encodeURIComponent(q)}`)
+											router.push(`/products/${it.slug || it._id || it.id}`)
 											setOpen(false)
 											setQ('')
 										}}
 									>
-										<div className="flex flex-col">
-											<div className="font-medium text-gray-900 truncate">{it.title}</div>
-											<div className="text-[10px] sm:text-xs text-gray-500 truncate mt-0.5">
-												{it.brand || ''} 
-												{(it.brand && (it.category || it.subCategory)) && ' • '}
-												{it.subSubCategory || it.subCategory || it.category || ''}
+										<div className="flex items-center gap-2.5 min-w-0">
+											<div className="h-8 w-8 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+												{it.images?.[0] ? (
+													<img src={it.images[0]} alt={it.title} className="h-full w-full object-cover" />
+												) : (
+													<Search className="h-3.5 w-3.5 text-[#718096]" />
+												)}
+											</div>
+											<div className="flex flex-col min-w-0">
+												<span className="font-bold text-[#2D3748] truncate">{it.title}</span>
+												<span className="text-[10px] text-[#718096] truncate">
+													{it.category || 'Wholesale Grocery'}
+												</span>
 											</div>
 										</div>
+										<ArrowRight className="h-3.5 w-3.5 text-[#718096] flex-shrink-0" />
 									</li>
 								))}
 							</ul>
 						) : (
-							<div className="px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-500 text-center">
-								No products found for "{q}"
+							<div className="px-4 py-3 text-xs text-[#718096] text-center">
+								No products found for &quot;{q}&quot;
 							</div>
 						)}
 					</div>
@@ -168,4 +184,3 @@ export default function MobileSearchBar() {
 		</div>
 	)
 }
-

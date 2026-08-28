@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
 
 		let wishlist = await Wishlist.findOne({ userId }).lean()
 		if (!wishlist) {
-			// Create empty wishlist
 			wishlist = await Wishlist.create({ userId, products: [] })
 		}
 
@@ -27,7 +26,7 @@ export async function GET(request: NextRequest) {
 	}
 }
 
-// POST - Add product to wishlist
+// POST - Add or Toggle product in wishlist
 export async function POST(request: NextRequest) {
 	try {
 		const session = await auth()
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
 
 		await connectToDatabase()
 		const body = await request.json()
-		const { productId, variantId } = body
+		const { productId, variantId, action } = body
 
 		if (!productId) {
 			return NextResponse.json({ success: false, message: 'productId required' }, { status: 400 })
@@ -50,24 +49,36 @@ export async function POST(request: NextRequest) {
 			wishlist = new Wishlist({ userId, products: [] })
 		}
 
-          // Check if already in wishlist
-          const exists = wishlist.products.some(
-                  (p: any) => p.productId === productId && p.variantId === (variantId || null)
-          )
+		// Check if already in wishlist with string matching
+		const existingIndex = wishlist.products.findIndex(
+			(p: any) => String(p.productId) === String(productId) && (!variantId || String(p.variantId) === String(variantId))
+		)
 
-		if (exists) {
-			return NextResponse.json({ success: false, message: 'Product already in wishlist' }, { status: 400 })
+		if (existingIndex >= 0) {
+			if (action === 'remove' || action === 'toggle') {
+				// Remove from wishlist
+				wishlist.products.splice(existingIndex, 1)
+				await wishlist.save()
+				return NextResponse.json({ success: true, action: 'removed', data: wishlist })
+			}
+			// Already in wishlist
+			return NextResponse.json({ success: true, action: 'exists', data: wishlist })
 		}
 
+		if (action === 'remove') {
+			return NextResponse.json({ success: true, action: 'not_found', data: wishlist })
+		}
+
+		// Add to wishlist
 		wishlist.products.push({
-			productId,
-			variantId: variantId || null,
+			productId: String(productId),
+			variantId: variantId ? String(variantId) : null,
 			addedAt: new Date()
 		})
 
 		await wishlist.save()
 
-		return NextResponse.json({ success: true, data: wishlist })
+		return NextResponse.json({ success: true, action: 'added', data: wishlist })
 	} catch (error: any) {
 		console.error('Error adding to wishlist:', error)
 		return NextResponse.json({ success: false, message: error.message }, { status: 500 })
@@ -95,12 +106,12 @@ export async function DELETE(request: NextRequest) {
 
 		const wishlist = await Wishlist.findOne({ userId })
 		if (!wishlist) {
-			return NextResponse.json({ success: false, message: 'Wishlist not found' }, { status: 404 })
+			return NextResponse.json({ success: true, data: { products: [] } })
 		}
 
-                wishlist.products = wishlist.products.filter(   
-                        (p: any) => !(p.productId === productId && p.variantId === (variantId || null))
-                )
+		wishlist.products = wishlist.products.filter(
+			(p: any) => !(String(p.productId) === String(productId) && (!variantId || String(p.variantId) === String(variantId)))
+		)
 
 		await wishlist.save()
 
@@ -110,4 +121,3 @@ export async function DELETE(request: NextRequest) {
 		return NextResponse.json({ success: false, message: error.message }, { status: 500 })
 	}
 }
-

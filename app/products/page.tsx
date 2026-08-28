@@ -2,36 +2,38 @@ import Link from 'next/link'
 import ProductCard from '@/app/components/product/ProductCard'
 import ProductFilters from './ProductFilters'
 import MobileSearchBar from '@/app/components/home/MobileSearchBar'
+import { Filter, X, Tag, Sparkles, ShoppingBag } from 'lucide-react'
+
+// Force dynamic real-time data fetching
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+function toPlainObject<T>(data: T): T {
+	return JSON.parse(JSON.stringify(data))
+}
 
 async function fetchProducts(searchParams: Record<string, string | undefined>) {
-	// Use direct database query instead of HTTP fetch for better performance
+
 	const { connectToDatabase } = await import('@/app/lib/mongodb')
 	const Product = (await import('@/models/Product')).default
 	await connectToDatabase()
 	
-	const { productsQuerySchema } = await import('@/app/lib/validators')
-	const parsed = productsQuerySchema.safeParse({
-		q: searchParams.q,
-		category: searchParams.category,
-		subCategory: searchParams.subCategory,
-		brand: searchParams.brand,
-		inStock: searchParams.inStock === 'true' ? true : searchParams.inStock === 'false' ? false : undefined,
-		minPrice: searchParams.minPrice,
-		maxPrice: searchParams.maxPrice,
-		sort: searchParams.sort,
-		page: searchParams.page ?? '1',
-		limit: searchParams.limit ?? '20',
-	})
+	const q = searchParams.q?.trim()
+	const category = searchParams.category?.trim()
+	const subCategory = searchParams.subCategory?.trim()
+	const brand = searchParams.brand?.trim()
+	const inStock = searchParams.inStock === 'true'
+	const onSale = searchParams.onSale === 'true' || searchParams.badge === 'discount'
+	const minPrice = searchParams.minPrice ? Number(searchParams.minPrice) : undefined
+	const maxPrice = searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined
+	const sort = searchParams.sort || 'popularity'
+	const page = Number(searchParams.page || 1)
+	const limit = Number(searchParams.limit || 24)
 	
-	if (!parsed.success) {
-		return { items: [], total: 0, page: 1, limit: 20 }
-	}
-	
-	const { q, category, subCategory, brand, inStock, minPrice, maxPrice, sort, page, limit } = parsed.data
 	let where: any = {}
 	
 	if (q) {
-		const words = q.trim().split(/\s+/).filter(w => w.length > 0)
+		const words = q.split(/\s+/).filter(w => w.length > 0)
 		if (words.length > 0) {
 			const allConditions: any[] = []
 			words.forEach(word => {
@@ -51,121 +53,91 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 		}
 	}
 	
-	// Handle category filtering - include products from main category AND all subcategories
-	// If subCategory is specified, filter to just that subcategory
 	if (category) {
-		if (subCategory) {
-			// If subcategory is specified, filter to just that subcategory
-			// Products can have subcategory name in category, subCategory, or subSubCategory fields
-			const subCategoryCondition = {
+		const Category = (await import('@/models/Category')).default
+		// Search in Category collection
+		const mainCat = await Category.findOne({
+			name: { $regex: new RegExp(`^${category}$`, 'i') },
+			$or: [{ level: 0 }, { level: { $exists: false } }, { parentCategory: null }]
+		}).lean()
+
+		if (mainCat && (mainCat as any)._id) {
+			// Find all subcategories
+			const subCats = await Category.find({
+				parentCategory: (mainCat as any)._id,
+				isActive: { $ne: false }
+			}).select('name').lean()
+
+			const categoryNames = [category, ...subCats.map((sc: any) => sc.name)]
+			const categoryCondition = {
 				$or: [
-					{ category: subCategory },
-					{ subCategory: subCategory },
-					{ subSubCategory: subCategory }
+					{ category: { $in: categoryNames } },
+					{ subCategory: { $in: categoryNames } },
+					{ subSubCategory: { $in: categoryNames } },
+					{ category: { $regex: new RegExp(`^${category}$`, 'i') } }
 				]
 			}
-			
-			// Combine with existing conditions using $and
+
 			if (where.$or) {
-				where.$and = (where.$and || []).concat([
-					{ $or: where.$or },
-					subCategoryCondition
-				])
+				where.$and = (where.$and || []).concat([{ $or: where.$or }, categoryCondition])
 				delete where.$or
 			} else {
-				Object.assign(where, subCategoryCondition)
+				Object.assign(where, categoryCondition)
 			}
 		} else {
-			// No subcategory specified - include all products from main category AND all subcategories
-			const Category = (await import('@/models/Category')).default
-			// Find the main category
-			const mainCategoryResult = await Category.findOne({ name: category, level: 0 }).lean()
-			const mainCategory = Array.isArray(mainCategoryResult) ? null : mainCategoryResult
-			
-			if (mainCategory && mainCategory._id) {
-				const mainCategoryId = mainCategory._id as any
-				
-				// Get all subcategories (level 1) of this main category
-				const subCategories = await Category.find({
-					parentCategory: mainCategoryId,
-					level: 1,
-					isActive: { $ne: false }
-				}).lean()
-				
-				// Get all sub-subcategories (level 2) - children of the subcategories
-				const subCategoryIds = subCategories.map((sc: any) => sc._id).filter(Boolean)
-				const subSubCategories = subCategoryIds.length > 0 ? await Category.find({
-					parentCategory: { $in: subCategoryIds },
-					level: 2,
-					isActive: { $ne: false }
-				}).lean() : []
-				
-				// Collect all category names to search
-				const categoryNames = [category] // Main category
-				subCategories.forEach((subCat: any) => {
-					if (subCat.name) categoryNames.push(subCat.name)
-				})
-				subSubCategories.forEach((subSubCat: any) => {
-					if (subSubCat.name) categoryNames.push(subSubCat.name)
-				})
-				
-				// Filter products that match main category OR any subcategory
-				const categoryCondition = {
-					$or: [
-						{ category: { $in: categoryNames } },
-						{ subCategory: { $in: categoryNames } },
-						{ subSubCategory: { $in: categoryNames } }
-					]
-				}
-				
-				// Combine with existing conditions using $and
-				if (where.$or) {
-					// If there's already a $or (from search), combine with $and
-					where.$and = (where.$and || []).concat([
-						{ $or: where.$or },
-						categoryCondition
-					])
-					delete where.$or
-				} else {
-					// No existing $or, just add category condition
-					Object.assign(where, categoryCondition)
-				}
-			} else {
-				// Fallback: if category not found in admin categories, use simple match
-				where.category = category
-			}
-		}
-	}
-	if (brand) where.brand = brand
-	if (typeof inStock === 'boolean') {
-		if (inStock) {
-			where.$and = (where.$and || []).concat([{
+			// Fallback: match category directly
+			const categoryCondition = {
 				$or: [
-					{ inStock: true },
-					{ variants: { $elemMatch: { stockQty: { $gt: 0 } } } }
+					{ category: { $regex: new RegExp(`^${category}$`, 'i') } },
+					{ subCategory: { $regex: new RegExp(`^${category}$`, 'i') } },
+					{ subSubCategory: { $regex: new RegExp(`^${category}$`, 'i') } }
 				]
-			}])
-		} else {
-			where.$and = (where.$and || []).concat([{
-				$and: [
-					{ inStock: { $ne: true } },
-					{ variants: { $not: { $elemMatch: { stockQty: { $gt: 0 } } } } }
-				]
-			}])
+			}
+			if (where.$or) {
+				where.$and = (where.$and || []).concat([{ $or: where.$or }, categoryCondition])
+				delete where.$or
+			} else {
+				Object.assign(where, categoryCondition)
+			}
 		}
 	}
+
+	if (subCategory) {
+		where.$and = (where.$and || []).concat([{
+			$or: [
+				{ subCategory: { $regex: new RegExp(`^${subCategory}$`, 'i') } },
+				{ subSubCategory: { $regex: new RegExp(`^${subCategory}$`, 'i') } }
+			]
+		}])
+	}
+	
+	if (brand) where.brand = brand
+
+	if (onSale) {
+		where.$and = (where.$and || []).concat([{
+			badges: { $regex: /(% OFF|discount|sale|deal)/i }
+		}])
+	}
+	
+	if (inStock) {
+		where.$and = (where.$and || []).concat([{
+			$or: [
+				{ inStock: true },
+				{ variants: { $elemMatch: { stockQty: { $gt: 0 } } } }
+			]
+		}])
+	}
+	
 	if (minPrice !== undefined || maxPrice !== undefined) {
 		const gte = minPrice !== undefined ? minPrice : 0
 		const lte = maxPrice !== undefined ? maxPrice : 9999999
 		where.variants = { $elemMatch: { pricePerKg: { $gte: gte, $lte: lte } } }
 	}
 	
-	let sortObj: any = { popularity: -1 }
+	let sortObj: any = { popularity: -1, createdAt: -1 }
 	let useAgg = false
 	if (sort === 'newest') sortObj = { createdAt: -1 }
-	if (sort === 'price_asc' || sort === 'price_desc') {
-		useAgg = true
-	}
+	if (sort === 'price_asc' || sort === 'price_desc') useAgg = true
 	
 	const skip = (page - 1) * limit
 	
@@ -182,7 +154,7 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 			Product.aggregate([{ $match: where }, { $count: 'total' }])
 		])
 		const total = totalArr?.[0]?.total ?? 0
-		return { items, total, page, limit }
+		return toPlainObject({ items, total, page, limit })
 	}
 	
 	const [items, total] = await Promise.all([
@@ -190,7 +162,62 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
 		Product.countDocuments(where)
 	])
 	
-	return { items, total, page, limit }
+	return toPlainObject({ items, total, page, limit })
+}
+
+async function fetchMeta() {
+	const { connectToDatabase } = await import('@/app/lib/mongodb')
+	const Product = (await import('@/models/Product')).default
+	const Category = (await import('@/models/Category')).default
+	await connectToDatabase()
+	
+	const [dbCategories, productCategories, brands] = await Promise.all([
+		Category.find({ 
+			isActive: { $ne: false },
+			$or: [{ level: 0 }, { level: { $exists: false } }, { parentCategory: null }]
+		}).select('name displayOrder image').sort({ displayOrder: 1, name: 1 }).lean(),
+		Product.distinct('category', { category: { $exists: true, $ne: null, $ne: '' } }),
+		Product.distinct('brand', { brand: { $exists: true, $ne: null, $ne: '' } })
+	])
+	
+	const categoryMap = new Map<string, { name: string; count: number }>()
+
+	for (const cat of dbCategories) {
+		if (cat.name) {
+			categoryMap.set(String(cat.name).toLowerCase().trim(), {
+				name: String(cat.name).trim(),
+				count: 0
+			})
+		}
+	}
+
+	for (const pCat of productCategories) {
+		if (pCat && typeof pCat === 'string') {
+			const key = pCat.toLowerCase().trim()
+			if (!categoryMap.has(key)) {
+				categoryMap.set(key, { name: pCat.trim(), count: 0 })
+			}
+		}
+	}
+
+	const categoriesWithCounts = await Promise.all(
+		Array.from(categoryMap.values()).map(async (c) => {
+			const count = await Product.countDocuments({
+				$or: [
+					{ category: c.name },
+					{ subCategory: c.name },
+					{ subSubCategory: c.name },
+					{ category: { $regex: new RegExp(`^${c.name}$`, 'i') } }
+				]
+			})
+			return { name: c.name, count }
+		})
+	)
+	
+	return toPlainObject({
+		categories: categoriesWithCounts,
+		brands: brands.filter(Boolean) as string[]
+	})
 }
 
 async function fetchSubCategories(mainCategoryName: string) {
@@ -199,223 +226,207 @@ async function fetchSubCategories(mainCategoryName: string) {
 	const Product = (await import('@/models/Product')).default
 	await connectToDatabase()
 	
-	// Find the main category
-	const mainCategoryResult = await Category.findOne({ name: mainCategoryName, level: 0 }).lean()
-	const mainCategory = Array.isArray(mainCategoryResult) ? null : mainCategoryResult
+	const mainCat = await Category.findOne({
+		name: { $regex: new RegExp(`^${mainCategoryName}$`, 'i') }
+	}).lean()
 	
-	if (!mainCategory || !mainCategory._id) return { subCategories: [], allCount: 0 }
+	if (!mainCat || !(mainCat as any)._id) return { subCategories: [], allCount: 0 }
 	
-	const mainCategoryId = mainCategory._id as any
-	
-	// Get all subcategories (level 1) of this main category
 	const subCategories = await Category.find({
-		parentCategory: mainCategoryId,
+		parentCategory: (mainCat as any)._id,
 		level: 1,
 		isActive: { $ne: false }
-	})
-		.select('name displayOrder image _id')
-		.sort({ displayOrder: 1, name: 1 })
-		.lean()
+	}).sort({ displayOrder: 1, name: 1 }).lean()
 	
-	// Get all sub-subcategories (level 2) for counting
-	const subCategoryIds = subCategories.map((sc: any) => sc._id)
-	const subSubCategories = subCategoryIds.length > 0 ? await Category.find({
-		parentCategory: { $in: subCategoryIds },
-		level: 2,
-		isActive: { $ne: false }
-	}).lean() : []
-	
-	// Get product counts for each subcategory
-	// Products can have subcategory name in category, subCategory, or subSubCategory fields
-	// Also include products where main category is in category field and subcategory is in subCategory field
-	// Also include products from sub-subcategories of this subcategory
 	const subCategoriesWithCounts = await Promise.all(
 		subCategories.map(async (subCat: any) => {
-			// Get sub-subcategories for this subcategory
-			const subSubCatsForThis = subSubCategories.filter((ssc: any) => 
-				ssc.parentCategory && String(ssc.parentCategory._id || ssc.parentCategory) === String(subCat._id)
-			)
-			const subSubNames = subSubCatsForThis.map((ssc: any) => ssc.name)
-			
-			// Count products in this subcategory
-			// Check all possible combinations:
-			// 1. category = subcategory name
-			// 2. subCategory = subcategory name
-			// 3. subSubCategory = subcategory name
-			// 4. category = main category AND subCategory = subcategory name
-			// 5. Products from sub-subcategories
 			const count = await Product.countDocuments({
 				$or: [
-					{ category: subCat.name },
 					{ subCategory: subCat.name },
 					{ subSubCategory: subCat.name },
-					// Products with main category in category field and this subcategory in subCategory field
-					{
-						$and: [
-							{ category: mainCategoryName },
-							{ subCategory: subCat.name }
-						]
-					},
-					// Also include products from sub-subcategories
-					...(subSubNames.length > 0 ? [
-						{ category: { $in: subSubNames } },
-						{ subCategory: { $in: subSubNames } },
-						{ subSubCategory: { $in: subSubNames } },
-						// Products with main category and sub-subcategory
-						{
-							$and: [
-								{ category: mainCategoryName },
-								{ subSubCategory: { $in: subSubNames } }
-							]
-						}
-					] : [])
+					{ category: subCat.name }
 				]
 			})
 			return {
 				name: String(subCat.name),
-				displayOrder: Number(subCat.displayOrder || 0),
-				image: subCat.image ? String(subCat.image) : '',
-				count: count
+				count
 			}
 		})
 	)
 	
-	// Calculate total count for "All" - includes all products from main category and all subcategories
-	const allCategoryNames = [
-		mainCategoryName,
-		...subCategories.map((sc: any) => sc.name),
-		...subSubCategories.map((ssc: any) => ssc.name)
-	]
 	const allCount = await Product.countDocuments({
 		$or: [
-			{ category: { $in: allCategoryNames } },
-			{ subCategory: { $in: allCategoryNames } },
-			{ subSubCategory: { $in: allCategoryNames } }
+			{ category: mainCategoryName },
+			{ subCategory: mainCategoryName }
 		]
 	})
 	
-	// Show all subcategories (even with 0 products) so users can see what's available
-	return { subCategories: subCategoriesWithCounts, allCount }
+	return toPlainObject({ subCategories: subCategoriesWithCounts, allCount })
 }
 
-async function fetchMeta() {
-	// Use direct database query instead of HTTP fetch for better performance
-	const { connectToDatabase } = await import('@/app/lib/mongodb')
-	const Product = (await import('@/models/Product')).default
-	const Category = (await import('@/models/Category')).default
-	await connectToDatabase()
-	
-	// Fetch all categories from Category collection (not just from products)
-	// This ensures all admin-defined categories are shown, even if they have no products yet
-	// Only fetch top-level categories (level 0) for the filter dropdown
-	const [dbCategories, productCategories, brands] = await Promise.all([
-		Category.find({ 
-			isActive: { $ne: false },
-			$or: [
-				{ level: 0 },
-				{ level: { $exists: false } },
-				{ parentCategory: { $exists: false } },
-				{ parentCategory: null }
-			]
-		})
-			.select('name displayOrder')
-			.sort({ displayOrder: 1, name: 1 })
-			.lean()
-			.then(cats => cats.map((c: any) => String(c.name)).filter(Boolean)),
-		Product.distinct('category').then(cats => cats.filter(Boolean)),
-		Product.distinct('brand').then(brands => brands.filter(Boolean))
-	])
-	
-	// Combine admin categories with product categories, removing duplicates
-	// Prioritize admin-defined categories order
-	const categorySet = new Set(dbCategories)
-	productCategories.forEach(cat => categorySet.add(cat))
-	
-	// Sort: admin categories first (in their display order), then product categories alphabetically
-	const allCategories = [
-		...dbCategories,
-		...productCategories.filter(cat => !dbCategories.includes(cat))
-	]
-	
-	return { categories: allCategories, brands }
-}
-
-// Enable ISR (Incremental Static Regeneration) for better performance
-export const revalidate = 60
 
 export default async function ProductsPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
-	const [{ items, total }, meta] = await Promise.all([fetchProducts(searchParams), fetchMeta()])
+	const [{ items, total }, meta] = await Promise.all([
+		fetchProducts(searchParams),
+		fetchMeta()
+	])
 	
-	// Fetch subcategories if a main category is selected
 	const subCategoriesData = searchParams.category ? await fetchSubCategories(searchParams.category) : { subCategories: [], allCount: 0 }
 	const subCategories = subCategoriesData.subCategories || []
-	const allCategoryCount = subCategoriesData.allCount || total
+
+	const activeChips: { label: string; removeUrl: string }[] = []
+
+	// Build active filter chips for easy removal
+	const createRemoveUrl = (keyToRemove: string) => {
+		const params = new URLSearchParams()
+		Object.entries(searchParams).forEach(([k, v]) => {
+			if (k !== keyToRemove && v) params.set(k, v)
+		})
+		return `/products?${params.toString()}`
+	}
+
+	if (searchParams.q) activeChips.push({ label: `Search: "${searchParams.q}"`, removeUrl: createRemoveUrl('q') })
+	if (searchParams.category) activeChips.push({ label: `Category: ${searchParams.category}`, removeUrl: createRemoveUrl('category') })
+	if (searchParams.subCategory) activeChips.push({ label: `Subcategory: ${searchParams.subCategory}`, removeUrl: createRemoveUrl('subCategory') })
+	if (searchParams.brand) activeChips.push({ label: `Brand: ${searchParams.brand}`, removeUrl: createRemoveUrl('brand') })
+	if (searchParams.onSale === 'true' || searchParams.badge === 'discount') activeChips.push({ label: 'On Sale Deals', removeUrl: createRemoveUrl('onSale') })
+	if (searchParams.inStock === 'true') activeChips.push({ label: 'In Stock', removeUrl: createRemoveUrl('inStock') })
+	if (searchParams.minPrice || searchParams.maxPrice) {
+		activeChips.push({
+			label: `Price: Rs. ${searchParams.minPrice || '0'} - ${searchParams.maxPrice || '∞'}`,
+			removeUrl: `/products?${(() => {
+				const p = new URLSearchParams()
+				Object.entries(searchParams).forEach(([k, v]) => {
+					if (k !== 'minPrice' && k !== 'maxPrice' && v) p.set(k, v)
+				})
+				return p.toString()
+			})()}`
+		})
+	}
 	
 	return (
-		<div className="pb-16 md:pb-0">
-			{/* Mobile Search Bar - Only visible on mobile */}
+		<div className="pb-16 md:pb-0 bg-white min-h-screen">
+			{/* Mobile Search Bar */}
 			<MobileSearchBar />
 			
-			<div className="container-pg py-2 sm:py-4 md:py-6">
-				<div className="grid gap-4 sm:gap-6 lg:grid-cols-4">
+			<div className="container-pg py-4 sm:py-6">
+				<div className="grid gap-6 lg:grid-cols-4 items-start">
+					{/* Left: Enhanced Filters Sidebar */}
 					<ProductFilters categories={meta.categories} brands={meta.brands} />
+					
+					{/* Right: Products Area */}
 					<section className="lg:col-span-3">
-						<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-							<h1 className="text-lg sm:text-xl md:text-2xl font-semibold">
-								{searchParams.category ? `${searchParams.category}` : 'All Products'}
-							</h1>
-							<div className="text-xs sm:text-sm text-slate-600">{total} results</div>
+						{/* Page Title & Count Header */}
+						<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-[#E2E8F0] mb-4">
+							<div>
+								<h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#2D3748]">
+									{searchParams.category ? searchParams.category : 'All Wholesale Products'}
+								</h1>
+								<p className="text-xs text-[#718096]">
+									Showing {items.length} of {total} products available
+								</p>
+							</div>
+
+							{searchParams.category && (
+								<Link
+									href="/products"
+									className="text-xs font-bold text-[#7EB338] hover:underline"
+								>
+									View All Categories
+								</Link>
+							)}
 						</div>
-						
-						{/* Subcategories Section - Show when main category is selected */}
+
+						{/* Subcategory Pills Row (if available) */}
 						{subCategories.length > 0 && (
-							<div className="mt-4 sm:mt-6">
-								<h2 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Subcategories</h2>
-								<div className="flex flex-wrap gap-2 sm:gap-3">
+							<div className="mb-4">
+								<div className="flex flex-wrap gap-2">
 									<Link
-										href={`/products?category=${encodeURIComponent(searchParams.category || '')}`}
-										className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+										href={`/products?category=${encodeURIComponent(searchParams.category || '')}` as any}
+										className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
 											!searchParams.subCategory
-												? 'bg-brand-accent text-white'
-												: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+												? 'bg-[#7EB338] text-white shadow-xs'
+												: 'bg-slate-100 text-[#2D3748] hover:bg-[#F5EFE0] hover:text-[#7EB338]'
 										}`}
 									>
-										All ({allCategoryCount})
+										All ({subCategoriesData.allCount || total})
 									</Link>
-									{subCategories.map((subCat: any) => (
-										<Link
-											key={subCat.name}
-											href={`/products?category=${encodeURIComponent(searchParams.category || '')}&subCategory=${encodeURIComponent(subCat.name)}`}
-											className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
-												searchParams.subCategory === subCat.name
-													? 'bg-brand-accent text-white'
-													: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-											}`}
-										>
-											{subCat.name} ({subCat.count})
-										</Link>
-									))}
+									{subCategories.map((subCat: any) => {
+										const isSelected = searchParams.subCategory === subCat.name
+										return (
+											<Link
+												key={subCat.name}
+												href={`/products?category=${encodeURIComponent(searchParams.category || '')}&subCategory=${encodeURIComponent(subCat.name)}` as any}
+												className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+													isSelected
+														? 'bg-[#7EB338] text-white shadow-xs'
+														: 'bg-slate-100 text-[#2D3748] hover:bg-[#F5EFE0] hover:text-[#7EB338]'
+												}`}
+											>
+												{subCat.name} {subCat.count > 0 && `(${subCat.count})`}
+											</Link>
+										)
+									})}
 								</div>
 							</div>
 						)}
-					{items.length === 0 ? (
-						<div className="mt-6 sm:mt-10  border p-6 sm:p-8 text-center text-sm sm:text-base text-slate-600">No products found. Try adjusting filters or keywords.</div>
-					) : (
-						<div className="mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-							{items.map((p: any, i: number) => (
-								<ProductCard 
-									key={p.id ?? p._id ?? i}
-									id={p.id ?? String(p._id)} 
-									title={p.title} 
-									description={p.description} 
-									badges={p.badges} 
-									images={p.images} 
-									variants={p.variants}
-									href={`/products/${p.slug ?? (p.id ?? p._id)}`}
-								/>
-							))}
-						</div>
-					)}
+
+						{/* Active Filter Chips Bar */}
+						{activeChips.length > 0 && (
+							<div className="flex flex-wrap items-center gap-2 mb-4 p-2.5 rounded-xl bg-slate-50 border border-[#E2E8F0]">
+								<span className="text-xs font-bold text-[#718096] mr-1">Active:</span>
+								{activeChips.map((chip) => (
+									<Link
+										key={chip.label}
+										href={chip.removeUrl as any}
+										className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#E2E8F0] hover:border-[#F08C38] text-xs font-semibold text-[#2D3748] hover:text-[#F08C38] transition-colors shadow-xs"
+									>
+										<span>{chip.label}</span>
+										<X className="h-3 w-3" />
+									</Link>
+								))}
+								<Link
+									href="/products"
+									className="text-xs font-bold text-[#F08C38] hover:underline ml-auto"
+								>
+									Clear All
+								</Link>
+							</div>
+						)}
+
+						{/* Products Grid */}
+						{items.length === 0 ? (
+							<div className="bg-slate-50 rounded-2xl border border-[#E2E8F0] p-10 text-center space-y-3 mt-4">
+								<div className="h-12 w-12 rounded-full bg-[#F5EFE0] text-[#7EB338] mx-auto flex items-center justify-center">
+									<ShoppingBag className="h-6 w-6" />
+								</div>
+								<h3 className="text-base font-bold text-[#2D3748]">No Products Found</h3>
+								<p className="text-xs text-[#718096] max-w-sm mx-auto">
+									We couldn&apos;t find any products matching your active filters. Try adjusting your search keywords or clearing filters.
+								</p>
+								<Link
+									href="/products"
+									className="inline-block mt-2 px-5 py-2 rounded-full bg-[#7EB338] text-white text-xs font-bold hover:bg-[#6fa02f] transition-colors"
+								>
+									Show All Products
+								</Link>
+							</div>
+						) : (
+							<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4">
+								{items.map((p: any, i: number) => (
+									<ProductCard 
+										key={p.id ?? p._id ?? i}
+										id={p.id ?? String(p._id)} 
+										title={p.title} 
+										description={p.description} 
+										badges={p.badges} 
+										images={p.images} 
+										variants={p.variants}
+										href={`/products/${p.slug ?? (p.id ?? p._id)}`}
+									/>
+								))}
+							</div>
+						)}
 					</section>
 				</div>
 			</div>

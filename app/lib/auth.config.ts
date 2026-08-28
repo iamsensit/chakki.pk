@@ -47,10 +47,9 @@ export const { handlers, auth } = NextAuth({
           if (!ok) return null
           return { id: String(user._id), name: user.name, email: user.email }
         }
-        // User exists but no password - set password (for migration)
-        user.passwordHash = await hashPassword(String(password))
-        await user.save()
-        return { id: String(user._id), name: user.name, email: user.email }
+        // Account exists but was created via OAuth without a password
+        // Reject password login and require OAuth or password reset to prevent account takeover
+        return null
       }
     })
   ],

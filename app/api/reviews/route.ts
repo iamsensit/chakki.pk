@@ -45,12 +45,22 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (userId) {
-			// Get reviews by a specific user
+			// Get reviews by a specific user (must be authenticated as that user or admin)
 			const session = await auth()
-			if (userId === 'current' && session?.user?.email) {
-				userId = session.user.id || session.user.email
+			if (!session?.user?.email) {
+				return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
 			}
-			const reviews = await Review.find({ userId })
+
+			const sessionUser = session.user.id || session.user.email
+			const { isAdminAsync } = await import('@/app/lib/roles')
+			const isAdmin = await isAdminAsync(session)
+
+			const targetUserId = userId === 'current' ? sessionUser : userId
+			if (targetUserId !== sessionUser && !isAdmin) {
+				return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+			}
+
+			const reviews = await Review.find({ userId: targetUserId })
 				.sort({ createdAt: -1 })
 				.lean()
 			return NextResponse.json({ success: true, data: reviews })

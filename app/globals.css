@@ -68,7 +68,12 @@ html {
 
 :root {
 	--background: #ffffff;
-	--foreground: #0b0f13;
+	--background-secondary: #F5EFE0;
+	--foreground: #2D3748;
+	--text-muted: #718096;
+	--brand-primary: #7EB338;
+	--brand-secondary: #F08C38;
+	--border-color: #E2E8F0;
 }
 
 html, body, #__next {
@@ -96,37 +101,24 @@ body {
 	h1 { @apply text-xl; }
 	h2 { @apply text-lg; }
 	h3 { @apply text-base; }
-	
-	/* Reduce gaps */
-	.space-y-6 > * + * { @apply mt-3; }
-	.space-y-4 > * + * { @apply mt-2; }
-	.gap-6 { @apply gap-3; }
-	.gap-4 { @apply gap-2; }
-	
-	/* Smaller icons on mobile */
-	svg { @apply h-4 w-4; }
-	
-	/* Reduce card padding */
-	.card-enhanced { @apply p-3; }
-	
-	/* Compact buttons */
-	.btn-primary, .btn-secondary { @apply px-3 py-1.5 text-xs; }
 }
 
 /* Custom Sonner Toast Styles */
 [data-sonner-toast] {
 	background: white !important;
-	border: 1px solid #e5e7eb !important;
+	border: 1px solid #e2e8f0 !important;
+	border-radius: 12px !important;
 }
 
 [data-sonner-toast] [data-title] {
-	color: #F4991A !important;
-	font-weight: 500;
+	color: #7EB338 !important;
+	font-weight: 600;
 }
 
 [data-sonner-toast] [data-description] {
-	color: #6b7280 !important;
+	color: #718096 !important;
 }
+
 
 [data-sonner-toast][data-type="success"] [data-icon] {
 	color: #F4991A !important;
@@ -311,11 +303,23 @@ body {
 
 /* Fallback for brand accent color */
 .text-brand-accent {
-	color: #F4991A;
+	color: #7EB338;
 }
 
 .bg-brand-accent {
-	background-color: #F4991A;
+	background-color: #7EB338;
+}
+
+.text-brand-secondary {
+	color: #F08C38;
+}
+
+.bg-brand-secondary {
+	background-color: #F08C38;
+}
+
+.bg-hero-cream {
+	background-color: #F5EFE0;
 }
 
 /* Hide number input spinners (increment/decrement arrows) */

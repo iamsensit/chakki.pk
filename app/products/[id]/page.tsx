@@ -11,6 +11,7 @@ import { useSession } from 'next-auth/react'
 import FlashDealCard from '@/app/components/home/FlashDealCard'
 import { Star, Heart, Share2, Facebook, Twitter, Minus, Plus, Check, ChevronLeft, ChevronRight, HelpCircle, Truck, Ruler, MessageCircle, Home, ChevronRight as ChevronRightIcon, Shield, Award, Clock } from 'lucide-react'
 import OutOfStockRequestButton from '@/app/components/requests/OutOfStockRequestButton'
+import { sanitizeHtml } from '@/app/lib/security'
 
 async function getProduct(id: string) {
 	try {
@@ -886,7 +887,7 @@ export default function ProductDetailPage() {
 						<div className="prose prose-sm sm:prose-base max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:text-gray-700 prose-a:text-brand-accent">
 							<div 
 								dangerouslySetInnerHTML={{ 
-									__html: data.description || '<p>No description available.</p>' 
+									__html: sanitizeHtml(data.description || '<p>No description available.</p>') 
 								}}
 							/>
 							{/* Product Highlights */}

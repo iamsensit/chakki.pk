@@ -1,7 +1,14 @@
-import mongoose from 'mongoose'
-import Product from '@/models/Product'
+import { config } from 'dotenv'
+import { resolve } from 'path'
 
-const MONGODB_URI = process.env.MONGODB_URI as string
+// Load environment variables from .env.local or .env
+config({ path: resolve(__dirname, '../.env.local') })
+config({ path: resolve(__dirname, '../.env') })
+
+import mongoose from 'mongoose'
+import Product from '../models/Product'
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/chakki_pk'
 
 const brands = ['Chakki Select', 'Punjab Mills', 'Harvest Gold', 'Daily Essentials']
 const categories = ['Flour', 'Rice', 'Pulses', 'Spices']
@@ -10,7 +17,8 @@ function rupees(n: number) { return Math.round(n) }
 
 async function main() {
 	if (!MONGODB_URI) throw new Error('MONGODB_URI not set')
-	await mongoose.connect(MONGODB_URI, { dbName: process.env.MONGODB_DB || undefined })
+	console.log('🔄 Connecting to MongoDB:', MONGODB_URI.substring(0, 35) + '...')
+	await mongoose.connect(MONGODB_URI, { dbName: process.env.MONGODB_DB || 'chakki_pk' })
 	console.log('Seeding database (Mongo)...')
 
 	const productsData = Array.from({ length: 40 }).map((_, idx) => {

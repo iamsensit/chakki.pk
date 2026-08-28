@@ -57,15 +57,8 @@ export async function POST(req: NextRequest) {
 		console.log('[SIGNUP] =======================================')
 
 		// Check if user already exists
-		const existingUser = await User.findOne({ email })
+		const existingUser = await User.findOne({ email: emailLower })
 		if (existingUser) {
-			// If user exists but should be admin, update their role
-			if (isPrimaryAdminEmail && (existingUser as any).role !== 'ADMIN') {
-				console.log('[SIGNUP] Updating existing user to ADMIN role:', email)
-				await User.updateOne({ email }, { $set: { role: 'ADMIN' } })
-				return json(false, 'Email already registered. Your account has been upgraded to admin. Please log in.', undefined, { email: 'Email already registered' }, 400)
-			}
-			
 			return json(false, 'Email already registered', undefined, { email: 'This email is already registered' }, 400)
 		}
 

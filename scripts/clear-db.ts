@@ -8,8 +8,9 @@
 import { config } from 'dotenv'
 import { resolve } from 'path'
 
-// Load environment variables from .env.local
+// Load environment variables from .env.local or .env
 config({ path: resolve(__dirname, '../.env.local') })
+config({ path: resolve(__dirname, '../.env') })
 
 import mongoose from 'mongoose'
 import Product from '../models/Product'
@@ -23,7 +24,7 @@ import Request from '../models/Request'
 
 async function clearDatabase() {
 	try {
-		const MONGODB_URI = process.env.MONGODB_URI as string
+		const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/chakki_pk'
 		if (!MONGODB_URI) {
 			throw new Error('MONGODB_URI not set in environment variables')
 		}
@@ -37,7 +38,7 @@ async function clearDatabase() {
 		}
 		
 		console.log('🔄 Connecting to database...')
-		await mongoose.connect(MONGODB_URI, { dbName: process.env.MONGODB_DB || undefined })
+		await mongoose.connect(MONGODB_URI, { dbName: process.env.MONGODB_DB || 'chakki_pk' })
 		
 		const db = mongoose.connection.db
 		if (!db) {

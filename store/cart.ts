@@ -14,28 +14,29 @@ export type CartItem = {
 
 type CartState = {
 	items: CartItem[]
-	add: (item: Omit<CartItem, 'id'>) => void
+	isDrawerOpen: boolean
+	lastAddedItem: CartItem | null
+	add: (item: Omit<CartItem, 'id'>, openDrawerAfter?: boolean) => void
 	remove: (id: string) => void
 	updateQty: (id: string, quantity: number) => void
 	increment: (id: string, amount?: number) => void
 	decrement: (id: string, amount?: number) => void
 	setAll: (items: Omit<CartItem, 'id'>[]) => void
 	clear: () => void
+	openDrawer: () => void
+	closeDrawer: () => void
+	toggleDrawer: () => void
 }
 
-// Generate unique ID with fallback for environments where crypto.randomUUID() is not available
 function generateId(): string {
 	if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
 		return window.crypto.randomUUID()
 	}
-	// Fallback for older browsers or server environments
 	return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 }
 
-// Safe localStorage access
 function getLocalStorage() {
 	if (typeof window === 'undefined') {
-		// Return a no-op storage for SSR
 		return {
 			getItem: () => null,
 			setItem: () => {},
@@ -49,15 +50,20 @@ export const useCartStore = create<CartState>()(
 	persist(
 		(set, get) => ({
 			items: [],
-			add: (item) => {
+			isDrawerOpen: false,
+			lastAddedItem: null,
+			add: (item, openDrawerAfter = false) => {
 				try {
 					const items = get().items.slice()
 					const idx = items.findIndex(i => i.productId === item.productId && i.variantId === item.variantId)
+					let createdItem: CartItem
 					if (idx >= 0) {
 						items[idx] = { ...items[idx], quantity: items[idx].quantity + item.quantity }
-						set({ items })
+						createdItem = items[idx]
+						set({ items, lastAddedItem: createdItem, isDrawerOpen: openDrawerAfter ? true : get().isDrawerOpen })
 					} else {
-						set({ items: [{ ...item, id: generateId() }, ...items] })
+						createdItem = { ...item, id: generateId() }
+						set({ items: [createdItem, ...items], lastAddedItem: createdItem, isDrawerOpen: openDrawerAfter ? true : get().isDrawerOpen })
 					}
 				} catch (error) {
 					console.error('Error adding to cart:', error)
@@ -101,22 +107,20 @@ export const useCartStore = create<CartState>()(
 					console.error('Error setting cart items:', error)
 				}
 			},
-			clear: () => {
-				try {
-					set({ items: [] })
-				} catch (error) {
-					console.error('Error clearing cart:', error)
-				}
-			}
+			clear: () => set({ items: [] }),
+			openDrawer: () => set({ isDrawerOpen: true }),
+			closeDrawer: () => set({ isDrawerOpen: false }),
+			toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
 		}),
-		{ 
-			name: 'chakki-cart', 
+		{
+			name: 'cart_storage',
 			storage: createJSONStorage(() => getLocalStorage()),
-			skipHydration: false
+			partialize: (state) => ({ items: state.items }),
 		}
 	)
 )
 
 export function cartTotal(items: CartItem[]) {
-	return items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
+	if (!Array.isArray(items)) return 0
+	return items.reduce((acc, i) => acc + (i.unitPrice || 0) * (i.quantity || 0), 0)
 }

@@ -3,9 +3,21 @@ import { connectToDatabase } from '@/app/lib/mongodb'
 import { auth } from '@/app/lib/auth'
 import Cart from '@/models/Cart'
 import Product from '@/models/Product'
+import { addToCartSchema } from '@/app/lib/validators'
 
 function json(success: boolean, message: string, data?: any, errors?: any, status = 200) {
 	return NextResponse.json({ success, message, data, errors }, { status })
+}
+
+// Helper to construct secure, non-empty user query filter
+function getUserCartQuery(userKey: string, userEmail?: string, userId?: string) {
+	const filters: Array<{ userId: string }> = []
+	if (userKey) filters.push({ userId: userKey })
+	if (userEmail && userEmail !== userKey) filters.push({ userId: userEmail })
+	if (userId && userId !== userKey) filters.push({ userId: userId })
+	
+	if (filters.length === 0) return null
+	return filters.length === 1 ? filters[0] : { $or: filters }
 }
 
 export async function GET() {
@@ -16,8 +28,11 @@ export async function GET() {
 		const userKey = user?.id || user?.email
 		if (!userKey) return json(false, 'Unauthorized', undefined, undefined, 401)
 
-		const cart = await Cart.findOne({ $or: [{ userId: userKey }, user?.email ? { userId: user?.email } : {}, user?.id ? { userId: user?.id } : {}] }).lean()
-		if (Array.isArray(cart)) return json(true, 'Cart fetched', { items: [] })
+		const query = getUserCartQuery(userKey, user?.email, user?.id)
+		if (!query) return json(true, 'Cart fetched', { items: [] })
+
+		const cart = await Cart.findOne(query).lean()
+		if (!cart || Array.isArray(cart)) return json(true, 'Cart fetched', { items: [] })
 		return json(true, 'Cart fetched', { items: (cart as any)?.items ?? [] })
 	} catch (err) {
 		console.error('GET /api/cart error', err)
@@ -34,9 +49,13 @@ export async function POST(req: NextRequest) {
 		const userKey = user?.id || user?.email
 		if (!userKey) return json(false, 'Unauthorized', undefined, undefined, 401)
 
-		const body = await req.json()
-		const { productId, variantId, quantity = 1 } = body || {}
-		if (!productId || quantity <= 0) return json(false, 'Invalid request', undefined, { error: 'BAD_REQUEST' }, 400)
+		const body = await req.json().catch(() => ({}))
+		const parsed = addToCartSchema.safeParse(body)
+		if (!parsed.success) {
+			return json(false, 'Invalid request', undefined, parsed.error.flatten(), 400)
+		}
+
+		const { productId, variantId, quantity } = parsed.data
 
 		// Load product to compute price/title safely
 		const product = await Product.findById(productId).lean()
@@ -56,11 +75,14 @@ export async function POST(req: NextRequest) {
 			unitPrice
 		}
 
-		let cart = await Cart.findOne({ $or: [{ userId: userKey }, user?.email ? { userId: user?.email } : {}, user?.id ? { userId: user?.id } : {}] })
+		const query = getUserCartQuery(userKey, user?.email, user?.id)
+		let cart = query ? await Cart.findOne(query) : null
+
 		if (!cart) {
 			await Cart.create({ userId: userKey, items: [item] })
 			return json(true, 'Added to cart', { ok: true })
 		}
+
 		// Migrate cart owner key if different
 		if (cart.userId !== userKey) {
 			cart.userId = userKey
@@ -89,11 +111,14 @@ export async function PUT(req: NextRequest) {
 		const userKey = user?.id || user?.email
 		if (!userKey) return json(false, 'Unauthorized', undefined, undefined, 401)
 
-		const body = await req.json()
+		const body = await req.json().catch(() => ({}))
 		const { productId, variantId, quantity } = body || {}
 		if (!productId || typeof quantity !== 'number') return json(false, 'Invalid request', undefined, { error: 'BAD_REQUEST' }, 400)
 
-		const cart = await Cart.findOne({ $or: [{ userId: userKey }, user?.email ? { userId: user?.email } : {}, user?.id ? { userId: user?.id } : {}] })
+		const query = getUserCartQuery(userKey, user?.email, user?.id)
+		if (!query) return json(true, 'Cart updated', { ok: true })
+
+		const cart = await Cart.findOne(query)
 		if (!cart) return json(true, 'Cart updated', { ok: true })
 
 		const idx = cart.items.findIndex((i: any) => i.productId === String(productId) && String(i.variantId || '') === String(variantId || ''))
@@ -112,7 +137,7 @@ export async function PUT(req: NextRequest) {
 	}
 }
 
-// Clear (optional)
+// Clear cart
 export async function DELETE() {
 	try {
 		await connectToDatabase()
@@ -121,7 +146,10 @@ export async function DELETE() {
 		const userKey = user?.id || user?.email
 		if (!userKey) return json(false, 'Unauthorized', undefined, undefined, 401)
 
-		await Cart.findOneAndUpdate({ $or: [{ userId: userKey }, user?.email ? { userId: user?.email } : {}, user?.id ? { userId: user?.id } : {}] }, { $set: { items: [] } }, { upsert: true })
+		const query = getUserCartQuery(userKey, user?.email, user?.id)
+		if (query) {
+			await Cart.findOneAndUpdate(query, { $set: { items: [] } }, { upsert: true })
+		}
 		return json(true, 'Cart cleared')
 	} catch (err) {
 		console.error('DELETE /api/cart error', err)

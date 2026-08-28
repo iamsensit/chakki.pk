@@ -106,6 +106,7 @@ export default function FlashDealCard({ product }: { product: any }) {
 		toast.success(nextState ? `Added ${product.title} to wishlist` : `Removed ${product.title} from wishlist`)
 	}
 
+
 	const productHref = `/products/${product.slug || productId}`
 
 	return (

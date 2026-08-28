@@ -383,12 +383,11 @@ export default function DeliveryManagementPage() {
 			return
 		}
 		
-		// Use API key from env or fallback
-		const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyARQ9Qk-3zeRq6uibrDjZEJ-fwH4yNkOBc'
+		// Use API key from env
+		const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 		
 		if (!apiKey) {
-			console.error('Google Maps API key not found')
-			toast.error('Google Maps API key not configured')
+			console.warn('Google Maps API key not found in environment')
 			return
 		}
 		

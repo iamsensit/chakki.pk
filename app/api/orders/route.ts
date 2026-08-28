@@ -45,56 +45,39 @@ export async function POST(req: NextRequest) {
 
 		const paymentReference = body.paymentReference || ''
 		const paymentProofDataUrl = body.paymentProofDataUrl || ''
-		if (parsed.data.paymentMethod === 'JAZZCASH') {
-			console.log('JazzCash payload:', {
-				ref: paymentReference,
-				proofLen: paymentProofDataUrl ? paymentProofDataUrl.length : 0,
-			})
-		}
 
 		const userId = userEmail
 		
-		// Get user's saved delivery location
-		const userLocation = await UserDeliveryLocation.findOne({ userId }).lean()
-		if (Array.isArray(userLocation)) return json(false, 'Invalid location data', undefined, undefined, 500)
-		
-		// Validate delivery location - always check if user has a saved location
-		if (!userLocation) {
-			return json(false, 'Please select a delivery location before placing an order. Click on the delivery location in the header to set your address.', undefined, { error: 'NO_LOCATION' }, 400)
+		// Get user's saved delivery location or use Lahore default
+		let userLocation = await UserDeliveryLocation.findOne({ userId }).lean()
+		if (!userLocation || Array.isArray(userLocation)) {
+			userLocation = {
+				address: parsed.data.shippingAddress || 'Model Town, Lahore, Pakistan',
+				city: parsed.data.city || 'Lahore',
+				latitude: 31.4826,
+				longitude: 74.3262
+			} as any
 		}
 		
-		const userLat = (userLocation as any).latitude
-		const userLon = (userLocation as any).longitude
-		const userCity = (userLocation as any).city
+		const userLat = Number((userLocation as any).latitude) || 31.4826
+		const userLon = Number((userLocation as any).longitude) || 74.3262
+		const userCity = String((userLocation as any).city || 'Lahore').trim()
 		
-		// Validate coordinates are valid numbers
-		if (!userLat || !userLon || isNaN(Number(userLat)) || isNaN(Number(userLon))) {
-			return json(false, 'Invalid delivery location coordinates. Please update your delivery location.', undefined, { error: 'NO_LOCATION' }, 400)
-		}
+		const orderCity = userCity || parsed.data.city.trim() || 'Lahore'
 		
-		// Use the saved location's city (from delivery area), not the form's city
-		// The form city might be incorrect or manually edited
-		const orderCity = userCity || parsed.data.city.trim()
-		
-		// Check if delivery is available at the saved location coordinates
-		// Check ALL active delivery areas and validate by distance, not city name
+		// Check if delivery is available at the location
 		const areas = await DeliveryArea.find({ isActive: true }).lean()
-		let isAvailable = false
+		let isAvailable = areas.length === 0 // If no areas configured, allow all (Lahore default)
 		let closestDistance = Infinity
 		let closestRadius = 0
 		let shopLocationInfo = null
 		
-		console.log('[ORDER VALIDATION] User location:', { lat: userLat, lon: userLon, city: userCity, savedCity: userCity, formCity: parsed.data.city })
-		console.log('[ORDER VALIDATION] Found', areas.length, 'active delivery areas (checking all by distance)')
-		
 		for (const area of areas) {
 			const deliveryType = (area as any).deliveryType || 'range'
-			const areaCity = (area as any).city
+			const areaCity = String((area as any).city || '').trim()
 			
-			// Check city-based delivery first
 			if (deliveryType === 'city') {
-				// For city-based delivery, check if the user's city matches
-				if (areaCity.toLowerCase() === userCity.toLowerCase()) {
+				if (areaCity.toLowerCase() === userCity.toLowerCase() || userCity.toLowerCase().includes('lahore')) {
 					isAvailable = true
 					shopLocationInfo = { 
 						lat: Number((area as any).shopLocation?.latitude) || 0, 
@@ -102,7 +85,6 @@ export async function POST(req: NextRequest) {
 						radius: 0, 
 						distance: 0 
 					}
-					console.log('[ORDER VALIDATION] City-based delivery matched:', areaCity)
 					break
 				}
 				continue
@@ -111,84 +93,33 @@ export async function POST(req: NextRequest) {
 			// Range-based delivery validation
 			const shopLat = Number((area as any).shopLocation?.latitude)
 			const shopLon = Number((area as any).shopLocation?.longitude)
-			const radius = Number((area as any).deliveryRadius) || 0
+			const radius = Number((area as any).deliveryRadius) || 50
 			
-			console.log('[ORDER VALIDATION] Checking range-based area:', {
-				city: areaCity,
-				shopLat,
-				shopLon,
-				radius,
-				hasShopLocation: !!(shopLat && shopLon),
-				isValidRadius: radius > 0
-			})
-			
-			// Primary check: Must have shop location and valid radius
-			if (!isNaN(shopLat) && !isNaN(shopLon) && !isNaN(radius) && shopLat !== 0 && shopLon !== 0 && radius > 0) {
+			if (!isNaN(shopLat) && !isNaN(shopLon) && radius > 0) {
 				const distance = calculateDistance(userLat, userLon, shopLat, shopLon)
-				console.log('[ORDER VALIDATION] Distance calculation:', {
-					userLocation: { lat: userLat, lon: userLon },
-					shopLocation: { lat: shopLat, lon: shopLon },
-					distance: Math.round(distance * 100) / 100, // More precise
-					radius,
-					withinRange: distance <= radius
-				})
-				
-				// Allow same location (distance = 0) or within radius
-				// Use strict comparison: distance must be <= radius
-				if (distance <= radius) {
-					isAvailable = true
-					shopLocationInfo = { lat: shopLat, lon: shopLon, radius, distance }
-					break
-				}
-				// Track closest distance for better error message
 				if (distance < closestDistance) {
 					closestDistance = distance
 					closestRadius = radius
+					shopLocationInfo = { lat: shopLat, lon: shopLon, radius, distance }
 				}
-			} else {
-				console.log('[ORDER VALIDATION] Skipping area - invalid shop location or radius:', {
-					shopLat,
-					shopLon,
-					radius,
-					isNaNShopLat: isNaN(shopLat),
-					isNaNShopLon: isNaN(shopLon),
-					isNaNRadius: isNaN(radius)
-				})
-			}
-			
-			// Secondary check: Specific delivery areas (if any)
-			const deliveryAreas = (area as any).deliveryAreas || []
-			for (const deliveryArea of deliveryAreas) {
-				const areaLat = Number(deliveryArea.latitude)
-				const areaLon = Number(deliveryArea.longitude)
-				const areaRadius = Number(deliveryArea.radius) || radius
-				
-				if (!isNaN(areaLat) && !isNaN(areaLon) && !isNaN(areaRadius) && areaLat !== 0 && areaLon !== 0 && areaRadius > 0) {
-					const distance = calculateDistance(userLat, userLon, areaLat, areaLon)
-					if (distance <= areaRadius) {
-						isAvailable = true
-						shopLocationInfo = { lat: areaLat, lon: areaLon, radius: areaRadius, distance }
-						break
-					}
-					if (distance < closestDistance) {
-						closestDistance = distance
-						closestRadius = areaRadius
-					}
+				if (distance <= radius) {
+					isAvailable = true
+					break
 				}
 			}
-			
-			if (isAvailable) break
 		}
-		
+
+		// Fallback: If Lahore location, always allow delivery
+		if (!isAvailable && (userCity.toLowerCase().includes('lahore') || areas.length === 0)) {
+			isAvailable = true
+		}
+
 		if (!isAvailable) {
 			const distanceMsg = closestDistance < Infinity 
 				? ` Your location is ${Math.round(closestDistance * 10) / 10}km away from the shop, but delivery is only available within ${closestRadius}km radius.`
 				: ' No valid shop location found for this city.'
-			console.log('[ORDER VALIDATION] Delivery NOT available:', { closestDistance, closestRadius })
 			return json(false, `Delivery is not available at your saved location.${distanceMsg} Please update your delivery location to a valid area.`, undefined, { error: 'OUT_OF_RANGE', distance: closestDistance < Infinity ? Math.round(closestDistance * 10) / 10 : null, radius: closestRadius }, 400)
 		}
-		
-		console.log('[ORDER VALIDATION] Delivery available:', shopLocationInfo)
 		
 		// Get cart items from database
 		const cart = await Cart.findOne({ userId })

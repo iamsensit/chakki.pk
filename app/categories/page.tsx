@@ -5,7 +5,11 @@ import Category from '@/models/Category'
 import { ChevronRight, Package } from 'lucide-react'
 import Image from 'next/image'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function fetchCategories() {
+
 	try {
 		await connectToDatabase()
 		
@@ -138,9 +142,8 @@ const categoryImages: Record<string, string> = {
 	'rice': '/categories/rice.jpg',
 }
 
-export const dynamic = 'force-dynamic'
-
 export default async function CategoriesPage() {
+
 	const categories = await fetchCategories()
 	
 	return (
